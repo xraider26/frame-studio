@@ -122,8 +122,13 @@ class ProductionTools:
                 failed = [c for c, passed in data['criteria'].items() if not passed]
                 if policy['auto_retry'] and required_inspection <= set(data['inspected']) and (data['defect'] or failed):
                     counts = shot.setdefault('quality_retries', {'image': 0, 'video': 0})
-                    if counts[kind] < policy['retry_limit']:
+                    if asset.get('automatic_quality_revision'):
+                        shot.setdefault('quality_retry_attention', {})[kind] = 'This rejected take already caused an automatic revision. Select a new result or request a manual revision.'
+                    elif counts[kind] < policy['retry_limit']:
                         counts[kind] += 1
+                        asset['automatic_quality_revision'] = {'at': data['at'], 'kind': kind, 'actor': actor}
+                        shot.setdefault('quality_retry_exhausted', {}).pop(kind, None)
+                        shot.setdefault('quality_retry_attention', {}).pop(kind, None)
                         shot['direction']['quality']['revision_reason'] = data['defect'] or ('Failed checks: ' + '; '.join(failed))
                         self._invalidate_selected(p, {shot['id']: {kind}})
                         audit(p, actor, 'Automatic targeted quality revision requested after actual inspection')
@@ -161,6 +166,7 @@ class ProductionTools:
                     self._invalidate_selected(p, dependents)
                 self._reopen(p, 'pilot')
             asset['stale'] = False
+            shot.setdefault('quality_retry_attention', {}).pop(asset['kind'], None)
             shot[asset['kind'] + '_asset'] = asset_id
             self._progress(p)
             audit(p, actor, 'Explicitly selected compatible take: ' + asset_id)
@@ -175,6 +181,7 @@ class ProductionTools:
                 raise StudioError('not_found', 'Shot not found.', 404)
             shot['direction']['quality']['revision_reason'] = reason[:8000]
             shot.setdefault('quality_retry_exhausted', {}).pop(kind, None)
+            shot.setdefault('quality_retry_attention', {}).pop(kind, None)
             self._invalidate_selected(p, {shot_id: {kind}})
             self._progress(p)
             audit(p, actor, f'Targeted {kind} revision: {shot["title"]} — {reason}')

@@ -185,6 +185,8 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Stor
                 if not shot:
                     return {'action': 'prepare_shots', 'step': step, 'message': 'Add shots to continue.'}
                 if shot[kind + '_asset'] and not quality_passed(p, shot, kind):
+                    if shot.get('quality_retry_attention', {}).get(kind):
+                        return {'action': 'quality_attention', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': shot['quality_retry_attention'][kind]}
                     if shot.get('quality_retry_exhausted', {}).get(kind):
                         return {'action': 'quality_attention', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': 'Automatic quality retry limit reached. Inspect the defect and redesign or revise manually before spending again.'}
                     return {'action': 'record_quality', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'asset_id': shot[kind + '_asset'], 'criteria': criteria_for(p, shot, kind), 'message': 'Inspect the returned media and record the required quality checks.'}
@@ -350,7 +352,7 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Stor
                                 'duration_seconds': duration, 'edit_duration_seconds': edit_duration, 'edit_in_seconds': edit_in, 'direction': direction,
                                 'image_asset': previous.get('image_asset'), 'video_asset': previous.get('video_asset'),
                                 **({'input_versions': copy.deepcopy(previous['input_versions'])} if 'input_versions' in previous else {})})
-                for key in ['quality_retries', 'quality_retry_exhausted']:
+                for key in ['quality_retries', 'quality_retry_exhausted', 'quality_retry_attention']:
                     if key in previous:
                         changed[-1][key] = copy.deepcopy(previous[key])
             p['shots'] = changed

@@ -75,3 +75,14 @@ class BatchIdentityTests(unittest.TestCase):
         p=self.s.update_shots(p['id'],shots,p['revision'],'agent')
         refs=effective_direction(p,p['shots'][0])['references']
         self.assertEqual({r['entity_id'] for r in refs},{'hero'})
+
+    def test_guest_only_shot_does_not_fallback_to_offscreen_canonical_character(self):
+        from studio.preflight import references_for
+        self.assertTrue(hasattr(self.s,'sync_batch_identity'))
+        b=self.s.create_batch('Guest','Idea','episodes','ai-film',1,'guest-only','user',identity_source_project_id=self.source['id'],source_revision=self.source['revision'])
+        p=self.s.get(b['project_ids'][0])
+        p=self.s.update_production(p['id'],{'bible':p['production']['bible']+[{'id':'guest','kind':'character','name':'Unrelated guest'}]},p['revision'],'agent')
+        shots=copy.deepcopy(p['shots']);shots[0]['direction']['action']['visible_entities']=['guest']
+        p=self.s.update_shots(p['id'],shots,p['revision'],'agent')
+        self.assertFalse(effective_direction(p,p['shots'][0])['references'])
+        self.assertFalse(references_for(p,p['shots'][0],'image'),'An offscreen canonical reference must not return through legacy fallback')

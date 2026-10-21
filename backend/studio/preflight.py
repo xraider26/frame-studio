@@ -9,7 +9,9 @@ def references_for(project, shot, kind):
     if bindings:
         refs = [{**assets[r['asset_id']], 'slot': r['slot'], 'binding_role': r['role'], 'version': r['version'], 'entity_id': r['entity_id']} for r in bindings if r['asset_id'] in assets]
     else:
-        refs = [{**a, 'slot': f'reference_{i}', 'version': a.get('version', 1)} for i, a in enumerate(project['assets'], 1) if a.get('role') == 'reference' and a['kind'] == 'image' and not a.get('source_video')]
+        refs = [{**a, 'slot': f'reference_{i}', 'version': a.get('version', 1)} for i, a in enumerate(project['assets'], 1)
+                if a.get('role') == 'reference' and a['kind'] == 'image' and not a.get('source_video')
+                and not (a.get('canonical_batch') and project.get('shared_identity'))]
     if kind == 'image':
         refs = [r for r in refs if r.get('binding_role') != 'motion' and r['kind'] == 'image']
     if kind == 'video' and shot.get('image_asset') and not any(r.get('binding_role') == 'start_frame' for r in refs):

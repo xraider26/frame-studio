@@ -133,3 +133,16 @@ class BatchTests(unittest.TestCase):
         task=self.s.claim_queue_task('agent','no-op',b['id'])
         self.s.mutate(task['project_id'],None,lambda p:None)
         with self.assertRaises(StudioError):self.s.finish_queue_task(task['id'],'agent','done','Only revision changed')
+
+    def test_reselecting_a_rejected_old_take_cannot_consume_another_auto_retry(self):
+        b=self.batch(1,{'auto_retry':True,'retry_limit':2})
+        p=self.prepare(self.s.get(b['project_ids'][0]))
+        file=self.s.inbox/'same-take.png';Image.new('RGB',(32,18),'orange').save(file)
+        task=self.s.claim_next(p['id'],'agent','same-take')
+        result=self.s.return_result(task['job']['id'],str(file),'agent');p=self.s.get(p['id'])
+        review={'criteria':{},'inspected':['image'],'defect':'Duplicate hand'}
+        p=self.s.record_take_review(p['id'],result['asset']['id'],review,p['revision'],'agent')
+        p=self.s.select_take(p['id'],result['asset']['id'],p['revision'],'user')
+        p=self.s.record_take_review(p['id'],result['asset']['id'],review,p['revision'],'agent')
+        self.assertEqual(p['shots'][0]['quality_retries']['image'],1)
+        self.assertEqual(self.s.next_action(p['id'])['action'],'quality_attention')
