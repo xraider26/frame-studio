@@ -24,6 +24,8 @@
 - [x] Implement `saved_templates.py`, store table, project creation integration and API/MCP operations.
 - [x] RED React tests for saving selected sections and applying a template; implement template library and integrate saved choices into the project picker.
 - [x] Full backend/UI checks and production build; independent review and regression fixes.
-- [ ] Merge locally, rebuild/restart the existing app, verify HTTP/API and record precise limits. No GitHub push or paid generation.
+- [x] Merge locally, rebuild/restart the existing app, verify HTTP/API and record precise limits. No GitHub push or paid generation.
 
 Review fix: selective settings/story application reconciles entity, speaker, reference and continuity links at the section boundary while retaining unrelated creative settings. Regression failures were observed then fixed. Verification: 54 backend tests (including actual MCP SDK transport), 10 React/JSDOM tests, targeted template component lint and production webpack build green. Full-browser visual verification remains unperformed after the earlier browser launch was rejected by automatic review.
+
+Local rollout complete: 54 backend tests and 10 React DOM tests passed again in the main checkout; normal Turbopack production rebuild succeeded. Existing services restarted; /studio and proxied list_templates both return 200. Existing 9 built-in formats remain available. No paid generation or full-browser visual validation was performed.
