@@ -1,6 +1,6 @@
 # Frame Studio: creative production system
 
-Status: proposed design, awaiting user review. No implementation is claimed by this document.
+Status: approved by the user on 21 October 2026; implementation authorized. The user also requested contextual (?) help with visual examples, available on hover and click.
 
 ## Intent and existing decisions
 
@@ -63,6 +63,8 @@ Keep the existing workspace/project selector and visual identity. Proposed navig
 - Editor handoff and Connections & MCP remain accessible.
 
 Use progressive disclosure, accessible labels, keyboard controls, clear focus, legible glass contrast and responsive layouts. Preserve unapplied edits during polling. A revision conflict must show recovery choices without dropping drafts or overwriting another client's changes. Applying a preset is reversible before saving.
+
+Technical option labels include a (?) control. Hover and keyboard focus show a short explanation with a visual preview; click/tap pins the popover so it can be read and interacted with. Escape, close and outside click dismiss it. Keep the preview within the viewport on narrow screens. Show the selected option's actual meaning rather than a generic definition. Framing/lens/light/movement examples use a consistent scene and explicitly identify illustrative diagrams/look approximations; camera-brand presets are not certified camera simulations. Include use cases, tradeoffs and source provenance. Custom values remain editable and receive category help without inventing an exact visual prediction.
 
 ## Templates with production behaviour
 

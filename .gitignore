@@ -31,3 +31,5 @@ backend/sample_*.png
 backend/test_flow_clip.mp4
 frontend/inspect-studio.js
 github_publish.py
+.worktrees/
+.superpowers/
