@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "frame_studio": {
+      "command": "G:/AI/YT/flow-companion-studio/backend/.venv/Scripts/python.exe",
+      "args": ["G:/AI/YT/flow-companion-studio/backend/studio_mcp.py"],
+      "env": { "STUDIO_CLIENT_NAME": "my-agent" }
+    }
+  }
+}
