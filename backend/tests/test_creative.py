@@ -103,6 +103,47 @@ class CreativeTests(unittest.TestCase):
         p['shots'][0]['direction']['sound']['cutaway'] = False
         self.assertFalse(effective_direction(p, p['shots'][0])['sound']['cutaway'])
 
+    def test_duplicate_remaps_bible_reference_and_continuation_ids(self):
+        from PIL import Image
+        p=self.p
+        path=self.studio.inbox/'ref.png';Image.new('RGB',(8,8)).save(path)
+        p=self.studio.import_reference(p['id'],str(path),'Canonical traveler',p['revision'],'user')
+        asset=p['assets'][0]['id']
+        p=self.studio.update_production(p['id'],{'bible':[{'id':'traveler','kind':'character','name':'Traveler','asset_ids':[asset]}]},p['revision'],'user')
+        shots=p['shots'];shots[0]['direction']['references']=[{'slot':'portrait','asset_id':asset,'entity_id':'traveler'}]
+        shots[1]['direction']['action']['continuity_from']=shots[0]['id']
+        p=self.studio.update_shots(p['id'],shots,p['revision'],'user')
+        clone=self.studio.duplicate_project(p['id'],'Copy','user')
+        new_asset=clone['assets'][0]['id']
+        self.assertNotEqual(new_asset,asset)
+        self.assertEqual(clone['production']['bible'][0]['asset_ids'],[new_asset])
+        self.assertEqual(clone['shots'][0]['direction']['references'][0]['asset_id'],new_asset)
+        self.assertEqual(clone['shots'][1]['direction']['action']['continuity_from'],clone['shots'][0]['id'])
+
+    def test_legacy_upgrade_backs_up_and_keeps_existing_look(self):
+        import json,sqlite3
+        p=copy.deepcopy(self.p);p.pop('production');p.pop('schema_version');p['template_id']='podcast'
+        for shot in p['shots']:shot.pop('direction')
+        with self.studio.connect() as conn:conn.execute('UPDATE studio_projects SET payload=? WHERE id=?',(json.dumps(p),p['id']))
+        reopened=Studio(self.studio.db_path,self.studio.media_root,self.studio.inbox)
+        self.assertTrue(self.studio.db_path.with_name('db.pre-creative-v2.sqlite3').exists())
+        saved=reopened.get_project(p['id'])
+        self.assertIn('Slow dolly in',prompt_for(saved,saved['shots'][0],'video')['prompt'])
+
+    def test_edit_source_range_and_editor_export(self):
+        p=self.p
+        shot={**p['shots'][0],'duration_seconds':8,'edit_duration_seconds':4,'edit_in_seconds':3}
+        p=self.studio.update_shots(p['id'],[shot],p['revision'],'user')
+        handoff=self.studio.editor_handoff(p['id'])
+        self.assertEqual(handoff['shots'][0]['source_in'],3)
+        self.assertEqual(handoff['shots'][0]['source_out'],7)
+        from studio.exports import export_editor
+        import zipfile
+        bundle=export_editor(self.studio,p['id'])
+        with zipfile.ZipFile(bundle['path']) as archive:
+            self.assertIn('edit-decision.csv',archive.namelist())
+        self.assertFalse(bundle['manifest']['ready'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,5 +1,25 @@
 # Frame Studio: agent-controlled workflow
 
+## Creative production upgrade (schema v2)
+
+The studio now shares structured story/bible/shot direction with its agents. See [feature and source coverage](CREATIVE-COVERAGE.md) for exact capabilities, tests and current limits.
+
+- `creative_schema`: field definitions, validation and inheritance rules. Shot `direction` includes camera/composition, lighting, art, action/states, sound, exact references and quality criteria; `edit_duration_seconds` and `edit_in_seconds` are separate from generation duration.
+- `knowledge_catalog(query, category)`: searchable technique explanations, visual keys, use cases, risks, source/provenance and editable `apply` patches. Coverage explicitly distinguishes the supplied playbook from unavailable original PDF catalogues.
+- `update_production`: patch structured brief/story/bible/defaults/capability observations and experiments. Resource policy and the required-QC switch remain human-only. Omit those fields in agent updates.
+- `preview_shot` and `validate_project`: same compiler and deterministic checks used by browser and generation handoffs. A blank shot field inherits project direction. Generator/profile changes do not create an account connection.
+- `record_take_review`: actual inspection evidence with `criteria: {text: true/false}`, `inspected: [image]` or `[beginning,middle,end]`, `notes` and `defect`. Required criteria arrive in `handoff.required_media_checks`. Agent actor names are prefixed `agent:`. Evidence never grants human approval.
+- `select_take`, `revise_shot`: explicit compatible take selection or targeted image/video revision with a named reason. Unrelated selections remain; linked dependencies/review stages reopen. Old media is retained.
+- `extract_continuation`: real local near-final-frame extraction; explicitly bind and inspect the resulting image. `repair_handoff` supplies original/mask/defect/preservation data for an external editor; it does not execute inpainting.
+- `record_job_cost`: actual cost plus evidence in the project's single unit, retaining correction history. `production_metrics` reports known reserved/spent costs and unknown jobs. A claim reserves evidenced planned cost once; unknown costs or an exhausted hard limit block additional generation. Cancellation is not a refund.
+- `export_editor_package`: selected actual MP4s plus editor JSON and source/timeline CSV; no native editor-project or rendered-video claim.
+
+Additional `next_action` states: `resolve_preflight`, `resolve_resources` and `record_quality`. Resolve the stated inputs/evidence or let the user adjust their policy; do not bypass them. `await_approval` still means stop for the user's browser review.
+
+New custom-template placeholders: `{environment} {mood} {opening} {ending} {dialogue} {composition} {body_look} {state_before} {state_after} {references}`. Existing placeholders remain accepted. The ZIP now includes structured production, direction, preflight/source coverage and technique data alongside compiled prompts and portable references.
+
+Existing project IDs and documents remain intact. Older clients that omit `direction` retain that shot's saved nested data. Existing databases receive a one-time `*.pre-creative-v2.sqlite3` backup before upgrading persisted projects. These local private files remain excluded from Git.
+
 This is the connected application at **http://127.0.0.1:3000/studio**. The earlier port-52741 HTML preview remains a separate prototype. Frame's real projects, generation tasks and imported media are stored locally in `studio_data/`. The existing companion dashboard, backend and media are preserved.
 
 ## Start

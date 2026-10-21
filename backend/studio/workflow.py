@@ -13,6 +13,8 @@ from .generators import VIDEO_PROFILES, IMAGE_PROFILES, prompt_for, validate_tem
 from .exports import export_project
 from .creative import default_production, Direction, Production, merge, validated, normalize_direction
 from .preflight import preflight, references_for
+from .production import ProductionTools, quality_passed, criteria_for
+from .resources import resource_gate
 
 
 def uid():
@@ -33,7 +35,7 @@ def clean_text(value, limit=12000):
     return value.strip()
 
 
-class Studio(Store):
+class Studio(ProductionTools, Store):
     def __init__(self, db_path, media_root, inbox):
         super().__init__(db_path)
         self.media_root, self.inbox = Path(media_root).resolve(), Path(inbox).resolve()
@@ -56,7 +58,7 @@ class Studio(Store):
              'shots': [{'id': uid(), 'title': title, 'image_prompt': '', 'motion_prompt': '', 'narration': '', 'duration_seconds': 4, 'image_asset': None, 'video_asset': None} for title in template['structure']],
              'assets': [], 'jobs': [], 'history': [], 'production': default_production(template_id)}
         for shot in p['shots']:
-            shot.update(direction=Direction().model_dump(), edit_duration_seconds=shot['duration_seconds'])
+            shot.update(direction=Direction().model_dump(), edit_duration_seconds=shot['duration_seconds'], edit_in_seconds=0)
         event(p, 'created', actor, 'Project created from ' + template['name'])
         return self.insert(p)
 
@@ -91,15 +93,24 @@ class Studio(Store):
             clone['production'] = copy.deepcopy(original['production'])
             clone['documents'] = {k: copy.deepcopy(v) for k, v in original['documents'].items() if k in ['brief', 'script']}
             clone['shots'] = [{**copy.deepcopy(s), 'id': uid(), 'image_asset': None, 'video_asset': None} for s in original['shots']]
+            shot_ids = {old['id']: new['id'] for old, new in zip(original['shots'], clone['shots'])}
+            asset_ids = {}
             for a in original['assets']:
                 if a.get('role') != 'reference': continue
                 source = Path(a['path']).resolve()
                 if not source.is_relative_to(self.media_root) or not source.is_file(): continue
                 asset_id = uid()
+                asset_ids[a['id']] = asset_id
                 dest = self.media_root / clone['id'] / (asset_id + source.suffix)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, dest)
                 clone['assets'].append({**copy.deepcopy(a), 'id': asset_id, 'path': str(dest), 'url': f'/api/studio/media/{clone["id"]}/{dest.name}', 'stale': False})
+            for entity in clone['production']['bible']:
+                entity['asset_ids'] = [asset_ids.get(key, key) for key in entity['asset_ids']]
+            for shot in clone['shots']:
+                shot['direction']['action']['continuity_from'] = shot_ids.get(shot['direction']['action']['continuity_from'], '')
+                for ref in shot['direction']['references']:
+                    ref['asset_id'] = asset_ids.get(ref['asset_id'], ref['asset_id'])
             for step in ['brief', 'script']:
                 clone['steps'][step]['ready'] = bool(clone['documents'].get(step, {}).get('text'))
             self._progress(clone)
@@ -113,6 +124,10 @@ class Studio(Store):
         p = self.get(project_id)
         p['next_action'] = self._next(p)
         p['preflight'] = preflight(p)
+        for asset in p['assets']:
+            shot = next((s for s in p['shots'] if s['id'] == asset.get('shot_id')), None)
+            if shot and not asset.get('role'):
+                asset['required_checks'] = criteria_for(shot, asset['kind'])
         return p
 
     def validate_project(self, project_id):
@@ -126,12 +141,11 @@ class Studio(Store):
         return {'image': prompt_for(p, shot, 'image'), 'video': prompt_for(p, shot, 'video'), 'preflight': preflight(p, shot_id), 'references': references_for(p, shot, 'video')}
 
     def _progress(self, p):
-        if p['shots'] and all(s['image_asset'] for s in p['shots']):
-            p['steps']['visual_direction']['ready'] = True
-        if p['shots'] and p['shots'][0]['video_asset']:
-            p['steps']['pilot']['ready'] = True
-        if p['shots'] and all(s['video_asset'] for s in p['shots']):
-            p['steps']['production']['ready'] = True
+        for step, kind, shots in [('visual_direction', 'image', p['shots']), ('pilot', 'video', p['shots'][:1]), ('production', 'video', p['shots'])]:
+            ready = bool(shots) and all(s[kind + '_asset'] and quality_passed(p, s, kind) and not preflight(p, s['id'], kind)['errors'] for s in shots)
+            p['steps'][step]['ready'] = ready
+            if not ready and p['steps'][step]['status'] in ['approved', 'auto_proceeded']:
+                p['steps'][step]['status'] = 'draft'
         for step in STEPS:
             state = p['steps'][step]
             if not state['ready']:
@@ -154,14 +168,19 @@ class Studio(Store):
             if step in ['visual_direction', 'pilot', 'production']:
                 kind = 'image' if step == 'visual_direction' else 'video'
                 shots = p['shots'][:1] if step == 'pilot' else p['shots']
-                shot = next((s for s in shots if not s[kind + '_asset']), None)
+                shot = next((s for s in shots if not s[kind + '_asset'] or not quality_passed(p, s, kind) or preflight(p, s['id'], kind)['errors']), None)
                 if not shot:
                     return {'action': 'prepare_shots', 'step': step, 'message': 'Add shots to continue.'}
+                if shot[kind + '_asset'] and not quality_passed(p, shot, kind):
+                    return {'action': 'record_quality', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'asset_id': shot[kind + '_asset'], 'criteria': criteria_for(shot, kind), 'message': 'Inspect the returned media and record the required quality checks.'}
                 if not shot['image_prompt' if kind == 'image' else 'motion_prompt'].strip():
                     return {'action': 'write_prompt', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': f"Prepare the {kind} prompt for {shot['title']}."}
                 checks = preflight(p, shot['id'], kind)
                 if checks['errors']:
                     return {'action': 'resolve_preflight', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': 'Resolve the blocking production checks before generating.', 'preflight': checks}
+                budget = resource_gate(p, shot, kind, step, self._fingerprint(p, shot, kind))
+                if budget:
+                    return {'action': 'resolve_resources', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': budget}
                 return {'action': 'generate', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': f"Generate {kind} for {shot['title']}."}
             return {'action': 'prepare_step', 'step': step, 'message': 'Prepare ' + step.replace('_', ' ') + '.'}
         return {'action': 'complete', 'step': None, 'message': 'All workflow steps complete.'}
@@ -177,7 +196,7 @@ class Studio(Store):
             for shot in p['shots']:
                 shot['image_asset'] = shot['video_asset'] = None
             for asset in p['assets']:
-                asset['stale'] = True
+                if asset.get('role') != 'reference': asset['stale'] = True
         elif step in ['pilot', 'production']:
             p['video_epoch'] = p.get('video_epoch', 0) + 1
             # A rejected motion take must not immediately satisfy the step again.
@@ -248,8 +267,12 @@ class Studio(Store):
             if field in settings: validate_template(settings[field])
         def update(p):
             if any(p['settings'][k] != v for k, v in settings.items()):
-                self._invalidate(p, 'visual_direction')
+                before = copy.deepcopy(p)
                 p['settings'].update(settings)
+                affected = self._changed_inputs(before, p)
+                if affected: self._invalidate_selected(p, affected)
+                else: self._reopen(p, 'editor_handoff')
+                self._progress(p)
                 event(p, 'settings_changed', actor, 'Creative settings updated; dependent outputs require review')
         return self.mutate(project_id, expected_revision, update)
 
@@ -262,15 +285,28 @@ class Studio(Store):
             if len(ids) != len(set(ids)) or any(not key for key in ids):
                 raise StudioError('invalid_creative_record', 'Bible entities need distinct nonempty IDs.')
             if data != p['production']:
-                self._invalidate(p, 'visual_direction')
+                before = copy.deepcopy(p)
+                if data['resources']['unit'] != p['production']['resources']['unit'] and p['jobs']:
+                    raise StudioError('cost_unit_locked', 'Existing attempts use the current cost unit. Create a separate project for another unit.')
                 p['production'] = data
+                affected = self._changed_inputs(before, p)
+                if affected: self._invalidate_selected(p, affected)
+                if data['brief'] != before['production']['brief'] or data['story'] != before['production']['story']:
+                    step = 'brief' if data['brief'] != before['production']['brief'] else 'script'
+                    self._reopen(p, step)
+                    for name in ['brief', 'script']:
+                        p['steps'][name]['ready'] = bool(p['documents'].get(name, {}).get('text'))
+                if data['require_recorded_checks'] != before['production']['require_recorded_checks']:
+                    self._reopen(p, 'visual_direction')
+                self._progress(p)
                 event(p, 'production_updated', actor, 'Structured production direction saved')
         return self.mutate(project_id, expected_revision, update)
 
     def update_shots(self, project_id, shots, expected_revision, actor):
-        if not isinstance(shots, list) or not 1 <= len(shots) <= 200:
+        if not isinstance(shots, list) or not 1 <= len(shots) <= 200 or any(not isinstance(s, dict) for s in shots):
             raise StudioError('invalid_shots', 'Provide between 1 and 200 ordered shots.')
         def update(p):
+            before = copy.deepcopy(p)
             old = {s['id']: s for s in p['shots']}
             changed = []
             seen = set()
@@ -287,14 +323,25 @@ class Studio(Store):
                 edit_duration = item.get('edit_duration_seconds', previous.get('edit_duration_seconds', duration))
                 if type(edit_duration) not in [int, float] or not 0 < edit_duration <= 3600:
                     raise StudioError('invalid_shot', 'Retained edit duration must be a finite positive number.')
+                edit_in = item.get('edit_in_seconds', previous.get('edit_in_seconds', 0))
+                if type(edit_in) not in [int, float] or not 0 <= edit_in <= 3600:
+                    raise StudioError('invalid_shot', 'Source in-point must be a finite nonnegative number.')
                 changed.append({'id': shot_id, 'title': clean_text(item.get('title', 'Untitled shot'), 150),
                                 'image_prompt': clean_text(item.get('image_prompt', '')),
                                 'motion_prompt': clean_text(item.get('motion_prompt', '')),
                                 'narration': clean_text(item.get('narration', '')),
-                                'duration_seconds': duration, 'edit_duration_seconds': edit_duration, 'direction': direction,
-                                'image_asset': None, 'video_asset': None})
-            self._invalidate(p, 'visual_direction')
+                                'duration_seconds': duration, 'edit_duration_seconds': edit_duration, 'edit_in_seconds': edit_in, 'direction': direction,
+                                'image_asset': previous.get('image_asset'), 'video_asset': previous.get('video_asset'),
+                                **({'input_versions': copy.deepcopy(previous['input_versions'])} if 'input_versions' in previous else {})})
             p['shots'] = changed
+            affected = self._changed_inputs(before, p)
+            if affected:
+                self._invalidate_selected(p, affected)
+            elif changed != before['shots']:
+                self._reopen(p, 'editor_handoff')
+            if p['production']['require_recorded_checks'] and any(s['id'] in old and s['direction']['quality']['criteria'] != old[s['id']]['direction']['quality']['criteria'] for s in changed):
+                self._reopen(p, 'visual_direction')
+            self._progress(p)
             event(p, 'shots_changed', actor, f'{len(shots)} ordered shots saved')
         return self.mutate(project_id, expected_revision, update)
 
@@ -316,6 +363,8 @@ class Studio(Store):
     def _fingerprint(self, p, shot, kind):
         identity = {'epoch': p['epoch'], 'shot': shot['id'] if shot else None, 'kind': kind}
         if kind == 'video': identity['video_epoch'] = p.get('video_epoch', 0)
+        if shot and 'input_versions' in shot:
+            identity['input_version'] = shot['input_versions'].get(kind, 0)
         return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
 
     def claim_next(self, project_id, actor, request_id):
@@ -343,10 +392,14 @@ class Studio(Store):
                        'creative_settings': copy.deepcopy(p['settings']), 'narration': shot['narration'],
                        'effective_direction': prepared['effective_direction'], 'production': copy.deepcopy(p['production']),
                        'acceptance_criteria': prepared['effective_direction']['quality']['criteria'], 'preflight': preflight(p, shot['id'], action['kind']),
+                       'required_media_checks': criteria_for(shot, action['kind']), 'input_signature': self._input_signature(p, shot, action['kind']),
+                       'revision_context': {'reason': shot['direction']['quality']['revision_reason'],
+                                            'previous_takes': [{k: a.get(k) for k in ['id', 'path', 'kind', 'stale', 'review']} for a in p['assets'] if a.get('shot_id') == shot['id'] and a['kind'] == action['kind']][-3:]},
                        'duration_seconds': shot['duration_seconds'], 'references': copy.deepcopy(refs),
                        'return_inbox': str(self.inbox), 'expected_output': 'PNG/JPEG/WebP' if action['kind'] == 'image' else 'MP4',
                        'return_instructions': 'Save the generated file in return_inbox, then call return_generation with this job_id and the absolute output_path. Do not mark it complete without real media.'}
             job = {'id': uid(), 'shot_id': shot['id'], 'kind': action['kind'], 'step': action['step'],
+                   'cost': {'planned': p['production']['resources'][action['kind'] + '_cost'], 'actual': None, 'unit': p['production']['resources']['unit'], 'evidence': p['production']['resources']['cost_evidence']},
                    'status': 'awaiting_external_output', 'actor': actor, 'request_id': request_id,
                    'created_at': now(), 'fingerprint': fingerprint, 'handoff': handoff}
             handoff['job_id'] = job['id']
@@ -383,6 +436,7 @@ class Studio(Store):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, dest)
             asset = {'id': asset_id, 'shot_id': current['shot_id'], 'kind': current['kind'], 'stale': stale,
+                     'input_signature': current['handoff'].get('input_signature'), 'version': 1,
                      'path': str(dest), 'url': f'/api/studio/media/{p["id"]}/{dest.name}', 'created_at': now(), **metadata}
             p['assets'].append(asset)
             current.update(status='succeeded_stale' if stale else 'succeeded', asset_id=asset_id, completed_at=now())
@@ -436,7 +490,17 @@ class Studio(Store):
 
     def editor_handoff(self, project_id):
         p = self.get(project_id)
-        return {'project_id': p['id'], 'project_name': p['name'], 'settings': p['settings'],
-                'shots': [{**s, 'video': next((a for a in p['assets'] if a['id'] == s['video_asset']), None)} for s in p['shots']],
+        cursor = 0
+        shots = []
+        for s in p['shots']:
+            d = prompt_for(p, s, 'video')['effective_direction']
+            duration = s.get('edit_duration_seconds', s['duration_seconds'])
+            source_in = s.get('edit_in_seconds', 0)
+            shots.append({**s, 'effective_direction': d, 'timeline_in': cursor, 'timeline_out': cursor + duration,
+                          'source_in': source_in, 'source_out': source_in + duration,
+                          'video': next((a for a in p['assets'] if a['id'] == s['video_asset']), None)})
+            cursor += duration
+        return {'schema_version': 2, 'project_id': p['id'], 'project_name': p['name'], 'settings': p['settings'], 'source_revision': p['revision'],
+                'production': p['production'], 'preflight': preflight(p), 'shots': shots, 'edit_duration_seconds': cursor,
                 'instructions': 'Assemble these takes in your preferred editor. Return the final MP4 for final review.',
                 'ready': all(p['steps'][s]['status'] in ['approved', 'auto_proceeded'] for s in STEPS[:5])}

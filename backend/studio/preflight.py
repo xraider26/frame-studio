@@ -1,5 +1,6 @@
 """Deterministic production checks. Warnings are not semantic or visual inspection."""
 from .creative import effective_direction
+from pathlib import Path
 
 
 def references_for(project, shot, kind):
@@ -8,7 +9,7 @@ def references_for(project, shot, kind):
     if bindings:
         refs = [{**assets[r['asset_id']], 'slot': r['slot'], 'binding_role': r['role'], 'version': r['version'], 'entity_id': r['entity_id']} for r in bindings if r['asset_id'] in assets]
     else:
-        refs = [{**a, 'slot': f'reference_{i}', 'version': a.get('version', 1)} for i, a in enumerate(project['assets'], 1) if a.get('role') == 'reference']
+        refs = [{**a, 'slot': f'reference_{i}', 'version': a.get('version', 1)} for i, a in enumerate(project['assets'], 1) if a.get('role') == 'reference' and not a.get('source_video')]
     if kind == 'video' and shot.get('image_asset') and not any(r.get('binding_role') == 'start_frame' for r in refs):
         asset = assets.get(shot['image_asset'])
         if asset:
@@ -32,7 +33,7 @@ def preflight(project, shot_id=None, kind=None):
         action, sound = d['action'], d['sound']
         duration = shot['duration_seconds']
         retained = shot.get('edit_duration_seconds', duration)
-        if retained > duration:
+        if retained + shot.get('edit_in_seconds', 0) > duration:
             issue('edit_exceeds_generation', 'error', shot, 'edit_duration_seconds', 'Retained edit duration exceeds generation duration. Shorten the edit or extend the generation.')
         for n, beat in enumerate(action['beats']):
             if beat['end'] <= beat['start'] or beat['end'] > duration:
@@ -45,8 +46,10 @@ def preflight(project, shot_id=None, kind=None):
         for n, ref in enumerate(d['references']):
             path = f'direction.references.{n}'
             asset = assets.get(ref['asset_id'])
-            if not asset or asset['kind'] != 'image' or (asset.get('stale') and asset.get('role') != 'reference'):
+            if not asset or asset['kind'] != 'image' or (asset.get('stale') and (asset.get('role') != 'reference' or asset.get('source_video'))):
                 issue('reference_missing', 'error', shot, path, f"Reference {ref['asset_id']} does not resolve to a current image. Import or rebind the actual file.")
+            elif not Path(asset.get('path', '')).is_file():
+                issue('reference_file_missing', 'error', shot, path, 'The registered reference file is missing from disk. Reimport the actual file.')
             elif ref['version'] != asset.get('version', 1):
                 issue('reference_version', 'error', shot, path, 'Reference version does not match the immutable asset version.')
             slot = ref['slot'].casefold()

@@ -1,6 +1,8 @@
 import json
 import uuid
 import zipfile
+import csv
+import io
 from pathlib import Path
 
 from .generators import prompt_for
@@ -53,3 +55,47 @@ def export_project(studio, project):
         for file, rel in included.values():
             archive.write(file, rel)
     return {'manifest': manifest, 'markdown': text, 'path': str(path), 'download_url': f'/api/studio/export/{p["id"]}/{name}'}
+
+
+def export_editor(studio, project_id):
+    manifest = studio.editor_handoff(project_id)
+    warnings = []
+    included = []
+    rows = []
+    for index, shot in enumerate(manifest['shots'], 1):
+        asset = shot['video']
+        relative = ''
+        if asset:
+            file = Path(asset['path']).resolve()
+            if file.is_relative_to(studio.media_root) and file.is_file():
+                relative = f'media/{index:03d}_{asset["id"]}.mp4'
+                included.append((file, relative))
+                if asset.get('duration', 0) + .1 < shot['source_out']:
+                    warnings.append(f'{shot["title"]}: chosen source range exceeds actual returned clip duration.')
+            else:
+                warnings.append(f'{shot["title"]}: selected video file is missing.')
+        else:
+            warnings.append(f'{shot["title"]}: no video take selected.')
+        shot['portable_video'] = relative or None
+        d = shot['effective_direction']
+        rows.append([index, shot['id'], shot['direction']['scene_id'], shot['title'], relative,
+                     shot['timeline_in'], shot['timeline_out'], shot['source_in'], shot['source_out'],
+                     shot['narration'], d['sound']['dialogue'], d['sound']['speaker_id'], d['sound']['captions'],
+                     d['sound']['ambience'], d['sound']['foley'], d['sound']['music'], d['action']['transition']])
+    manifest['warnings'] = warnings
+    manifest['ready'] = manifest['ready'] and not warnings and not manifest['preflight']['errors']
+    stream = io.StringIO(newline='')
+    writer = csv.writer(stream)
+    writer.writerow(['order', 'shot_id', 'scene_id', 'title', 'file', 'timeline_in', 'timeline_out', 'source_in', 'source_out', 'narration', 'dialogue', 'speaker', 'captions', 'ambience', 'foley', 'music', 'transition'])
+    writer.writerows(rows)
+    name = uuid.uuid4().hex + '.zip'
+    folder = studio.media_root / project_id / 'exports'
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / name
+    with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr('editor-manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2))
+        archive.writestr('edit-decision.csv', stream.getvalue().encode('utf-8-sig'))
+        archive.writestr('README.txt', 'External editing package. Assemble the selected takes using source and timeline ranges in edit-decision.csv.\nThis is not a native Resolve/Premiere/CapCut project. Captions/audio/colour are directions for your editor.\nInspect warnings and actual duration. Review the final export before returning it to the studio.\n')
+        for file, relative in included:
+            archive.write(file, relative)
+    return {'manifest': manifest, 'path': str(path), 'download_url': f'/api/studio/export/{project_id}/{name}'}

@@ -217,10 +217,19 @@ FORMAT_RULES = {
 
 
 def default_production(template_id='custom'):
-    return Production(format_rules=FORMAT_RULES.get(template_id, FORMAT_RULES['custom'])).model_dump()
+    looks = {
+        'ugc': {'camera': {'body_look': 'Natural phone footage; restrained contrast and saturation', 'move': 'Subtle handheld', 'aperture': 'Moderately deep focus'}, 'lighting': {'technique': 'Soft motivated window light'}, 'art': {'style': 'Native creator realism'}},
+        'podcast': {'camera': {'move': 'Locked off', 'framing': 'Medium close-up'}, 'lighting': {'technique': 'Soft studio key with motivated practicals'}},
+        '2d-animation': {'art': {'style': 'Graphic 2D animation', 'materials': 'Consistent line weight, silhouette and flat colour'}},
+        'claymation': {'art': {'style': 'Tactile claymation', 'materials': 'Hand-shaped clay in a consistent miniature set', 'texture': 'Subtle fingerprints and tool marks'}},
+    }
+    return Production(format_rules=FORMAT_RULES.get(template_id, FORMAT_RULES['custom']), defaults=Direction.model_validate(looks.get(template_id, {}))).model_dump()
 
 
 def merge(base, patch):
+    if not isinstance(patch, dict):
+        from .store import StudioError
+        raise StudioError('invalid_creative_record', 'Nested creative updates must be objects; use blank fields to inherit.')
     result = copy.deepcopy(base)
     for key, value in patch.items():
         result[key] = merge(result.get(key, {}), value) if isinstance(value, dict) and isinstance(result.get(key), dict) else copy.deepcopy(value)

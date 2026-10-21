@@ -6,6 +6,8 @@ The new content workflow is available at **http://127.0.0.1:3000/studio**. Start
 
 Generation requires an actual local/agent tool or a configured JSON Job API adapter. Frame does not automatically access a Flow account. The old port-52741 prototype is separate from this connected app.
 
+The creative production workspace adds per-shot camera/lighting/art direction, visual (?) option guides, story timing, production bibles, reference/state continuity, recorded quality checks, take comparison, targeted revisions and resource limits. The same records feed MCP and generator exports. The editor ZIP carries chosen clips and JSON/CSV timing. See [creative feature/source coverage](docs/CREATIVE-COVERAGE.md) for what is implemented and what remains externally validated.
+
 ### Set up a fresh checkout (Windows)
 
 Requires Node.js/npm, Python 3.12 managed by `uv`, and FFmpeg/FFprobe on PATH for video imports.

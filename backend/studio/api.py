@@ -15,6 +15,7 @@ from .generators import VIDEO_PROFILES, IMAGE_PROFILES
 from .workflow import Studio
 from .knowledge import knowledge_catalog
 from .creative import creative_schema
+from .exports import export_editor
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -91,9 +92,9 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
     async def command(body: Command, request: Request):
         human = authorize(request)
         op, a = body.operation, body.arguments
-        actor = 'user' if human else body.actor[:100]
-        if op == 'update_production' and 'resources' in a.get('production', {}) and not human:
-            raise StudioError('human_only', 'Resource policy belongs to the user. Agents may report actual job costs.', 403)
+        actor = 'user' if human else 'agent:' + body.actor[:94]
+        if op == 'update_production' and isinstance(a.get('production'), dict) and any(k in a['production'] for k in ['resources', 'require_recorded_checks']) and not human:
+            raise StudioError('human_only', 'Resource and quality policy belong to the user. Agents may report evidence and actual job costs.', 403)
         if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted'] and not human:
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'studio_capabilities':
@@ -109,6 +110,14 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'update_production': return studio.update_production(a['project_id'], a['production'], a['expected_revision'], actor)
         if op == 'validate_project': return studio.validate_project(a['project_id'])
         if op == 'preview_shot': return studio.preview_shot(a['project_id'], a['shot_id'])
+        if op == 'record_take_review': return studio.record_take_review(a['project_id'], a['asset_id'], a['review'], a['expected_revision'], actor)
+        if op == 'select_take': return studio.select_take(a['project_id'], a['asset_id'], a['expected_revision'], actor)
+        if op == 'revise_shot': return studio.revise_shot(a['project_id'], a['shot_id'], a['kind'], a['reason'], a['expected_revision'], actor)
+        if op == 'extract_continuation': return studio.extract_continuation(a['project_id'], a['asset_id'], a['expected_revision'], actor)
+        if op == 'repair_handoff': return studio.repair_handoff(a['project_id'], a['asset_id'], a['defect'], a.get('mask_asset_id', ''), a['expected_revision'], actor)
+        if op == 'record_job_cost': return studio.record_job_cost(a['project_id'], a['job_id'], a['actual'], a['evidence'], a['expected_revision'], actor)
+        if op == 'production_metrics': return studio.production_metrics(a['project_id'])
+        if op == 'export_editor_package': return export_editor(studio, a['project_id'])
         if op == 'list_projects': return studio.list_projects()
         if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor)
         if op == 'duplicate_project': return studio.duplicate_project(a['project_id'], a.get('name'), actor)

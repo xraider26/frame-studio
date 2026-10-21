@@ -118,6 +118,48 @@ async def preview_shot(project_id: str, shot_id: str) -> dict:
 
 
 @mcp.tool()
+async def record_take_review(project_id: str, asset_id: str, review: dict[str, Any], expected_revision: int) -> dict:
+    """Record actual inspected media evidence: criteria {text:bool}, inspected [image] or [beginning,middle,end], notes, defect. Use handoff.required_media_checks plus shot criteria. Never invent inspection or impersonate human approval. This only satisfies configured media-evidence requirements."""
+    return await command('record_take_review', locals())
+
+
+@mcp.tool()
+async def select_take(project_id: str, asset_id: str, expected_revision: int) -> dict:
+    """Select a compatible actual take. Different creative inputs are rejected. Dependent motion/continuations and reviews reopen; previous files stay stored."""
+    return await command('select_take', locals())
+
+
+@mcp.tool()
+async def revise_shot(project_id: str, shot_id: str, kind: str, reason: str, expected_revision: int) -> dict:
+    """Request a targeted image/video revision with a specific defect. Reopens that shot/dependencies while retaining unrelated takes. Follow next_action and current budget/policy for any new generation."""
+    return await command('revise_shot', locals())
+
+
+@mcp.tool()
+async def extract_continuation(project_id: str, asset_id: str, expected_revision: int) -> dict:
+    """Extract a real near-final frame from a current returned MP4 using local FFmpeg. Inspect it, then explicitly bind its actual ID/version as a following shot's start_frame. Does not claim continuity or auto-generate."""
+    return await command('extract_continuation', locals())
+
+
+@mcp.tool()
+async def repair_handoff(project_id: str, asset_id: str, defect: str, expected_revision: int, mask_asset_id: str = '') -> dict:
+    """Prepare an original/mask/defect/preservation brief for an external image-editing tool. This does not execute inpainting. Compare real output against original and return through a permitted revision job."""
+    return await command('repair_handoff', locals())
+
+
+@mcp.tool()
+async def record_job_cost(project_id: str, job_id: str, actual: float, evidence: str, expected_revision: int) -> dict:
+    """Report actual executor/provider cost in the project's single unit, with evidence. Keeps correction history and settles the conservative reservation. Cancellation is not proof of a vendor refund."""
+    return await command('record_job_cost', locals())
+
+
+@mcp.tool()
+async def production_metrics(project_id: str) -> dict:
+    """Read known reserved/spent costs, unknown jobs, attempts, selected clips, reported defects and completed job time. No external analytics connection is implied."""
+    return await command('production_metrics', locals())
+
+
+@mcp.tool()
 async def complete_step(project_id: str, step: str, output: dict[str, Any], expected_revision: int) -> dict:
     """Return a real brief, script or editor_handoff document as {text: ...}. Media stages complete only through returned files; final_review requires an imported final MP4. Human-required steps wait in the studio."""
     return await command('complete_step', locals())
@@ -163,6 +205,12 @@ async def import_final(project_id: str, path: str, expected_revision: int) -> di
 async def editor_handoff(project_id: str) -> dict:
     """Get ordered take paths, narration, timing and editing notes for an external editor."""
     return await command('editor_handoff', locals())
+
+
+@mcp.tool()
+async def export_editor_package(project_id: str) -> dict:
+    """Create a local ZIP with chosen actual MP4s, editor-manifest.json and edit-decision.csv (source/timeline ranges, dialogue, captions and sound). Missing files or short source ranges are reported. Not a native editor project or a rendered final video."""
+    return await command('export_editor_package', locals())
 
 
 @mcp.tool()
