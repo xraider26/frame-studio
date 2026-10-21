@@ -57,6 +57,8 @@
 
 - [x] Independent whole-change review; reproduce/fix Important findings in one consolidated regression pass.
 - [x] Requirement coverage and precise external/artistic/browser limits recorded.
-- [ ] Merge locally after clean checks, build/restart existing app and verify real HTTP/API health. No GitHub push or paid generation inferred.
+- [x] Merge locally after clean checks, build/restart existing app and verify real HTTP/API health. No GitHub push or paid generation inferred.
 
 Verified before rollout: 81 backend tests, including actual MCP SDK queue transport, and 23 React/JSDOM tests passed; targeted new UI ESLint and webpack production build passed. Independent final review found two P2 defects; both were reproduced with RED tests and fixed: rejected-take retry consumption is recorded per asset, and deliberately excluded canonical references stay excluded through legacy fallback. Existing unrelated page lint debt remains scoped. Full-browser and paid/artistic validation remain unperformed.
+
+Local rollout verified: main fast-forwarded; 81 backend and 23 DOM tests passed again in the main checkout; normal Turbopack production rebuild succeeded. Local services started; /studio and proxied production_queue returned 200. Existing saved project count remained one before and after; no demonstration batch or paid generation was inserted. Full-browser visual/artistic limits remain as documented.
