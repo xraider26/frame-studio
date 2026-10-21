@@ -11,6 +11,7 @@ from .store import Store, StudioError
 from .templates import DEFAULT_SETTINGS, STEPS, TEMPLATES
 from .generators import VIDEO_PROFILES, IMAGE_PROFILES, prompt_for, validate_template
 from .exports import export_project
+from .creative import default_production, Direction, Production, merge, validated, normalize_direction
 
 
 def uid():
@@ -46,13 +47,15 @@ class Studio(Store):
         template = next((t for t in TEMPLATES if t['id'] == template_id), None)
         if not template or not clean_text(name, 150):
             raise StudioError('invalid_input', 'Choose a valid template and project name.')
-        p = {'id': uid(), 'name': name.strip(), 'template_id': template_id, 'revision': 1,
+        p = {'id': uid(), 'name': name.strip(), 'template_id': template_id, 'revision': 1, 'schema_version': 2,
              'created_at': now(), 'request_id': request_id, 'epoch': 1,
              'settings': dict(DEFAULT_SETTINGS, aspect_ratio=template['aspect']), 'documents': {},
              'approval_policy': {s: True for s in STEPS},
              'steps': {s: {'ready': False, 'status': 'draft'} for s in STEPS},
              'shots': [{'id': uid(), 'title': title, 'image_prompt': '', 'motion_prompt': '', 'narration': '', 'duration_seconds': 4, 'image_asset': None, 'video_asset': None} for title in template['structure']],
-             'assets': [], 'jobs': [], 'history': []}
+             'assets': [], 'jobs': [], 'history': [], 'production': default_production(template_id)}
+        for shot in p['shots']:
+            shot.update(direction=Direction().model_dump(), edit_duration_seconds=shot['duration_seconds'])
         event(p, 'created', actor, 'Project created from ' + template['name'])
         return self.insert(p)
 
@@ -84,6 +87,7 @@ class Studio(Store):
         p = self.create_project(name or original['name'] + ' (copy)', original['template_id'], actor=actor)
         def update(clone):
             clone['settings'] = copy.deepcopy(original['settings'])
+            clone['production'] = copy.deepcopy(original['production'])
             clone['documents'] = {k: copy.deepcopy(v) for k, v in original['documents'].items() if k in ['brief', 'script']}
             clone['shots'] = [{**copy.deepcopy(s), 'id': uid(), 'image_asset': None, 'video_asset': None} for s in original['shots']]
             for a in original['assets']:
@@ -234,6 +238,20 @@ class Studio(Store):
                 event(p, 'settings_changed', actor, 'Creative settings updated; dependent outputs require review')
         return self.mutate(project_id, expected_revision, update)
 
+    def update_production(self, project_id, production, expected_revision, actor):
+        if not isinstance(production, dict):
+            raise StudioError('invalid_creative_record', 'Production must be an object.')
+        def update(p):
+            data = validated(Production, merge(p['production'], production))
+            ids = [e['id'] for e in data['bible']]
+            if len(ids) != len(set(ids)) or any(not key for key in ids):
+                raise StudioError('invalid_creative_record', 'Bible entities need distinct nonempty IDs.')
+            if data != p['production']:
+                self._invalidate(p, 'visual_direction')
+                p['production'] = data
+                event(p, 'production_updated', actor, 'Structured production direction saved')
+        return self.mutate(project_id, expected_revision, update)
+
     def update_shots(self, project_id, shots, expected_revision, actor):
         if not isinstance(shots, list) or not 1 <= len(shots) <= 200:
             raise StudioError('invalid_shots', 'Provide between 1 and 200 ordered shots.')
@@ -249,11 +267,17 @@ class Studio(Store):
                 duration = item.get('duration_seconds', 4)
                 if type(duration) is not int or not 1 <= duration <= 30:
                     raise StudioError('invalid_shot', 'Shot duration must be 1–30 seconds.')
+                previous = old.get(shot_id, {})
+                direction = normalize_direction(merge(previous.get('direction', {}), item.get('direction', {})))
+                edit_duration = item.get('edit_duration_seconds', previous.get('edit_duration_seconds', duration))
+                if type(edit_duration) not in [int, float] or not 0 < edit_duration <= 3600:
+                    raise StudioError('invalid_shot', 'Retained edit duration must be a finite positive number.')
                 changed.append({'id': shot_id, 'title': clean_text(item.get('title', 'Untitled shot'), 150),
                                 'image_prompt': clean_text(item.get('image_prompt', '')),
                                 'motion_prompt': clean_text(item.get('motion_prompt', '')),
                                 'narration': clean_text(item.get('narration', '')),
-                                'duration_seconds': duration, 'image_asset': None, 'video_asset': None})
+                                'duration_seconds': duration, 'edit_duration_seconds': edit_duration, 'direction': direction,
+                                'image_asset': None, 'video_asset': None})
             self._invalidate(p, 'visual_direction')
             p['shots'] = changed
             event(p, 'shots_changed', actor, f'{len(shots)} ordered shots saved')

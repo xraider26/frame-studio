@@ -3,11 +3,17 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 from .templates import DEFAULT_SETTINGS
+from .creative import default_production, Direction, merge
 
 
 def load(value):
     project = json.loads(value)
     project['settings'] = dict(DEFAULT_SETTINGS, **project['settings'])
+    project['schema_version'] = 2
+    project['production'] = merge(default_production(project.get('template_id', 'custom')), project.get('production', {}))
+    for shot in project['shots']:
+        shot['direction'] = merge(Direction().model_dump(), shot.get('direction', {}))
+        shot.setdefault('edit_duration_seconds', shot['duration_seconds'])
     return project
 
 
