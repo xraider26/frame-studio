@@ -81,7 +81,9 @@
 - [x] Implement limits/reservations/settlement and metrics plus manual sourced experiment/performance records; no analytics-account claim.
 - [x] Export editor timing manifest/CSV, creative plan, QC, source coverage and actual portable assets.
 - [x] Run complete backend, build, MCP and React/JSDOM verification; independent final review and fixes. Full-browser verification remains deferred.
-- [ ] Merge verified work locally into the running checkout and restart local services.
+- [x] Merge verified work locally into the running checkout and restart local services.
 - [x] Record requirement coverage and precise remaining external/source/pilot limits. No paid generation without available authorized tool/budget; no invented artistic success. Commit verified deliverable.
 
 Verification record (2026-10-22): 46 backend tests, 9 React/JSDOM tests and production build passed. Independent final review found seven Important defects; all seven received regression coverage and fixes. See docs/CREATIVE-COVERAGE.md for source, browser and artistic-validation limits.
+
+Local rollout verified: main fast-forwarded, clean dependency install, 46 backend and 9 DOM tests passed again in the main checkout, production rebuild succeeded, services restarted. HTTP /studio returned 200; proxied capabilities report schema 2 and the knowledge catalogue returns 51 entries. No user projects or running provider jobs were present at rollout.
