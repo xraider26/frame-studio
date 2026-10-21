@@ -83,8 +83,38 @@ async def update_settings(project_id: str, settings: dict[str, Any], expected_re
 
 @mcp.tool()
 async def update_shots(project_id: str, shots: list[dict[str, Any]], expected_revision: int) -> dict:
-    """Save the complete ordered shot list (1–200). Include existing IDs when editing. Fields: title, image_prompt, motion_prompt, narration, duration_seconds. This replaces the current plan and invalidates its generated outputs while preserving takes."""
+    """Save ordered shots (1–200), keeping existing IDs. Read creative_schema for structured direction: camera, lighting, art, action/states, references, sound and quality. edit_duration_seconds is retained edit timing. Omitted direction is preserved for older clients. Changes reopen affected output/review steps; takes remain stored."""
     return await command('update_shots', locals())
+
+
+@mcp.tool()
+async def creative_schema() -> dict:
+    """Read validated production/shot-direction JSON schemas, field names and inheritance rules."""
+    return await command('creative_schema')
+
+
+@mcp.tool()
+async def knowledge_catalog(query: str = '', category: str = '') -> dict:
+    """Search source-linked directing techniques, use cases, risks and editable apply patches. Read coverage/provenance: this is not a claim that all original course PDF catalogues are imported."""
+    return await command('knowledge_catalog', locals())
+
+
+@mcp.tool()
+async def update_production(project_id: str, production: dict[str, Any], expected_revision: int) -> dict:
+    """Patch structured brief/story/bible/default direction/capability observations/QC/experiments. Read creative_schema first. Resource policy is human-only; omit resources. Never mark unobserved model settings confirmed."""
+    return await command('update_production', locals())
+
+
+@mcp.tool()
+async def validate_project(project_id: str) -> dict:
+    """Check timing, references, continuity and recorded generator capabilities. Resolve errors before generation; warnings require judgment. These deterministic checks do not inspect actual media."""
+    return await command('validate_project', locals())
+
+
+@mcp.tool()
+async def preview_shot(project_id: str, shot_id: str) -> dict:
+    """Read the same effective direction, image/video compiled prompts, reference slots and preflight shown in the studio. No paid generation."""
+    return await command('preview_shot', locals())
 
 
 @mcp.tool()

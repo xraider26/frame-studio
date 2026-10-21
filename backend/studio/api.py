@@ -13,6 +13,8 @@ from .store import StudioError
 from .templates import LABELS, STEPS, TEMPLATES
 from .generators import VIDEO_PROFILES, IMAGE_PROFILES
 from .workflow import Studio
+from .knowledge import knowledge_catalog
+from .creative import creative_schema
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -71,7 +73,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
 
     @app.get('/health')
     def health():
-        return {'status': 'ok', 'service': 'frame-studio', 'schema_version': 1}
+        return {'status': 'ok', 'service': 'frame-studio', 'schema_version': 2}
 
     @app.get('/studio/v1/media/{project_id}/{filename}')
     def media(project_id: str, filename: str, request: Request):
@@ -90,15 +92,23 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         human = authorize(request)
         op, a = body.operation, body.arguments
         actor = 'user' if human else body.actor[:100]
+        if op == 'update_production' and 'resources' in a.get('production', {}) and not human:
+            raise StudioError('human_only', 'Resource policy belongs to the user. Agents may report actual job costs.', 403)
         if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted'] and not human:
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'studio_capabilities':
-            return {'server': 'Frame Studio', 'schema_version': 1, 'transport': 'stdio bridge',
+            return {'server': 'Frame Studio', 'schema_version': 2, 'transport': 'stdio bridge',
+                    'creative_schema': creative_schema(), 'knowledge_coverage': knowledge_catalog()['coverage'],
                     'execution_modes': ['agent_handoff', 'json_job_api'], 'flow_account': 'not_connected',
                     'connections': providers.public(), 'inbox': str(studio.inbox),
                     'video_profiles': VIDEO_PROFILES, 'image_profiles': IMAGE_PROFILES,
                     'steps': [{'id': s, 'name': l} for s, l in zip(STEPS, LABELS)], 'templates': TEMPLATES}
         if op == 'list_templates': return TEMPLATES
+        if op == 'knowledge_catalog': return knowledge_catalog(a.get('query', ''), a.get('category', ''))
+        if op == 'creative_schema': return creative_schema()
+        if op == 'update_production': return studio.update_production(a['project_id'], a['production'], a['expected_revision'], actor)
+        if op == 'validate_project': return studio.validate_project(a['project_id'])
+        if op == 'preview_shot': return studio.preview_shot(a['project_id'], a['shot_id'])
         if op == 'list_projects': return studio.list_projects()
         if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor)
         if op == 'duplicate_project': return studio.duplicate_project(a['project_id'], a.get('name'), actor)

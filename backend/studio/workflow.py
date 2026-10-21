@@ -12,6 +12,7 @@ from .templates import DEFAULT_SETTINGS, STEPS, TEMPLATES
 from .generators import VIDEO_PROFILES, IMAGE_PROFILES, prompt_for, validate_template
 from .exports import export_project
 from .creative import default_production, Direction, Production, merge, validated, normalize_direction
+from .preflight import preflight, references_for
 
 
 def uid():
@@ -111,7 +112,18 @@ class Studio(Store):
     def get_project(self, project_id):
         p = self.get(project_id)
         p['next_action'] = self._next(p)
+        p['preflight'] = preflight(p)
         return p
+
+    def validate_project(self, project_id):
+        return preflight(self.get(project_id))
+
+    def preview_shot(self, project_id, shot_id):
+        p = self.get(project_id)
+        shot = next((s for s in p['shots'] if s['id'] == shot_id), None)
+        if not shot:
+            raise StudioError('not_found', 'Shot not found.', 404)
+        return {'image': prompt_for(p, shot, 'image'), 'video': prompt_for(p, shot, 'video'), 'preflight': preflight(p, shot_id), 'references': references_for(p, shot, 'video')}
 
     def _progress(self, p):
         if p['shots'] and all(s['image_asset'] for s in p['shots']):
@@ -147,6 +159,9 @@ class Studio(Store):
                     return {'action': 'prepare_shots', 'step': step, 'message': 'Add shots to continue.'}
                 if not shot['image_prompt' if kind == 'image' else 'motion_prompt'].strip():
                     return {'action': 'write_prompt', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': f"Prepare the {kind} prompt for {shot['title']}."}
+                checks = preflight(p, shot['id'], kind)
+                if checks['errors']:
+                    return {'action': 'resolve_preflight', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': 'Resolve the blocking production checks before generating.', 'preflight': checks}
                 return {'action': 'generate', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': f"Generate {kind} for {shot['title']}."}
             return {'action': 'prepare_step', 'step': step, 'message': 'Prepare ' + step.replace('_', ' ') + '.'}
         return {'action': 'complete', 'step': None, 'message': 'All workflow steps complete.'}
@@ -318,14 +333,16 @@ class Studio(Store):
             existing = next((j for j in p['jobs'] if j['fingerprint'] == fingerprint and j['status'] in ['awaiting_external_output', 'running', 'queued']), None)
             if existing:
                 return {'job': existing, 'handoff': existing['handoff'], 'already_claimed': True}
-            refs = [a for a in p['assets'] if a['id'] == shot['image_asset'] or a.get('role') == 'reference']
+            refs = references_for(p, shot, action['kind'])
             prepared = prompt_for(p, shot, action['kind'])
-            handoff = {'schema_version': 1, 'project_id': p['id'], 'project_name': p['name'], 'shot_id': shot['id'],
+            handoff = {'schema_version': 2, 'project_id': p['id'], 'project_name': p['name'], 'shot_id': shot['id'],
                        'shot_title': shot['title'], 'step': action['step'], 'kind': action['kind'],
                        'prompt': prepared['prompt'], 'generator_profile': prepared['generator_profile'],
                        'negative_prompt': prepared['negative_prompt'], 'separate_notes': prepared['separate_notes'],
                        'execution_mode': p['settings']['generation_mode'],
                        'creative_settings': copy.deepcopy(p['settings']), 'narration': shot['narration'],
+                       'effective_direction': prepared['effective_direction'], 'production': copy.deepcopy(p['production']),
+                       'acceptance_criteria': prepared['effective_direction']['quality']['criteria'], 'preflight': preflight(p, shot['id'], action['kind']),
                        'duration_seconds': shot['duration_seconds'], 'references': copy.deepcopy(refs),
                        'return_inbox': str(self.inbox), 'expected_output': 'PNG/JPEG/WebP' if action['kind'] == 'image' else 'MP4',
                        'return_instructions': 'Save the generated file in return_inbox, then call return_generation with this job_id and the absolute output_path. Do not mark it complete without real media.'}

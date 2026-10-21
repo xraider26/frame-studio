@@ -5,6 +5,7 @@ from pathlib import Path
 
 from studio.workflow import Studio
 from studio.store import StudioError
+from studio.generators import prompt_for
 
 
 class CreativeTests(unittest.TestCase):
@@ -50,6 +51,57 @@ class CreativeTests(unittest.TestCase):
         self.assertGreater(len(catalog['entries']), 15)
         self.assertFalse(catalog['coverage']['full_original_catalogues'])
         self.assertTrue(all(e['source'] and e['provenance'] for e in catalog['entries']))
+
+    def prepare(self):
+        p = self.p
+        p = self.studio.set_policy(p['id'], {'brief': False, 'script': False}, p['revision'])
+        for step in ['brief', 'script']:
+            p = self.studio.complete_step(p['id'], step, {'text': 'A meaningful ' + step}, p['revision'], 'agent')
+        p = self.studio.update_shots(p['id'], [{**p['shots'][0], 'image_prompt': 'Traveler in an observatory', 'motion_prompt': 'Turns toward window', 'direction': {'camera': {'lens': '85mm', 'move': 'Locked off'}, 'lighting': {'technique': 'Low key', 'world_source': 'North wall window'}}}], p['revision'], 'agent')
+        self.p = p
+        return p
+
+    def test_compiler_replaces_defaults_and_export_carries_structured_plan(self):
+        p = self.prepare()
+        rendered = prompt_for(p, p['shots'][0], 'video')
+        self.assertIn('85mm', rendered['prompt'])
+        self.assertNotIn('35mm', rendered['prompt'])
+        self.assertIn('North wall window', rendered['prompt'])
+        self.assertIn('Locked off', rendered['prompt'])
+        self.assertNotIn('Slow dolly in', rendered['prompt'])
+        exported = self.studio.export_handoff(p['id'])
+        self.assertIn('production', exported['manifest'])
+        self.assertEqual(exported['manifest']['shots'][0]['direction']['camera']['lens'], '85mm')
+        self.assertIn('preflight', exported['manifest'])
+
+    def test_preflight_reports_reference_timing_and_explained_continuity(self):
+        p = self.prepare()
+        self.assertTrue(hasattr(self.studio, 'validate_project'), 'Missing creative preflight')
+        first = p['shots'][0]
+        bad = {**first, 'edit_duration_seconds': 6, 'direction': {'references': [{'slot': '1', 'asset_id': 'missing'}], 'sound': {'measured_seconds': 5}, 'action': {'state_after': {'traveler.door': 'closed'}, 'beats': [{'start': 0, 'end': 5, 'description': 'Too long'}]}}}
+        second = {'title': 'Reverse', 'duration_seconds': 4, 'image_prompt': 'Reverse angle', 'direction': {'action': {'continuity_from': first['id'], 'state_before': {'traveler.door': 'open'}}}}
+        p = self.studio.update_shots(p['id'], [bad, second], p['revision'], 'agent')
+        checks = self.studio.validate_project(p['id'])
+        rules = {i['rule'] for i in checks['issues']}
+        self.assertTrue({'reference_missing', 'edit_exceeds_generation', 'action_timing', 'dialogue_timing', 'continuity_state'} <= rules)
+        blocked = self.studio.claim_next(p['id'], 'agent', 'invalid')
+        self.assertEqual(blocked['next_action']['action'], 'resolve_preflight')
+        self.assertFalse(self.studio.get_project(p['id'])['jobs'])
+
+    def test_handoff_contains_effective_direction_and_current_references(self):
+        p = self.prepare()
+        handoff = self.studio.claim_next(p['id'], 'agent', 'handoff')['handoff']
+        self.assertIn('effective_direction', handoff)
+        self.assertEqual(handoff['effective_direction']['camera']['lens'], '85mm')
+        self.assertIn('acceptance_criteria', handoff)
+        self.assertIn('preflight', handoff)
+
+    def test_explicit_false_can_override_inherited_listener_cutaway(self):
+        from studio.creative import effective_direction
+        p = self.p
+        p['production']['defaults']['sound']['cutaway'] = True
+        p['shots'][0]['direction']['sound']['cutaway'] = False
+        self.assertFalse(effective_direction(p, p['shots'][0])['sound']['cutaway'])
 
 
 if __name__ == '__main__':

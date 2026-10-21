@@ -75,12 +75,12 @@ class Sound(Record):
     dialogue: Text = ''
     voice: Text = ''
     measured_seconds: Seconds | None = None
-    pauses_seconds: Seconds = 0
+    pauses_seconds: Seconds | None = None
     ambience: Text = ''
     foley: Text = ''
     music: Text = ''
     captions: Text = ''
-    cutaway: bool = False
+    cutaway: bool | None = None
 
 
 class Reference(Record):
@@ -243,7 +243,7 @@ def normalize_direction(value):
 
 def populated(value):
     if isinstance(value, dict):
-        return {k: populated(v) for k, v in value.items() if v not in ('', None, [], {}, 'inherit') and v is not False}
+        return {k: populated(v) for k, v in value.items() if v not in ('', None, [], {}, 'inherit')}
     return value
 
 
