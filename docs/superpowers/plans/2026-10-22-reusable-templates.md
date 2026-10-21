@@ -20,8 +20,10 @@
 
 ## Tasks
 
-- [ ] RED backend tests for snapshot persistence, selective capture, new-project identity/reset, existing-project invalidation, stale revisions and authority.
-- [ ] Implement `saved_templates.py`, store table, project creation integration and API/MCP operations.
-- [ ] RED React tests for saving selected sections and applying a template; implement template library and integrate saved choices into the project picker.
-- [ ] Full backend/UI checks and production build; independent review and regression fixes.
+- [x] RED backend tests for snapshot persistence, selective capture, new-project identity/reset, existing-project invalidation, stale revisions and authority.
+- [x] Implement `saved_templates.py`, store table, project creation integration and API/MCP operations.
+- [x] RED React tests for saving selected sections and applying a template; implement template library and integrate saved choices into the project picker.
+- [x] Full backend/UI checks and production build; independent review and regression fixes.
 - [ ] Merge locally, rebuild/restart the existing app, verify HTTP/API and record precise limits. No GitHub push or paid generation.
+
+Review fix: selective settings/story application reconciles entity, speaker, reference and continuity links at the section boundary while retaining unrelated creative settings. Regression failures were observed then fixed. Verification: 54 backend tests (including actual MCP SDK transport), 10 React/JSDOM tests, targeted template component lint and production webpack build green. Full-browser visual verification remains unperformed after the earlier browser launch was rejected by automatic review.

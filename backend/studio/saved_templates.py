@@ -120,6 +120,8 @@ class SavedTemplates:
         snapshot = t['snapshot']
         if 'settings' in sections:
             data = copy.deepcopy(snapshot['settings'])
+            if 'story' not in sections:
+                data['defaults'] = portable_direction(data['defaults'], False)
             p['settings'].update(data['settings'])
             p['production'].update(defaults=data['defaults'], format_rules=data['format_rules'])
         if 'workflow' in sections:
@@ -137,6 +139,24 @@ class SavedTemplates:
                 shot.update(image_asset=None, video_asset=None)
             p['shots'] = shots
             p['production'].update(data)
+            if 'settings' not in sections:
+                # Retained creative defaults may point into the replaced cast/shot plan.
+                defaults = p['production']['defaults']
+                entities = {e['id'] for e in data['bible']}
+                action = defaults['action']
+                visible = [key for key in action['visible_entities'] if key in entities]
+                if visible != action['visible_entities']:
+                    action['headcount'] = None
+                action['visible_entities'] = visible
+                if action['continuity_from'] not in ids.values():
+                    action['continuity_from'] = ''
+                if defaults['sound']['speaker_id'] not in entities:
+                    defaults['sound']['speaker_id'] = ''
+                assets = {a['id']: a for a in p['assets']}
+                defaults['references'] = [r for r in defaults['references'] if
+                    (not r['entity_id'] or r['entity_id'] in entities) and r['asset_id'] in assets and
+                    not assets[r['asset_id']].get('stale') and
+                    (not assets[r['asset_id']].get('source_shot') or assets[r['asset_id']]['source_shot'] in ids.values())]
         p['template_source'] = {'id': t['id'], 'name': t['name'], 'revision': t['revision'], 'sections': sections}
 
     def apply_project_template(self, project_id, template_id, sections, expected_revision, template_revision, actor):

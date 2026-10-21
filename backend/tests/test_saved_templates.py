@@ -82,6 +82,29 @@ class SavedTemplateTests(unittest.TestCase):
         self.assertEqual(clone['shots'][0]['image_prompt'],'')
         self.assertEqual(clone['production']['defaults']['action']['primary_action'],'')
 
+    def test_settings_only_apply_does_not_bind_entities_from_unselected_story(self):
+        p=self.p
+        self.p=self.studio.update_production(p['id'],{'bible':[{'id':'source-hero','name':'Original hero','kind':'character'}], 'defaults':{'action':{'visible_entities':['source-hero']},'sound':{'speaker_id':'source-hero'}}},p['revision'],'user')
+        saved=self.capture()
+        target=self.studio.create_project('Unrelated story','ugc')
+        p=self.studio.apply_project_template(target['id'],saved['id'],['settings'],target['revision'],saved['revision'],'user')
+        self.assertEqual(p['production']['defaults']['action']['visible_entities'],[])
+        self.assertEqual(p['production']['defaults']['sound']['speaker_id'],'')
+
+    def test_story_only_apply_reconciles_old_default_links_without_changing_the_look(self):
+        from studio.preflight import preflight
+        saved=self.capture(['story'])
+        p=self.studio.create_project('Different cast','ugc')
+        p=self.studio.update_production(p['id'],{'bible':[{'id':'old-hero','name':'Old hero','kind':'character'}], 'defaults':{'camera':{'lens':'135mm'},'action':{'visible_entities':['old-hero'],'continuity_from':p['shots'][0]['id']},'sound':{'speaker_id':'old-hero'},'references':[{'slot':'old-face','asset_id':'old-face-file','role':'character','entity_id':'old-hero','version':1}]}},p['revision'],'user')
+        p=self.studio.apply_project_template(p['id'],saved['id'],['story'],p['revision'],saved['revision'],'user')
+        self.assertEqual(preflight(p)['errors'],0)
+        d=p['production']['defaults']
+        self.assertEqual(d['camera']['lens'],'135mm')
+        self.assertEqual(d['action']['visible_entities'],[])
+        self.assertEqual(d['sound']['speaker_id'],'')
+        self.assertEqual(d['action']['continuity_from'],'')
+        self.assertEqual(d['references'],[])
+
     def test_apply_supersedes_pending_outputs_and_blocks_running_provider(self):
         saved=self.capture(['story'])
         target=self.studio.create_project('Target','ai-film')

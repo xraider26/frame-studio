@@ -100,7 +100,12 @@ test("template library saves selected groups and explicitly applies a saved temp
     aspect: "16:9",
     structure: ["Opening"],
   };
-  const project = { id: "template-project", name: "My film", revision: 7 };
+  const project = {
+    id: "template-project",
+    name: "My film",
+    revision: 7,
+    shots: [{ id: "winning-shot", title: "Successful portrait" }],
+  };
   await React.act(() =>
     root.render(
       React.createElement(TemplateWorkspace, {
@@ -138,6 +143,14 @@ test("template library saves selected groups and explicitly applies a saved temp
     await React.act(() => button.click());
   };
   await change("Template name", "My successful look");
+  const source = document.querySelector("select");
+  await React.act(() => {
+    Object.getOwnPropertyDescriptor(
+      window.HTMLSelectElement.prototype,
+      "value",
+    ).set.call(source, "winning-shot");
+    source.dispatchEvent(new window.Event("change", { bubbles: true }));
+  });
   const story = document.querySelector('input[data-section="story"]');
   await React.act(() => story.click());
   await click("Save as template");
@@ -145,6 +158,7 @@ test("template library saves selected groups and explicitly applies a saved temp
   assert.equal(sent.arguments.name, "My successful look");
   assert.deepEqual(sent.arguments.sections, ["settings", "workflow"]);
   assert.equal(sent.arguments.expected_revision, 7);
+  assert.equal(sent.arguments.settings_shot_id, "winning-shot");
   await click("New project");
   assert.equal(newTemplate, "saved-one");
   await click("Apply to project");
