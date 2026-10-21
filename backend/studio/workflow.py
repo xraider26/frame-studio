@@ -11,7 +11,7 @@ from .store import Store, StudioError
 from .templates import DEFAULT_SETTINGS, STEPS, TEMPLATES
 from .generators import VIDEO_PROFILES, IMAGE_PROFILES, prompt_for, validate_template
 from .exports import export_project
-from .creative import default_production, Direction, Production, merge, validated, normalize_direction
+from .creative import default_production, Direction, Production, merge, validated, normalize_direction, effective_direction
 from .preflight import preflight, references_for
 from .production import ProductionTools, quality_passed, criteria_for
 from .resources import resource_gate
@@ -127,7 +127,7 @@ class Studio(ProductionTools, Store):
         for asset in p['assets']:
             shot = next((s for s in p['shots'] if s['id'] == asset.get('shot_id')), None)
             if shot and not asset.get('role'):
-                asset['required_checks'] = criteria_for(shot, asset['kind'])
+                asset['required_checks'] = criteria_for(p, shot, asset['kind'])
         return p
 
     def validate_project(self, project_id):
@@ -172,8 +172,8 @@ class Studio(ProductionTools, Store):
                 if not shot:
                     return {'action': 'prepare_shots', 'step': step, 'message': 'Add shots to continue.'}
                 if shot[kind + '_asset'] and not quality_passed(p, shot, kind):
-                    return {'action': 'record_quality', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'asset_id': shot[kind + '_asset'], 'criteria': criteria_for(shot, kind), 'message': 'Inspect the returned media and record the required quality checks.'}
-                if not shot['image_prompt' if kind == 'image' else 'motion_prompt'].strip():
+                    return {'action': 'record_quality', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'asset_id': shot[kind + '_asset'], 'criteria': criteria_for(p, shot, kind), 'message': 'Inspect the returned media and record the required quality checks.'}
+                if not (shot['image_prompt'] if kind == 'image' else (effective_direction(p, shot)['action']['primary_action'] or shot['motion_prompt'])).strip():
                     return {'action': 'write_prompt', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': f"Prepare the {kind} prompt for {shot['title']}."}
                 checks = preflight(p, shot['id'], kind)
                 if checks['errors']:
@@ -296,7 +296,8 @@ class Studio(ProductionTools, Store):
                     self._reopen(p, step)
                     for name in ['brief', 'script']:
                         p['steps'][name]['ready'] = bool(p['documents'].get(name, {}).get('text'))
-                if data['require_recorded_checks'] != before['production']['require_recorded_checks']:
+                criteria_changed = any(criteria_for(before, old, 'image') != criteria_for(p, shot, 'image') for old, shot in zip(before['shots'], p['shots']))
+                if criteria_changed or data['require_recorded_checks'] != before['production']['require_recorded_checks']:
                     self._reopen(p, 'visual_direction')
                 self._progress(p)
                 event(p, 'production_updated', actor, 'Structured production direction saved')
@@ -392,7 +393,7 @@ class Studio(ProductionTools, Store):
                        'creative_settings': copy.deepcopy(p['settings']), 'narration': shot['narration'],
                        'effective_direction': prepared['effective_direction'], 'production': copy.deepcopy(p['production']),
                        'acceptance_criteria': prepared['effective_direction']['quality']['criteria'], 'preflight': preflight(p, shot['id'], action['kind']),
-                       'required_media_checks': criteria_for(shot, action['kind']), 'input_signature': self._input_signature(p, shot, action['kind']),
+                       'required_media_checks': criteria_for(p, shot, action['kind']), 'input_signature': self._input_signature(p, shot, action['kind']),
                        'revision_context': {'reason': shot['direction']['quality']['revision_reason'],
                                             'previous_takes': [{k: a.get(k) for k in ['id', 'path', 'kind', 'stale', 'review']} for a in p['assets'] if a.get('shot_id') == shot['id'] and a['kind'] == action['kind']][-3:]},
                        'duration_seconds': shot['duration_seconds'], 'references': copy.deepcopy(refs),
@@ -459,15 +460,17 @@ class Studio(ProductionTools, Store):
             event(p, 'job_canceled', actor, job_id)
         return self.mutate(project['id'], None, update)
 
-    def import_reference(self, project_id, path, name, expected_revision, actor):
-        source, metadata = checked_file(path, [self.inbox, self.media_root], 'image')
+    def import_reference(self, project_id, path, name, expected_revision, actor, kind='image'):
+        if kind not in ['image', 'video']:
+            raise StudioError('invalid_reference', 'Choose an image or motion-source video.')
+        source, metadata = checked_file(path, [self.inbox, self.media_root], kind)
         def update(p):
             self._invalidate(p, 'visual_direction')
             asset_id = uid()
             dest = self.media_root / p['id'] / (asset_id + metadata['suffix'])
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, dest)
-            p['assets'].append({'id': asset_id, 'kind': 'image', 'role': 'reference', 'name': clean_text(name, 150), 'path': str(dest), 'url': f'/api/studio/media/{p["id"]}/{dest.name}', 'stale': False, **metadata})
+            p['assets'].append({'id': asset_id, 'kind': kind, 'role': 'reference', 'name': clean_text(name, 150), 'path': str(dest), 'url': f'/api/studio/media/{p["id"]}/{dest.name}', 'stale': False, **metadata})
             event(p, 'reference_imported', actor, name)
         return self.mutate(project_id, expected_revision, update)
 

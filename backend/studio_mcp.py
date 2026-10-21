@@ -101,7 +101,7 @@ async def knowledge_catalog(query: str = '', category: str = '') -> dict:
 
 @mcp.tool()
 async def update_production(project_id: str, production: dict[str, Any], expected_revision: int) -> dict:
-    """Patch structured brief/story/bible/default direction/capability observations/QC/experiments. Read creative_schema first. Resource policy is human-only; omit resources. Never mark unobserved model settings confirmed."""
+    """Patch structured brief/story/bible/default direction/capability observations/QC/experiments. Read creative_schema first. Resource policy is human-only; omit resources and require_recorded_checks. Never mark unobserved model settings confirmed."""
     return await command('update_production', locals())
 
 
@@ -190,8 +190,8 @@ async def cancel_job(job_id: str) -> dict:
 
 
 @mcp.tool()
-async def import_reference(project_id: str, path: str, name: str, expected_revision: int) -> dict:
-    """Import a real image reference from the allowed inbox. Changing references invalidates dependent work."""
+async def import_reference(project_id: str, path: str, name: str, expected_revision: int, kind: str = 'image') -> dict:
+    """Import a real image (kind=image) or MP4 motion source (kind=video) from the allowed inbox. Changing references invalidates dependent work."""
     return await command('import_reference', locals())
 
 

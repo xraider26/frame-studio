@@ -514,7 +514,11 @@ export function CreativeWorkspace({
                       >
                         <option value="">Choose imported image</option>
                         {project.assets
-                          .filter((a) => a.kind === "image")
+                          .filter(
+                            (a) =>
+                              a.kind ===
+                              (r.role === "motion" ? "video" : "image"),
+                          )
                           .map((a) => (
                             <option key={a.id} value={a.id}>
                               {a.name || a.id.slice(0, 8)}
@@ -633,7 +637,7 @@ export function CreativeWorkspace({
                     onChange={setReferenceName}
                   />
                   <Field
-                    label="Reference image path"
+                    label="Reference media path"
                     value={path}
                     onChange={setPath}
                   />
@@ -645,17 +649,21 @@ export function CreativeWorkspace({
                         api("import_reference", {
                           project_id: project.id,
                           path,
+                          kind: path.toLowerCase().endsWith(".mp4")
+                            ? "video"
+                            : "image",
                           name: referenceName || "Creative reference",
                           expected_revision: project.revision,
                         }),
                       )
                     }
                   >
-                    Import image
+                    Import image / motion video
                   </button>
                   <p className="fs-hint">
                     Apply shot edits before importing. The source file must be
-                    in the studio inbox.
+                    in the studio inbox. PNG, JPEG, WebP and MP4 motion sources
+                    are supported.
                   </p>
                 </div>
               </>

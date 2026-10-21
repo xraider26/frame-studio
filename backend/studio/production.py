@@ -21,8 +21,8 @@ def audit(p, actor, message):
     p['history'].append({'at': datetime.now(timezone.utc).isoformat(), 'type': 'production', 'actor': actor[:100], 'message': message[:1000]})
 
 
-def criteria_for(shot, kind):
-    return list(dict.fromkeys((['Identity and composition serve the shot'] if kind == 'image' else ['Identity, anatomy and physics remain coherent', 'Camera, lighting and background serve the shot', 'Audio and lip sync match the intended performance']) + [c for c in shot['direction']['quality']['criteria'] if c.strip()]))
+def criteria_for(p, shot, kind):
+    return list(dict.fromkeys((['Identity and composition serve the shot'] if kind == 'image' else ['Identity, anatomy and physics remain coherent', 'Camera, lighting and background serve the shot', 'Audio and lip sync match the intended performance']) + [c for c in effective_direction(p, shot)['quality']['criteria'] if c.strip()]))
 
 
 def quality_passed(p, shot, kind):
@@ -31,7 +31,7 @@ def quality_passed(p, shot, kind):
     asset = next((a for a in p['assets'] if a['id'] == shot[kind + '_asset']), {})
     review = asset.get('review', {})
     inspected = {'image'} if kind == 'image' else {'beginning', 'middle', 'end'}
-    return bool(review) and not review.get('defect') and inspected <= set(review.get('inspected', [])) and all(review.get('criteria', {}).get(c) is True for c in criteria_for(shot, kind))
+    return bool(review) and not review.get('defect') and inspected <= set(review.get('inspected', [])) and all(review.get('criteria', {}).get(c) is True for c in criteria_for(p, shot, kind))
 
 
 class ProductionTools:
@@ -63,7 +63,7 @@ class ProductionTools:
                 if asset.get('source_shot') in affected:
                     asset['stale'] = True
             for s in p['shots']:
-                d = s['direction']
+                d = effective_direction(p, s)
                 if d['action']['continuity_from'] in affected or any(r['asset_id'] in asset_ids for r in d['references']):
                     affected.setdefault(s['id'], set()).update(['image', 'video'])
             if count == sum(len(k) for k in affected.values()):
@@ -133,7 +133,15 @@ class ProductionTools:
             if asset['kind'] == 'image':
                 self._invalidate_selected(p, {shot['id']: {'video'}})
             else:
-                dependents = {s['id']: {'image', 'video'} for s in p['shots'] if s['direction']['action']['continuity_from'] == shot['id']}
+                replaced_frames = {a['id'] for a in p['assets'] if a.get('source_shot') == shot['id'] and a.get('source_video') != asset_id}
+                for frame in p['assets']:
+                    if frame['id'] in replaced_frames:
+                        frame['stale'] = True
+                dependents = {}
+                for candidate in p['shots']:
+                    direction = effective_direction(p, candidate)
+                    if candidate['id'] != shot['id'] and (direction['action']['continuity_from'] == shot['id'] or any(r['asset_id'] in replaced_frames for r in direction['references'])):
+                        dependents[candidate['id']] = {'image', 'video'}
                 if dependents:
                     self._invalidate_selected(p, dependents)
                 self._reopen(p, 'pilot')

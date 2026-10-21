@@ -80,30 +80,34 @@ export function reconcile(
   remote: unknown,
 ): unknown {
   if (JSON.stringify(base) === JSON.stringify(local)) return remote;
+  const identity = (v: { id?: string; _draft_key?: string }) =>
+    v.id || v._draft_key;
   if (
     Array.isArray(base) &&
     Array.isArray(local) &&
     Array.isArray(remote) &&
     [...base, ...local, ...remote].every(
-      (v) => v && typeof v === "object" && "id" in v,
+      (v) => v && typeof v === "object" && identity(v),
     )
   ) {
-    const ids = local.map((v) => v.id);
-    const removed = base.filter((v) => !ids.includes(v.id)).map((v) => v.id);
+    const ids = local.map(identity);
+    const removed = base
+      .filter((v) => !ids.includes(identity(v)))
+      .map(identity);
     const orderChanged =
-      JSON.stringify(base.map((v) => v.id)) !== JSON.stringify(ids);
+      JSON.stringify(base.map(identity)) !== JSON.stringify(ids);
     const order = orderChanged
       ? [
           ...local,
           ...remote.filter(
-            (v) => !ids.includes(v.id) && !removed.includes(v.id),
+            (v) => !ids.includes(identity(v)) && !removed.includes(identity(v)),
           ),
         ]
-      : remote.filter((v) => !removed.includes(v.id));
+      : remote.filter((v) => !removed.includes(identity(v)));
     return order.map((v) => {
-      const l = local.find((x) => x.id === v.id),
-        b = base.find((x) => x.id === v.id),
-        r = remote.find((x) => x.id === v.id);
+      const l = local.find((x) => identity(x) === identity(v)),
+        b = base.find((x) => identity(x) === identity(v)),
+        r = remote.find((x) => identity(x) === identity(v));
       return l ? reconcile(b, l, r || l) : v;
     });
   }

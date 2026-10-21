@@ -113,3 +113,5 @@ Save and enable the connection, then claim a generation handoff and call `run_pr
 ## Verification
 
 Backend behavior suite, from the `backend` directory: `.venv/Scripts/python.exe -m unittest discover -s tests -v`. Live MCP/browser verification scripts use an isolated `.studio-test` database and fixture media. Test images are explicitly synthetic fixtures, not AI-generated output.
+
+Motion-source references: call `import_reference` with `kind="video"` for an actual MP4 in the inbox, then bind its asset ID with role `motion` and pose/framing compatibility notes. Image imports retain the default `kind="image"`. Video references are excluded from image-generation inputs. Portable ZIPs include accepted bound media and per-shot `reference_files` mappings.

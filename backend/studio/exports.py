@@ -6,18 +6,19 @@ import io
 from pathlib import Path
 
 from .generators import prompt_for
-from .preflight import preflight
+from .preflight import preflight, references_for
 from .knowledge import knowledge_catalog
 
 
 def export_project(studio, project):
     p = project
     included = {}
+    used = {a['id'] for shot in p['shots'] for kind in ['image', 'video'] for a in references_for(p, shot, kind)}
     for asset in p['assets']:
-        if asset.get('role') == 'reference' or any(s.get('image_asset') == asset['id'] for s in p['shots']):
+        if asset['id'] in used:
             file = Path(asset['path']).resolve()
             if file.is_relative_to(studio.media_root) and file.is_file():
-                included[asset['id']] = (file, 'references/' + file.name)
+                included[asset['id']] = (file, 'references/' + asset['id'] + file.suffix)
     active = studio._next(p)
     manifest = {'schema_version': 2, 'package_type': 'studio_generation_handoff', 'project_id': p['id'], 'project_name': p['name'],
                 'source_revision': p['revision'], 'execution_mode': 'external_agent',
@@ -30,6 +31,7 @@ def export_project(studio, project):
                            'direction': s['direction'], 'retained_edit_duration_seconds': s.get('edit_duration_seconds', s['duration_seconds']),
                            'image': prompt_for(p, s, 'image'), 'video': prompt_for(p, s, 'video'),
                            'start_frame': included.get(s['image_asset'], (None, None))[1],
+                           'reference_files': {kind: [{'asset_id': a['id'], 'slot': a['slot'], 'role': a.get('binding_role'), 'file': included.get(a['id'], (None, None))[1]} for a in references_for(p, s, kind)] for kind in ['image', 'video']},
                            'expected_outputs': {'image': f'shot_{i:02d}_image.png', 'video': f'shot_{i:02d}_video.mp4'}} for i, s in enumerate(p['shots'], 1)],
                 'return_contract': {'method': 'MCP claim_generation -> return_generation',
                                     'instructions': 'Connect to this studio and read its current next_action. Claim each permitted generation with its exact job_id. Save real outputs in the returned inbox, then return_generation. Do not bypass required reviews. Offline outputs can be imported later using the same shot IDs after claiming their current task.'}}

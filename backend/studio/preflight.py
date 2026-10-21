@@ -9,7 +9,9 @@ def references_for(project, shot, kind):
     if bindings:
         refs = [{**assets[r['asset_id']], 'slot': r['slot'], 'binding_role': r['role'], 'version': r['version'], 'entity_id': r['entity_id']} for r in bindings if r['asset_id'] in assets]
     else:
-        refs = [{**a, 'slot': f'reference_{i}', 'version': a.get('version', 1)} for i, a in enumerate(project['assets'], 1) if a.get('role') == 'reference' and not a.get('source_video')]
+        refs = [{**a, 'slot': f'reference_{i}', 'version': a.get('version', 1)} for i, a in enumerate(project['assets'], 1) if a.get('role') == 'reference' and a['kind'] == 'image' and not a.get('source_video')]
+    if kind == 'image':
+        refs = [r for r in refs if r.get('binding_role') != 'motion' and r['kind'] == 'image']
     if kind == 'video' and shot.get('image_asset') and not any(r.get('binding_role') == 'start_frame' for r in refs):
         asset = assets.get(shot['image_asset'])
         if asset:
@@ -46,12 +48,15 @@ def preflight(project, shot_id=None, kind=None):
         for n, ref in enumerate(d['references']):
             path = f'direction.references.{n}'
             asset = assets.get(ref['asset_id'])
-            if not asset or asset['kind'] != 'image' or (asset.get('stale') and (asset.get('role') != 'reference' or asset.get('source_video'))):
-                issue('reference_missing', 'error', shot, path, f"Reference {ref['asset_id']} does not resolve to a current image. Import or rebind the actual file.")
+            expected_kind = 'video' if ref['role'] == 'motion' else 'image'
+            if not asset or asset['kind'] != expected_kind or (asset.get('stale') and (asset.get('role') != 'reference' or asset.get('source_video'))):
+                issue('reference_missing', 'error', shot, path, f"Reference {ref['asset_id']} does not resolve to a current {expected_kind}. Import or rebind the actual file.")
             elif not Path(asset.get('path', '')).is_file():
                 issue('reference_file_missing', 'error', shot, path, 'The registered reference file is missing from disk. Reimport the actual file.')
             elif ref['version'] != asset.get('version', 1):
                 issue('reference_version', 'error', shot, path, 'Reference version does not match the immutable asset version.')
+            if ref['role'] == 'motion' and not ref['notes'].strip():
+                issue('motion_compatibility_notes', 'error', shot, path, 'Record how the motion source matches the target pose and framing.')
             slot = ref['slot'].casefold()
             if not slot or slot in slots:
                 issue('reference_slot', 'error', shot, path, 'Use a distinct, nonempty upload slot for each reference.')

@@ -1,6 +1,6 @@
 # Creative Production Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Connect advanced creative direction, visual option help, continuity, QC and resources to the existing studio's real generation loop.
 
@@ -32,10 +32,10 @@
 
 **Interfaces:** `default_production(template_id)`, `normalize_direction(data)`, `effective_direction(project, shot)`, `knowledge_catalog(query='', category='')`; project `production`, shot `direction` and `edit_duration_seconds`; legacy omissions preserve prior nested data.
 
-- [ ] Write failing tests for nested persistence, field validation, inheritance, source coverage and format-specific defaults.
-- [ ] Run `python -m unittest tests.test_creative -v`, confirm missing behaviour.
-- [ ] Implement typed/bounded records, load defaults and honest source-linked knowledge entries. Preserve unknown future stored fields on read.
-- [ ] Run new and existing backend suites; commit the foundation.
+- [x] Write failing tests for nested persistence, field validation, inheritance, source coverage and format-specific defaults.
+- [x] Run `python -m unittest tests.test_creative -v`, confirm missing behaviour.
+- [x] Implement typed/bounded records, load defaults and honest source-linked knowledge entries. Preserve unknown future stored fields on read.
+- [x] Run new and existing backend suites; commit the foundation.
 
 ## Task 2: Compiler, preflight and protocol
 
@@ -43,10 +43,10 @@
 
 **Interfaces:** `preflight(project, shot_id=None, kind=None)` returns `issues`, `errors`, `warnings`; `prompt_for` includes `effective_direction` and separate notes. Add `creative_schema`, `knowledge_catalog`, `update_production`, `preview_shot`, `validate_project` operations/MCP tools.
 
-- [ ] Test shot-specific overrides replacing defaults, portable exact reference maps, timings, state mismatch warnings, unresolved assets blocking a claim, and advanced data in real MCP/ZIP output.
-- [ ] Observe failures; implement one compiler and structured preflight shared by claims/providers/exports.
-- [ ] Preserve all existing prompt placeholders and old client usage; errors carry rule ID/path and correction.
-- [ ] Run suites and real MCP client verification; commit.
+- [x] Test shot-specific overrides replacing defaults, portable exact reference maps, timings, state mismatch warnings, unresolved assets blocking a claim, and advanced data in real MCP/ZIP output.
+- [x] Observe failures; implement one compiler and structured preflight shared by claims/providers/exports.
+- [x] Preserve all existing prompt placeholders and old client usage; errors carry rule ID/path and correction.
+- [x] Run suites and real MCP client verification; commit.
 
 ## Task 3: Directing workspaces and visual help
 
@@ -54,11 +54,11 @@
 
 **Interfaces:** use Task 1/2 schemas. Structured production updates and full shot list updates require expected revision. Knowledge entries provide category, explanation, use case, risk, source and illustration key.
 
-- [ ] Write browser behaviour checks before implementation for selecting a shot, saving camera/light overrides, reload persistence, hover/click/focus/Escape help and compiled prompt effects.
-- [ ] Implement restrained shot strip/inspector with tabs, techniques/custom input and inherited values. Story/bible/generator observation editors use typed fields rather than raw JSON.
-- [ ] Build accessible visual-help popovers with consistent-scene SVG illustrations, selected-option examples, source labels and mobile layout. Preserve drafts and offer explicit conflict recovery.
-- [ ] Add knowledge search/library and format templates; integrate compiled previews and validation with generator view.
-- [ ] Build/typecheck; run desktop/mobile browser flows and inspect screenshots; commit.
+- [x] Write browser behaviour checks before implementation for selecting a shot, saving camera/light overrides, reload persistence, hover/click/focus/Escape help and compiled prompt effects.
+- [x] Implement restrained shot strip/inspector with tabs, techniques/custom input and inherited values. Story/bible/generator observation editors use typed fields rather than raw JSON.
+- [x] Build accessible visual-help popovers with consistent-scene SVG illustrations, selected-option examples, source labels and mobile layout. Preserve drafts and offer explicit conflict recovery.
+- [x] Add knowledge search/library and format templates; integrate compiled previews and validation with generator view.
+- [x] Build/typecheck and React/JSDOM interaction verification; commit. Full-browser desktop/mobile screenshots remain deferred after automatic approval review blocked the launch.
 
 ## Task 4: Takes, QC, continuation and repair
 
@@ -66,10 +66,10 @@
 
 **Interfaces:** `record_take_review`, `select_take`, `revise_shot`, `extract_continuation`, `repair_handoff` operations with revisions. QC evidence never impersonates human approval.
 
-- [ ] Test selective invalidation, incompatible stale take rejection, required criteria preventing auto progression, real FFmpeg frame output and repair handoff original/mask constraints.
-- [ ] Implement named defect/revision history, explicit selected takes and immutable attempt provenance. Keep prior media and unrelated selections.
-- [ ] Expose beginning/middle/end QC, take preview/comparison, targeted revision and continuation/repair actions in the UI and MCP.
-- [ ] Verify suites and browser behaviour; commit.
+- [x] Test selective invalidation, incompatible stale take rejection, required criteria preventing auto progression, real FFmpeg frame output and repair handoff original/mask constraints.
+- [x] Implement named defect/revision history, explicit selected takes and immutable attempt provenance. Keep prior media and unrelated selections.
+- [x] Expose beginning/middle/end QC, take preview/comparison, targeted revision and continuation/repair actions in the UI and MCP.
+- [x] Verify suites and React/JSDOM behaviour; commit. Full-browser behaviour remains unverified.
 
 ## Task 5: Resources, learning and delivery
 
@@ -77,8 +77,11 @@
 
 **Interfaces:** production `resources` settings; immutable job planned-cost reservations plus reported actual cost; `record_job_cost`, `production_metrics`; costs use one project unit. Human-only resource-policy mutation.
 
-- [ ] Test reservations under concurrent claims, retries, cancel-after-submit, unknown cost and attempt limits. Unknown actual costs remain visible.
-- [ ] Implement limits/reservations/settlement and metrics plus manual sourced experiment/performance records; no analytics-account claim.
-- [ ] Export editor timing manifest/CSV, creative plan, QC, source coverage and actual portable assets.
-- [ ] Run complete backend, build, MCP and browser verification; independent final review and fixes. Merge verified work locally into the running checkout and restart local services.
-- [ ] Record requirement coverage and precise remaining external/source/pilot limits. No paid generation without available authorized tool/budget; no invented artistic success. Commit verified deliverable.
+- [x] Test reservations under concurrent claims, retries, cancel-after-submit, unknown cost and attempt limits. Unknown actual costs remain visible.
+- [x] Implement limits/reservations/settlement and metrics plus manual sourced experiment/performance records; no analytics-account claim.
+- [x] Export editor timing manifest/CSV, creative plan, QC, source coverage and actual portable assets.
+- [x] Run complete backend, build, MCP and React/JSDOM verification; independent final review and fixes. Full-browser verification remains deferred.
+- [ ] Merge verified work locally into the running checkout and restart local services.
+- [x] Record requirement coverage and precise remaining external/source/pilot limits. No paid generation without available authorized tool/budget; no invented artistic success. Commit verified deliverable.
+
+Verification record (2026-10-22): 46 backend tests, 9 React/JSDOM tests and production build passed. Independent final review found seven Important defects; all seven received regression coverage and fixes. See docs/CREATIVE-COVERAGE.md for source, browser and artistic-validation limits.

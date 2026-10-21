@@ -12,6 +12,7 @@ const built = spawnSync(
     "src/app/studio/visual-help.tsx",
     "src/app/studio/creative-forms.tsx",
     "src/app/studio/creative-workspace.tsx",
+    "src/app/studio/generator-export.tsx",
     "--outDir",
     compiled,
     "--jsx",
@@ -52,6 +53,7 @@ const { reconcile, useDraft } = require(
 const { CreativeWorkspace } = require(
   path.join(compiled, "creative-workspace.js"),
 );
+const { GeneratorExport } = require(path.join(compiled, "generator-export.js"));
 const entry = {
   id: "digital",
   category: "camera",
@@ -218,6 +220,27 @@ test("illustration distinguishes lens, lighting and movement examples with acces
   await React.act(() => root.unmount());
 });
 
+test("angle and retreat examples visibly differ from their default scene", async () => {
+  const root = createRoot(document.getElementById("root"));
+  const markup = async (kind, variant) => {
+    await React.act(() =>
+      root.render(React.createElement(TechniqueVisual, { kind, variant })),
+    );
+    return [...document.querySelectorAll("svg path")]
+      .map((p) => p.getAttribute("d"))
+      .join("|");
+  };
+  assert.notEqual(
+    await markup("movement", "out"),
+    await markup("movement", "pan"),
+  );
+  assert.notEqual(
+    await markup("framing", "high"),
+    await markup("framing", "medium"),
+  );
+  await React.act(() => root.unmount());
+});
+
 test("real shot inspector saves overrides and can distinguish multiple unsaved shots", async () => {
   const fixture = spawnSync(
     path.resolve(__dirname, "../../backend/.venv/Scripts/python.exe"),
@@ -309,6 +332,95 @@ test("unapplied drafts survive navigation/remount and retain their conflict revi
     root.render(React.createElement(Probe, { revision: 2 })),
   );
   assert.equal(document.querySelector("button").textContent, "85mm / true");
+  await React.act(() => root.unmount());
+  window.sessionStorage.clear();
+});
+
+test("rebasing multiple new shots uses their distinct client draft keys", () => {
+  const base = [{ id: "a", title: "Existing", light: "soft" }];
+  const local = [
+    ...base,
+    { id: "", _draft_key: "new-1", title: "First new" },
+    { id: "", _draft_key: "new-2", title: "Second new" },
+  ];
+  const remote = [{ id: "a", title: "Existing", light: "hard" }];
+  const merged = reconcile(base, local, remote);
+  assert.equal(merged[0].light, "hard");
+  assert.equal(merged[1].title, "First new");
+  assert.equal(merged[2].title, "Second new");
+});
+
+test("generator templates survive remount, rebase remote changes and save the latest revision", async () => {
+  window.sessionStorage.clear();
+  let project = {
+    id: "generator-probe",
+    revision: 1,
+    settings: {
+      generation_mode: "external_agent",
+      video_generator: "custom",
+      image_generator: "custom",
+      custom_video_template: "{motion}",
+      custom_image_template: "{subject}",
+    },
+    preflight: { issues: [], errors: 0, warnings: 0 },
+    shots: [],
+  };
+  const profiles = [{ id: "custom", name: "Custom", hint: "Custom profile" }];
+  let root = createRoot(document.getElementById("root")),
+    sent;
+  const props = () => ({
+    project,
+    videoProfiles: profiles,
+    imageProfiles: profiles,
+    busy: false,
+    save: async (fn) => fn(),
+  });
+  const render = async () =>
+    React.act(() => root.render(React.createElement(GeneratorExport, props())));
+  await render();
+  const input = document.querySelector("textarea");
+  await React.act(() => {
+    Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      "value",
+    ).set.call(input, "Artistic {motion}");
+    input.dispatchEvent(new window.Event("input", { bubbles: true }));
+  });
+  await React.act(() => root.unmount());
+  project = {
+    ...project,
+    revision: 2,
+    settings: {
+      ...project.settings,
+      custom_image_template: "Remote {subject}",
+    },
+  };
+  root = createRoot(document.getElementById("root"));
+  await render();
+  assert.equal(document.querySelector("textarea").value, "Artistic {motion}");
+  const rebase = [...document.querySelectorAll("button")].find((b) =>
+    b.textContent.includes("Rebase my draft"),
+  );
+  assert.ok(rebase, "Remote changes offer explicit recovery");
+  await React.act(() => rebase.click());
+  assert.equal(
+    document.querySelectorAll("textarea")[1].value,
+    "Remote {subject}",
+  );
+  global.fetch = async (url, options) => {
+    sent = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ ...project, revision: 3 }) };
+  };
+  await React.act(() =>
+    [...document.querySelectorAll("button")]
+      .find((b) => b.textContent.includes("Apply generator choices"))
+      .click(),
+  );
+  assert.equal(sent.arguments.expected_revision, 2);
+  assert.equal(
+    sent.arguments.settings.custom_video_template,
+    "Artistic {motion}",
+  );
   await React.act(() => root.unmount());
   window.sessionStorage.clear();
 });

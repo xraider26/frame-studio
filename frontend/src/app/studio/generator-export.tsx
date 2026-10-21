@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Download, ArrowRight } from "lucide-react";
 import { studioApi } from "./client";
+import { DraftNotice, useDraft } from "./creative-forms";
 import { Checks } from "./creative-workspace";
 import type { Project } from "./creative-types";
 
@@ -22,26 +23,34 @@ export function GeneratorExport({
   busy,
   save,
 }: Props) {
-  const [settings, setSettings] = useState(project.settings);
-  const [revision, setRevision] = useState(project.revision);
-  const [dirty, setDirty] = useState(false);
+  const savedSettings = useMemo(
+    () =>
+      Object.fromEntries(
+        [
+          "generation_mode",
+          "video_generator",
+          "image_generator",
+          "custom_video_template",
+          "custom_image_template",
+        ].map((k) => [k, project.settings[k]]),
+      ),
+    [project.settings],
+  );
+  const form = useDraft(
+    savedSettings,
+    project.revision,
+    "generator:" + project.id,
+  );
+  const settings = form.draft;
+  const dirty = form.dirty;
   const [bundle, setBundle] = useState<{
+    source_revision: number;
     markdown: string;
     download_url: string;
   } | null>(null);
   const [error, setError] = useState("");
-  useEffect(() => {
-    if (!dirty) {
-      setSettings(project.settings);
-      setRevision(project.revision);
-    }
-  }, [project.revision, project.id, dirty, project.settings]);
-  useEffect(() => {
-    setBundle(null);
-  }, [project.id, project.revision]);
   function change(key: string, value: string) {
-    setSettings((s) => ({ ...s, [key]: value }));
-    setDirty(true);
+    form.edit((s) => ({ ...s, [key]: value }));
     setBundle(null);
   }
   const video = videoProfiles.find((v) => v.id === settings.video_generator);
@@ -54,6 +63,7 @@ export function GeneratorExport({
         Choose the generator’s prompt profile. Export a portable package for
         your agent, or use the same prompts through a connected API.
       </p>
+      <DraftNotice {...form} />
       <div className="fs-generator-controls">
         <div className="fs-form-grid">
           <label className="fs-label">
@@ -138,7 +148,7 @@ export function GeneratorExport({
         )}
         <button
           className="fs-button"
-          disabled={busy || !dirty}
+          disabled={busy || !dirty || form.conflict}
           onClick={() =>
             save(async () => {
               const fields = [
@@ -153,9 +163,9 @@ export function GeneratorExport({
                 settings: Object.fromEntries(
                   fields.map((k) => [k, settings[k]]),
                 ),
-                expected_revision: revision,
+                expected_revision: form.revision,
               });
-              setDirty(false);
+              form.saved();
             })
           }
         >
@@ -172,9 +182,9 @@ export function GeneratorExport({
         <h2>One file to hand to your agent.</h2>
         <p className="fs-body">
           A ZIP containing <code>manifest.json</code>, <code>prompts.md</code>,{" "}
-          <code>README.txt</code>, and available reference images. Shot IDs and
-          the review policy travel with it. Your agent returns the real results
-          through MCP.
+          <code>README.txt</code>, and available reference images or motion
+          videos. Shot IDs and the review policy travel with it. Your agent
+          returns the real results through MCP.
         </p>
         {error && (
           <p role="alert" className="fs-body">
@@ -187,9 +197,13 @@ export function GeneratorExport({
           onClick={async () => {
             setError("");
             try {
-              setBundle(
-                await studioApi("export_handoff", { project_id: project.id }),
-              );
+              setBundle({
+                ...(await studioApi<{ markdown: string; download_url: string }>(
+                  "export_handoff",
+                  { project_id: project.id },
+                )),
+                source_revision: project.revision,
+              });
             } catch (e) {
               setError((e as Error).message);
             }
@@ -197,7 +211,7 @@ export function GeneratorExport({
         >
           <Download size={14} /> Prepare export package
         </button>
-        {bundle && (
+        {bundle && bundle.source_revision === project.revision && !dirty && (
           <div className="fs-export-ready">
             <a
               className="fs-primary"

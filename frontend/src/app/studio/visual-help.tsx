@@ -25,7 +25,17 @@ export function TechniqueVisual({
         : variant === "noir"
           ? "#777"
           : "#a77950";
-  const scale = close ? 1.65 : wide ? 0.75 : 1;
+  const angle = kind === "framing" && ["high", "low"].includes(variant);
+  const scale =
+    variant === "extreme"
+      ? 2.4
+      : close
+        ? 1.65
+        : wide
+          ? 0.75
+          : angle && variant === "high"
+            ? 0.85
+            : 1;
   return (
     <figure className={`cv-illustration cv-${kind} cv-${variant}`}>
       <svg
@@ -77,9 +87,18 @@ export function TechniqueVisual({
             opacity={variant === "practical" ? 1 : 0.3}
           />
         </g>
-        <path d="M0 155L360 141V190H0" fill="#393b39" />
+        <path
+          d={
+            angle && variant === "high"
+              ? "M0 80L360 66V190H0"
+              : angle
+                ? "M0 176L360 170V190H0"
+                : "M0 155L360 141V190H0"
+          }
+          fill="#393b39"
+        />
         <g
-          transform={`translate(180 155) scale(${scale}) translate(-180 -155)`}
+          transform={`translate(180 155) scale(${scale} ${angle && variant === "high" ? scale * 0.8 : scale}) translate(-180 -155)`}
         >
           <ellipse
             cx="182"
@@ -136,11 +155,13 @@ export function TechniqueVisual({
                   ? "M118 159Q180 199 240 154"
                   : variant === "dolly"
                     ? "M167 162V126m-6 8 6-8 6 8"
-                    : variant === "tilt"
-                      ? "M235 123V65m-6 8 6-8 6 8"
-                      : variant === "locked"
-                        ? "M156 138h48v25h-48Z"
-                        : "M105 148H257m-9-6 9 6-9 6"
+                    : variant === "out"
+                      ? "M167 126V166m-6-8 6 8 6-8"
+                      : variant === "tilt"
+                        ? "M235 123V65m-6 8 6-8 6 8"
+                        : variant === "locked"
+                          ? "M156 138h48v25h-48Z"
+                          : "M105 148H257m-9-6 9 6-9 6"
               }
             />
           </g>

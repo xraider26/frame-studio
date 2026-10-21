@@ -134,7 +134,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'return_generation': return studio.return_result(a['job_id'], a['output_path'], actor)
         if op == 'get_job': return studio.find_job(a['job_id'])[1]
         if op == 'cancel_job': return studio.cancel_job(a['job_id'], actor)
-        if op == 'import_reference': return studio.import_reference(a['project_id'], a['path'], a.get('name', 'Reference'), a['expected_revision'], actor)
+        if op == 'import_reference': return studio.import_reference(a['project_id'], a['path'], a.get('name', 'Reference'), a['expected_revision'], actor, kind=a.get('kind', 'image'))
         if op == 'import_final': return studio.import_final(a['project_id'], a['path'], a['expected_revision'], actor)
         if op == 'editor_handoff': return studio.editor_handoff(a['project_id'])
         if op == 'set_policy': return studio.set_policy(a['project_id'], a['policy'], a['expected_revision'])

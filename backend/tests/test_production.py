@@ -1,6 +1,7 @@
 import copy
 import shutil
 import subprocess
+import zipfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -62,6 +63,34 @@ class ProductionTests(unittest.TestCase):
         self.assertEqual(self.studio.next_action(p['id'])['kind'],'video')
         self.assertEqual(p['assets'][0]['review']['actor'],'agent')
 
+    def test_inherited_project_quality_criteria_cannot_be_skipped(self):
+        p=self.prepare()
+        p=self.studio.update_production(p['id'],{'require_recorded_checks':True,'defaults':{'quality':{'criteria':['Glasses and coat match the canonical portrait']}}},p['revision'],'user')
+        p=self.studio.set_policy(p['id'],{'visual_direction':False},p['revision']);self.p=p
+        _,result=self.image_return('qc-inherited')
+        p=self.studio.record_take_review(p['id'],result['asset']['id'],{'criteria':{'Identity and composition serve the shot':True},'inspected':['image']},self.p['revision'],'agent')
+        action=self.studio.next_action(p['id'])
+        self.assertEqual(action['action'],'record_quality')
+        self.assertIn('Glasses and coat match the canonical portrait',action['criteria'])
+        p=self.studio.record_take_review(p['id'],result['asset']['id'],{'criteria':{c:True for c in action['criteria']},'inspected':['image']},p['revision'],'agent')
+        self.assertEqual(self.studio.next_action(p['id'])['kind'],'video')
+        p=self.studio.update_production(p['id'],{'defaults':{'quality':{'criteria':['New inherited requirement']}}},p['revision'],'user')
+        self.assertEqual(p['shots'][0]['image_asset'],result['asset']['id'])
+        self.assertEqual(self.studio.next_action(p['id'])['action'],'record_quality')
+        shots=copy.deepcopy(p['shots']);shots[0]['direction']['quality']['criteria']=['Shot override']
+        p=self.studio.update_shots(p['id'],shots,p['revision'],'agent')
+        self.assertIn('Shot override',self.studio.next_action(p['id'])['criteria'])
+        self.assertNotIn('New inherited requirement',self.studio.next_action(p['id'])['criteria'])
+
+    def test_structured_primary_action_is_enough_for_motion_handoff(self):
+        p=self.prepare();_,image=self.image_return('structured')
+        p=self.studio.set_policy(p['id'],{'visual_direction':False},self.p['revision'])
+        shots=copy.deepcopy(p['shots']);shots[0]['motion_prompt']='';shots[0]['direction']['action']['primary_action']='Turns toward the north window'
+        p=self.studio.update_shots(p['id'],shots,p['revision'],'agent')
+        task=self.studio.claim_next(p['id'],'agent','structured-action')
+        self.assertIsNotNone(task.get('handoff'),'Structured primary action should compile without duplicate base text')
+        self.assertIn('Turns toward the north window',task['handoff']['prompt'])
+
     def test_budget_unknown_cost_blocks_and_retry_reserves_once(self):
         p=self.prepare()
         p=self.studio.update_production(p['id'],{'resources':{'limit':5,'unit':'credits'}},p['revision'],'user')
@@ -73,6 +102,47 @@ class ProductionTests(unittest.TestCase):
         self.assertEqual(results[0]['job']['id'],results[1]['job']['id'])
         self.assertTrue(hasattr(self.studio,'production_metrics'),'Missing resource ledger')
         self.assertEqual(self.studio.production_metrics(p['id'])['reserved_or_spent'],2)
+
+    @unittest.skipUnless(shutil.which('ffmpeg'),'FFmpeg required')
+    def test_motion_reference_requires_real_video_and_exports_it(self):
+        from studio.preflight import preflight, references_for
+        p=self.prepare()
+        image=self.studio.inbox/'still.png';Image.new('RGB',(32,18),'orange').save(image)
+        p=self.studio.import_reference(p['id'],str(image),'Still',p['revision'],'user')
+        still=p['assets'][-1]
+        shots=copy.deepcopy(p['shots'])
+        shots[0]['direction'].update(generation_mode='motion_control',references=[{'slot':'motion','asset_id':still['id'],'role':'motion','version':1}])
+        p=self.studio.update_shots(p['id'],shots,p['revision'],'agent')
+        self.assertGreater(preflight(p)['errors'],0,'A still cannot certify a motion source')
+        file=self.studio.inbox/'motion.mp4'
+        subprocess.run(['ffmpeg','-y','-f','lavfi','-i','color=c=orange:s=32x18:d=1','-c:v','libx264','-pix_fmt','yuv420p',str(file)],capture_output=True,check=True)
+        p=self.studio.import_reference(p['id'],str(file),'Motion source',p['revision'],'user',kind='video')
+        motion=p['assets'][-1]
+        shots=copy.deepcopy(p['shots']);shots[0]['direction']['references']=[{'slot':'motion','asset_id':motion['id'],'role':'motion','version':1,'notes':'Match initial pose and full body framing'}]
+        p=self.studio.update_shots(p['id'],shots,p['revision'],'agent')
+        self.assertEqual(preflight(p)['errors'],0)
+        self.assertFalse(references_for(p,p['shots'][0],'image'))
+        self.assertEqual(references_for(p,p['shots'][0],'video')[0]['kind'],'video')
+        self.p=p;self.image_return('motion-target')
+        p=self.studio.set_policy(p['id'],{'visual_direction':False},self.p['revision'])
+        handoff=self.studio.claim_next(p['id'],'agent','motion-source-handoff')['handoff']
+        self.assertTrue(any(r['id']==motion['id'] and r['kind']=='video' for r in handoff['references']))
+        bundle=self.studio.export_handoff(p['id'])
+        entry=next(r for r in bundle['manifest']['references'] if r['asset_id']==motion['id'])
+        with zipfile.ZipFile(bundle['path']) as archive:self.assertIn(entry['file'],archive.namelist())
+
+    def test_export_includes_explicitly_bound_unselected_generated_image(self):
+        p=self.prepare();_,result=self.image_return('bound')
+        p=self.p
+        alternate=copy.deepcopy(result['asset']);alternate['id']='unselected-image'
+        p=self.studio.mutate(p['id'],p['revision'],lambda current:current['assets'].append(alternate))
+        shots=copy.deepcopy(p['shots']);shots.append({'title':'Second','image_prompt':'Same traveler','motion_prompt':'Still','direction':{'references':[{'slot':'identity','asset_id':alternate['id'],'role':'character','version':1}]}})
+        p=self.studio.update_shots(p['id'],shots,p['revision'],'agent')
+        bundle=self.studio.export_handoff(p['id'])
+        self.assertEqual(bundle['manifest']['preflight']['errors'],0)
+        entry=next((r for r in bundle['manifest']['references'] if r['asset_id']==alternate['id']),None)
+        self.assertIsNotNone(entry,'Explicit binding must have a portable file mapping')
+        with zipfile.ZipFile(bundle['path']) as archive:self.assertIn(entry['file'],archive.namelist())
 
     def test_reported_overrun_cannot_be_hidden_by_cancel_or_unit_change(self):
         p=self.prepare()
@@ -105,3 +175,17 @@ class ProductionTests(unittest.TestCase):
         handoff=self.studio.repair_handoff(p['id'],frame['id'],'Fix one corner','',p['revision'],'agent')
         self.assertEqual(handoff['original']['id'],frame['id'])
         self.assertIn('preserve',handoff)
+
+        # A retained compatible alternate take must invalidate bound derived frames,
+        # even when the following shot has no explicit continuity_from link.
+        alternate=copy.deepcopy(result['asset']);alternate['id']='alternate-synthetic-take'
+        p=self.studio.mutate(p['id'],p['revision'],lambda current:current['assets'].append(alternate))
+        first=p['shots'][0]
+        second={'title':'Following shot','image_prompt':'Traveler continues','motion_prompt':'One step',
+                'direction':{'references':[{'slot':'start','asset_id':frame['id'],'version':1,'role':'start_frame'}]}}
+        p=self.studio.update_shots(p['id'],[first,second],p['revision'],'agent')
+        pending=self.studio.claim_next(p['id'],'agent','dependent-image')
+        p=self.studio.get_project(p['id'])
+        p=self.studio.select_take(p['id'],alternate['id'],p['revision'],'user')
+        self.assertTrue(next(a for a in p['assets'] if a['id']==frame['id'])['stale'])
+        self.assertEqual(next(j for j in p['jobs'] if j['id']==pending['job']['id'])['status'],'superseded')
