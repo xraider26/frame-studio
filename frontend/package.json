@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
-    ,"test": "node --test tests/visual-help.test.cjs"
+    "lint": "eslint",
+    "test": "node --test tests/visual-help.test.cjs"
   },
   "dependencies": {
     "lucide-react": "^1.56.0",

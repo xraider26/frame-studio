@@ -138,7 +138,7 @@ class Studio(ProductionTools, Store):
         shot = next((s for s in p['shots'] if s['id'] == shot_id), None)
         if not shot:
             raise StudioError('not_found', 'Shot not found.', 404)
-        return {'image': prompt_for(p, shot, 'image'), 'video': prompt_for(p, shot, 'video'), 'preflight': preflight(p, shot_id), 'references': references_for(p, shot, 'video')}
+        return {'source_revision': p['revision'], 'image': prompt_for(p, shot, 'image'), 'video': prompt_for(p, shot, 'video'), 'preflight': preflight(p, shot_id), 'references': references_for(p, shot, 'video')}
 
     def _progress(self, p):
         for step, kind, shots in [('visual_direction', 'image', p['shots']), ('pilot', 'video', p['shots'][:1]), ('production', 'video', p['shots'])]:
