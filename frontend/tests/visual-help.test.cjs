@@ -3,6 +3,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { existsSync } = require("node:fs");
 const { JSDOM } = require("jsdom");
 const compiled = path.resolve(__dirname, "../.studio-test/components");
 const built = spawnSync(
@@ -13,6 +14,11 @@ const built = spawnSync(
     "src/app/studio/creative-forms.tsx",
     "src/app/studio/creative-workspace.tsx",
     "src/app/studio/generator-export.tsx",
+    ...(existsSync(
+      path.resolve(__dirname, "../src/app/studio/template-workspace.tsx"),
+    )
+      ? ["src/app/studio/template-workspace.tsx"]
+      : []),
     "--outDir",
     compiled,
     "--jsx",
@@ -54,6 +60,11 @@ const { CreativeWorkspace } = require(
   path.join(compiled, "creative-workspace.js"),
 );
 const { GeneratorExport } = require(path.join(compiled, "generator-export.js"));
+const TemplateWorkspace = existsSync(
+  path.join(compiled, "template-workspace.js"),
+)
+  ? require(path.join(compiled, "template-workspace.js")).TemplateWorkspace
+  : null;
 const entry = {
   id: "digital",
   category: "camera",
@@ -65,6 +76,107 @@ const entry = {
   apply: { camera: { body_look: "Digital cinema" } },
   visual: { kind: "camera", variant: "digital" },
 };
+
+test("template library saves selected groups and explicitly applies a saved template", async () => {
+  assert.equal(
+    typeof TemplateWorkspace,
+    "function",
+    "Saved-template library must be available",
+  );
+  window.sessionStorage.clear();
+  const root = createRoot(document.getElementById("root"));
+  let sent, newTemplate;
+  global.fetch = async (url, options) => {
+    sent = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ id: "saved-one", revision: 1 }) };
+  };
+  const saved = {
+    id: "saved-one",
+    name: "Amber look",
+    description: "Worked well",
+    revision: 1,
+    saved: true,
+    sections: ["settings", "workflow"],
+    aspect: "16:9",
+    structure: ["Opening"],
+  };
+  const project = { id: "template-project", name: "My film", revision: 7 };
+  await React.act(() =>
+    root.render(
+      React.createElement(TemplateWorkspace, {
+        project,
+        templates: [saved],
+        busy: false,
+        save: async (fn) => fn(),
+        onNew: (id) => (newTemplate = id),
+      }),
+    ),
+  );
+  const change = async (label, value) => {
+    const field = [...document.querySelectorAll("label")].find(
+      (x) => x.textContent.trim() === label,
+    );
+    assert.ok(field, label);
+    const input = field.htmlFor
+      ? document.getElementById(field.htmlFor)
+      : field.querySelector("input,textarea");
+    await React.act(() => {
+      Object.getOwnPropertyDescriptor(
+        input.tagName === "TEXTAREA"
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype,
+        "value",
+      ).set.call(input, value);
+      input.dispatchEvent(new window.Event("input", { bubbles: true }));
+    });
+  };
+  const click = async (text) => {
+    const button = [...document.querySelectorAll("button")].find(
+      (b) => b.textContent.trim() === text,
+    );
+    assert.ok(button, text);
+    await React.act(() => button.click());
+  };
+  await change("Template name", "My successful look");
+  const story = document.querySelector('input[data-section="story"]');
+  await React.act(() => story.click());
+  await click("Save as template");
+  assert.equal(sent.operation, "save_project_template");
+  assert.equal(sent.arguments.name, "My successful look");
+  assert.deepEqual(sent.arguments.sections, ["settings", "workflow"]);
+  assert.equal(sent.arguments.expected_revision, 7);
+  await click("New project");
+  assert.equal(newTemplate, "saved-one");
+  await click("Apply to project");
+  assert.equal(
+    sent.operation,
+    "save_project_template",
+    "Opening options does not mutate the project",
+  );
+  const applyWorkflow = document.querySelector(
+    '[data-apply-section="workflow"]',
+  );
+  await React.act(() => applyWorkflow.click());
+  await click("Apply selected sections");
+  assert.equal(sent.operation, "apply_project_template");
+  assert.deepEqual(sent.arguments.sections, ["settings"]);
+  assert.equal(sent.arguments.template_revision, 1);
+  await click("Rename");
+  await change("Saved template name", "Amber portrait");
+  await click("Save template details");
+  assert.equal(sent.operation, "rename_project_template");
+  assert.equal(sent.arguments.name, "Amber portrait");
+  await click("Delete");
+  assert.equal(
+    sent.operation,
+    "rename_project_template",
+    "Delete presents its confirmation first",
+  );
+  await click("Delete template");
+  assert.equal(sent.operation, "delete_project_template");
+  await React.act(() => root.unmount());
+  window.sessionStorage.clear();
+});
 
 test("hover, click pin, example apply, focus and Escape work in the actual React component", async () => {
   const root = createRoot(document.getElementById("root"));

@@ -45,8 +45,26 @@ async def list_projects() -> list[dict]:
 
 @mcp.tool()
 async def create_project(name: str, template_id: str = 'custom', request_id: str = '') -> dict:
-    """Create a project. Use a stable unique request_id to avoid duplicate projects on retries."""
+    """Create from a built-in or saved template ID (list_templates). Saved settings/story are reused; workflow/QC policy stays at new-project defaults for agent creation. Use a stable unique request_id for retries."""
     return await command('create_project', locals())
+
+
+@mcp.tool()
+async def list_templates() -> list[dict]:
+    """List built-in formats and user-saved templates, with IDs and included sections."""
+    return await command('list_templates')
+
+
+@mcp.tool()
+async def get_saved_template(template_id: str) -> dict:
+    """Read a saved template snapshot. Media must be rebound; jobs/results/approvals/budgets are not reused."""
+    return await command('get_saved_template', locals())
+
+
+@mcp.tool()
+async def apply_project_template(project_id: str, template_id: str, sections: list[str], expected_revision: int, template_revision: int) -> dict:
+    """Apply saved settings and/or story sections to an existing project. Story replaces shots and prepared documents; affected outputs reopen. Workflow policy is human-only; never include workflow in sections. Read revisions first."""
+    return await command('apply_project_template', locals())
 
 
 @mcp.tool()

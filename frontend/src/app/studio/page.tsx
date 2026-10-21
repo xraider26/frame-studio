@@ -31,17 +31,16 @@ import {
 import { ProductionWorkspace } from "./production-workspace";
 import { TakesWorkspace } from "./takes-workspace";
 import { EditorWorkspace } from "./editor-workspace";
+import {
+  TemplateWorkspace,
+  type TemplateChoice,
+  type SavedTemplate,
+} from "./template-workspace";
 import type { Project, Job, Action, Catalog } from "./creative-types";
 import "./creative.css";
 
 type Step = { id: string; name: string };
-type Template = {
-  id: string;
-  name: string;
-  description: string;
-  structure: string[];
-  aspect: string;
-};
+type Template = TemplateChoice;
 type Summary = Pick<Project, "id" | "name" | "template_id">;
 type Connection = {
   id: string;
@@ -361,37 +360,51 @@ export default function StudioPage() {
 
           {((!project && view !== "connections") || view === "templates") && (
             <section className="fs-library">
-              <div className="fs-eyebrow">
-                A STARTING POINT FOR YOUR NEXT STORY
-              </div>
-              <h1>Create with a plan.</h1>
+              <div className="fs-eyebrow">TEMPLATE LIBRARY</div>
+              <h1>Your reusable setups.</h1>
               <p className="fs-lead">
-                Choose a format. Your project starts with structure, creative
-                controls and a workflow your agent can follow.
+                Save what works, or start with a built-in content format.
               </p>
+              <TemplateWorkspace
+                project={project}
+                templates={(caps?.templates || []).filter(
+                  (t): t is SavedTemplate => !!t.saved,
+                )}
+                busy={busy}
+                save={(fn) => act(fn, "Template saved")}
+                onNew={(id) => {
+                  setTemplate(id);
+                  setCreating(true);
+                }}
+              />
+              <div className="fs-eyebrow fs-section-label">
+                BUILT-IN FORMATS
+              </div>
               <div className="fs-template-list">
-                {caps?.templates.map((t, i) => (
-                  <button
-                    className="fs-template"
-                    key={t.id}
-                    onClick={() => {
-                      setTemplate(t.id);
-                      setCreating(true);
-                    }}
-                  >
-                    <span className="fs-template-number">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <div>
-                      <h3>{t.name}</h3>
-                      <p>{t.description}</p>
-                      <small>
-                        {t.aspect} · {t.structure.join(" → ")}
-                      </small>
-                    </div>
-                    <ArrowRight size={20} />
-                  </button>
-                ))}
+                {caps?.templates
+                  .filter((t) => !t.saved)
+                  .map((t, i) => (
+                    <button
+                      className="fs-template"
+                      key={t.id}
+                      onClick={() => {
+                        setTemplate(t.id);
+                        setCreating(true);
+                      }}
+                    >
+                      <span className="fs-template-number">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <h3>{t.name}</h3>
+                        <p>{t.description}</p>
+                        <small>
+                          {t.aspect} · {t.structure.join(" → ")}
+                        </small>
+                      </div>
+                      <ArrowRight size={20} />
+                    </button>
+                  ))}
               </div>
               {!caps && (
                 <button
@@ -421,11 +434,19 @@ export default function StudioPage() {
                     {project.settings.aspect_ratio}
                   </p>
                 </div>
-                <span className="fs-badge">
-                  {next?.action === "await_approval"
-                    ? "Your approval needed"
-                    : currentName}
-                </span>
+                <div className="cv-template-actions">
+                  <button
+                    className="fs-button"
+                    onClick={() => setView("templates")}
+                  >
+                    Save as template
+                  </button>
+                  <span className="fs-badge">
+                    {next?.action === "await_approval"
+                      ? "Your approval needed"
+                      : currentName}
+                  </span>
+                </div>
               </div>
               <div className="fs-next">
                 <div>
@@ -1035,6 +1056,7 @@ export default function StudioPage() {
             >
               {caps?.templates.map((t) => (
                 <option value={t.id} key={t.id}>
+                  {t.saved ? "Saved · " : ""}
                   {t.name}
                 </option>
               ))}

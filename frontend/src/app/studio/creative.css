@@ -858,6 +858,119 @@
 .fs-mobile-menu {
   display: none;
 }
+.cv-saved-templates {
+  margin: 38px 0 44px;
+}
+.cv-template-capture {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.65fr) minmax(0, 1.35fr);
+  gap: 34px;
+  padding: 28px 0;
+  margin: 22px 0;
+  border-block: 1px solid var(--fs-line);
+}
+.cv-template-sections {
+  border: 0;
+  padding: 0;
+  margin: 18px 0 24px;
+  display: grid;
+  gap: 15px;
+}
+.cv-template-sections legend {
+  font-size: 11px;
+  color: var(--fs-muted);
+  padding: 0 0 16px;
+}
+.cv-template-sections label {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  cursor: pointer;
+}
+.cv-template-sections input {
+  accent-color: #f69251;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  flex: none;
+}
+.cv-template-sections strong {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+}
+.cv-template-sections small,
+.cv-template-row-main small {
+  display: block;
+  color: var(--fs-muted);
+  font-size: 10px;
+  line-height: 1.65;
+  margin-top: 4px;
+}
+.cv-template-row {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--fs-line);
+}
+.cv-template-row-main,
+.cv-template-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.cv-template-row h3 {
+  margin: 0;
+}
+.cv-template-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cv-template-actions .fs-link {
+  font-size: 11px;
+}
+.cv-template-panel {
+  margin-top: 22px;
+  padding: 22px;
+  border-left: 2px solid #cf783c;
+  background: #f3934910;
+  border-radius: 0 8px 8px 0;
+}
+.cv-template-panel .cv-field {
+  margin-bottom: 16px;
+}
+.cv-template-empty {
+  padding: 32px 0;
+  color: var(--fs-muted);
+  font-size: 12px;
+}
+@media (max-width: 800px) {
+  .cv-template-capture {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .cv-template-row-main {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cv-template-panel {
+    animation: cv-panel-reveal 0.18s ease-out;
+  }
+  @keyframes cv-panel-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
 @media (max-width: 540px) {
   .fs-mobile-menu {
     display: flex;

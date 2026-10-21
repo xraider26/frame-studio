@@ -15,6 +15,7 @@ from .creative import default_production, Direction, Production, merge, validate
 from .preflight import preflight, references_for
 from .production import ProductionTools, quality_passed, criteria_for
 from .resources import resource_gate
+from .saved_templates import SavedTemplates
 
 
 def uid():
@@ -35,18 +36,21 @@ def clean_text(value, limit=12000):
     return value.strip()
 
 
-class Studio(ProductionTools, Store):
+class Studio(SavedTemplates, ProductionTools, Store):
     def __init__(self, db_path, media_root, inbox):
         super().__init__(db_path)
         self.media_root, self.inbox = Path(media_root).resolve(), Path(inbox).resolve()
         self.media_root.mkdir(parents=True, exist_ok=True)
         self.inbox.mkdir(parents=True, exist_ok=True)
 
-    def create_project(self, name, template_id, request_id=None, actor='user'):
+    def create_project(self, name, template_id, request_id=None, actor='user', allow_template_policy=True):
         if request_id:
             for p in self.all():
                 if p.get('request_id') == request_id:
                     return p
+        saved = self.get_saved_template(template_id) if isinstance(template_id, str) and template_id.startswith('saved-') else None
+        if saved:
+            template_id = saved['base_template_id']
         template = next((t for t in TEMPLATES if t['id'] == template_id), None)
         if not template or not clean_text(name, 150):
             raise StudioError('invalid_input', 'Choose a valid template and project name.')
@@ -59,6 +63,9 @@ class Studio(ProductionTools, Store):
              'assets': [], 'jobs': [], 'history': [], 'production': default_production(template_id)}
         for shot in p['shots']:
             shot.update(direction=Direction().model_dump(), edit_duration_seconds=shot['duration_seconds'], edit_in_seconds=0)
+        if saved:
+            sections = [s for s in saved['sections'] if allow_template_policy or s != 'workflow']
+            self._restore_template(p, saved, sections)
         event(p, 'created', actor, 'Project created from ' + template['name'])
         return self.insert(p)
 

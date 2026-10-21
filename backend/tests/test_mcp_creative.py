@@ -28,6 +28,8 @@ class McpCreativeTests(unittest.TestCase):
                 async def call(name,args=None):
                     result=await client.call_tool(name,args or {})
                     self.assertFalse(result.isError,result.content)
+                    if result.structuredContent is not None:
+                        return result.structuredContent.get('result',result.structuredContent)
                     return json.loads(next(c.text for c in result.content if c.type=='text'))
                 schema=await call('creative_schema');self.assertEqual(schema['schema_version'],2)
                 catalog=await call('knowledge_catalog',{'category':'lighting'});self.assertTrue(catalog['entries'])
@@ -36,6 +38,12 @@ class McpCreativeTests(unittest.TestCase):
                 self.assertTrue(blocked.isError)
                 # Human side of the same database; the MCP client cannot perform this operation.
                 human=Studio(root/'workflow.db',root/'media',root/'inbox')
+                saved=human.save_project_template(p['id'],'SDK saved look','Actual snapshot',['settings'],p['revision'])
+                templates=await call('list_templates')
+                self.assertIn(saved['id'],[t['id'] for t in templates])
+                snapshot=await call('get_saved_template',{'template_id':saved['id']})
+                self.assertEqual(snapshot['sections'],['settings'])
+                p=await call('apply_project_template',{'project_id':p['id'],'template_id':saved['id'],'sections':['settings'],'expected_revision':p['revision'],'template_revision':saved['revision']})
                 p=human.set_policy(p['id'],{'brief':False,'script':False},p['revision'])
                 for step in ['brief','script']:
                     p=await call('complete_step',{'project_id':p['id'],'step':step,'output':{'text':'Actual '+step+' fixture'},'expected_revision':p['revision']})

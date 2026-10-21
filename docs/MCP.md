@@ -115,3 +115,9 @@ Save and enable the connection, then claim a generation handoff and call `run_pr
 Backend behavior suite, from the `backend` directory: `.venv/Scripts/python.exe -m unittest discover -s tests -v`. Live MCP/browser verification scripts use an isolated `.studio-test` database and fixture media. Test images are explicitly synthetic fixtures, not AI-generated output.
 
 Motion-source references: call `import_reference` with `kind="video"` for an actual MP4 in the inbox, then bind its asset ID with role `motion` and pose/framing compatibility notes. Image imports retain the default `kind="image"`. Video references are excluded from image-generation inputs. Portable ZIPs include accepted bound media and per-shot `reference_files` mappings.
+
+## Reusable workflow templates
+
+In Template library, save a named snapshot of selected creative settings, workflow/quality gates, and/or story and shot plan. A successful shot can supply the reusable camera, lighting and art defaults. Notes record what worked. Use a saved template in the new-project picker or apply selected sections to the current project. Rename/delete manage library entries independently of existing projects. Templates live in the same local SQLite database and survive restarts and deletion of the source project.
+
+MCP: `list_templates` includes built-in and saved IDs, `get_saved_template` reads saved snapshots, `create_project` accepts a saved ID, and `apply_project_template` accepts `settings` and/or `story` with both project and template revisions. Saving/renaming/deleting templates and applying workflow policy are human UI controls. Agent-created projects retain default approval/quality policy. Story application replaces shots and prepared documents; affected outputs reopen, original media is retained. Snapshots omit reference file bindings (reattach them), output takes, completed approvals, spending settings/history, observed capabilities and experiment results.

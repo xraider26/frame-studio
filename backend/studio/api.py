@@ -95,7 +95,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         actor = 'user' if human else 'agent:' + body.actor[:94]
         if op == 'update_production' and isinstance(a.get('production'), dict) and any(k in a['production'] for k in ['resources', 'require_recorded_checks']) and not human:
             raise StudioError('human_only', 'Resource and quality policy belong to the user. Agents may report evidence and actual job costs.', 403)
-        if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted'] and not human:
+        if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template'] and not human:
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'studio_capabilities':
             return {'server': 'Frame Studio', 'schema_version': 2, 'transport': 'stdio bridge',
@@ -103,8 +103,16 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
                     'execution_modes': ['agent_handoff', 'json_job_api'], 'flow_account': 'not_connected',
                     'connections': providers.public(), 'inbox': str(studio.inbox),
                     'video_profiles': VIDEO_PROFILES, 'image_profiles': IMAGE_PROFILES,
-                    'steps': [{'id': s, 'name': l} for s, l in zip(STEPS, LABELS)], 'templates': TEMPLATES}
-        if op == 'list_templates': return TEMPLATES
+                    'steps': [{'id': s, 'name': l} for s, l in zip(STEPS, LABELS)], 'templates': TEMPLATES + studio.list_saved_templates()}
+        if op == 'list_templates': return TEMPLATES + studio.list_saved_templates()
+        if op == 'get_saved_template': return studio.get_saved_template(a['template_id'])
+        if op == 'save_project_template': return studio.save_project_template(a['project_id'], a['name'], a.get('description', ''), a['sections'], a['expected_revision'], a.get('settings_shot_id', ''))
+        if op == 'rename_project_template': return studio.rename_project_template(a['template_id'], a['name'], a.get('description', ''), a['expected_revision'])
+        if op == 'delete_project_template': return studio.delete_project_template(a['template_id'], a['expected_revision'])
+        if op == 'apply_project_template':
+            if not human and isinstance(a.get('sections'), list) and 'workflow' in a['sections']:
+                raise StudioError('human_only', 'Applying workflow approval/quality policy belongs to the user.', 403)
+            return studio.apply_project_template(a['project_id'], a['template_id'], a['sections'], a['expected_revision'], a['template_revision'], actor)
         if op == 'knowledge_catalog': return knowledge_catalog(a.get('query', ''), a.get('category', ''))
         if op == 'creative_schema': return creative_schema()
         if op == 'update_production': return studio.update_production(a['project_id'], a['production'], a['expected_revision'], actor)
@@ -119,7 +127,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'production_metrics': return studio.production_metrics(a['project_id'])
         if op == 'export_editor_package': return export_editor(studio, a['project_id'])
         if op == 'list_projects': return studio.list_projects()
-        if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor)
+        if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor, allow_template_policy=human)
         if op == 'duplicate_project': return studio.duplicate_project(a['project_id'], a.get('name'), actor)
         if op == 'delete_project': return studio.delete_project(a['project_id'], a['expected_revision'])
         if op == 'restore_project': return studio.restore_project(a['project_id'])

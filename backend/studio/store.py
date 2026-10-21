@@ -40,6 +40,7 @@ class Store:
                         source.backup(target)
         with self.connect() as conn:
             conn.execute('CREATE TABLE IF NOT EXISTS studio_projects (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+            conn.execute('CREATE TABLE IF NOT EXISTS studio_templates (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
 
     @contextmanager
     def connect(self):

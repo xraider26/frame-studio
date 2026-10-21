@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing FastAPI/SQLite/Pydantic, Next.js/React, existing orange/glass styles. No new dependencies.
 
-**UI:** Calm template library with a save form for the current project, section checkboxes, template rows showing saved sections and usage notes, actions for new project/apply/rename/delete. Existing new-project picker includes saved templates. Applying to an existing project explicitly previews chosen sections and requires a click in that panel. Reference files must be reattached.
+**UI:** Calm template library with a save form for the current project, section checkboxes, template rows showing saved sections and usage notes, actions for new project/apply/rename/delete. Existing new-project picker includes saved templates. Applying to an existing project explicitly previews chosen sections and requires a click in that panel. Reference files must be reattached. Optional creative-default source selects a successful shot’s effective camera/light/art look without copying its story.
 
 ## Review focus
 
