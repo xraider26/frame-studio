@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from .store import StudioError, load
 from .creative import Direction, effective_direction
 from .templates import TEMPLATES
+from .recipe_evidence import RecipeEvidence, snapshot_hash
 
 SECTIONS = ['settings', 'workflow', 'story']
 
@@ -37,12 +38,44 @@ def summary(t):
     data = t['snapshot']
     base = next(v for v in TEMPLATES if v['id'] == t['base_template_id'])
     return {k: t[k] for k in ['id', 'name', 'description', 'revision', 'created_at', 'sections', 'base_template_id']} | {
-        'saved': True, 'aspect': data.get('settings', {}).get('settings', {}).get('aspect_ratio', base['aspect']),
+        'saved': True, 'evidence_count': len(t.get('evidence', [])),
+        'evidence_levels': sorted({e['level'] for e in t.get('evidence', []) if e.get('snapshot_hash') == t.get('snapshot_hash')}), 'aspect': data.get('settings', {}).get('settings', {}).get('aspect_ratio', base['aspect']),
         'structure': [s['title'] for s in data.get('story', {}).get('shots', [])] or base['structure'],
         'reference_note': 'Reattach reference files. Results, approvals, spending and observed model capabilities are not copied.'}
 
 
-class SavedTemplates:
+def recipe_snapshot(p, sections, settings_shot_id=''):
+    snapshot = {}
+    if 'settings' in sections:
+        defaults = portable_direction(p['production']['defaults'], 'story' in sections)
+        if settings_shot_id:
+            shot = next((s for s in p['shots'] if s['id'] == settings_shot_id), None)
+            if not shot:
+                raise StudioError('shot_not_found', 'The chosen creative-default shot no longer exists. Refresh and choose another.', 409)
+            look = effective_direction(p, shot)
+            defaults = Direction().model_dump()
+            for key in ['camera', 'lighting', 'art', 'environment', 'mood', 'generation_mode', 'technique_ids']:
+                defaults[key] = copy.deepcopy(look[key])
+            defaults['quality']['criteria'] = copy.deepcopy(look['quality']['criteria'])
+        defaults['action']['continuity_from'] = ''
+        snapshot['settings'] = {'settings': copy.deepcopy(p['settings']), 'defaults': defaults, 'format_rules': copy.deepcopy(p['production']['format_rules'])}
+    if 'workflow' in sections:
+        snapshot['workflow'] = {'approval_policy': copy.deepcopy(p['approval_policy']), 'require_recorded_checks': p['production']['require_recorded_checks']}
+    if 'story' in sections:
+        bible = copy.deepcopy(p['production']['bible'])
+        for entity in bible:
+            entity['asset_ids'] = []
+        shots = []
+        for s in p['shots']:
+            shot = {k: copy.deepcopy(s[k]) for k in ['id', 'title', 'image_prompt', 'motion_prompt', 'narration', 'duration_seconds', 'edit_duration_seconds', 'edit_in_seconds']}
+            shot['direction'] = portable_direction(s['direction'], True)
+            shots.append(shot)
+        snapshot['story'] = {k: copy.deepcopy(p['production'][k]) for k in ['brief', 'story']}
+        snapshot['story'].update(bible=bible, shots=shots)
+    return snapshot
+
+
+class SavedTemplates(RecipeEvidence):
     def get_saved_template(self, template_id, expected_revision=None):
         with self.connect() as conn:
             row = conn.execute('SELECT payload FROM studio_templates WHERE id=?', (template_id,)).fetchone()
@@ -68,35 +101,11 @@ class SavedTemplates:
             p = load(row[0])
             if p.get('deleted_at') or p['revision'] != expected_revision:
                 raise StudioError('revision_conflict', 'Project changed. Refresh before saving the template.', 409)
-            snapshot = {}
-            if 'settings' in sections:
-                defaults = portable_direction(p['production']['defaults'], 'story' in sections)
-                if settings_shot_id:
-                    shot = next((s for s in p['shots'] if s['id'] == settings_shot_id), None)
-                    if not shot:
-                        raise StudioError('shot_not_found', 'The chosen creative-default shot no longer exists. Refresh and choose another.', 409)
-                    look = effective_direction(p, shot)
-                    defaults = Direction().model_dump()
-                    for key in ['camera', 'lighting', 'art', 'environment', 'mood', 'generation_mode', 'technique_ids']:
-                        defaults[key] = copy.deepcopy(look[key])
-                    defaults['quality']['criteria'] = copy.deepcopy(look['quality']['criteria'])
-                defaults['action']['continuity_from'] = ''
-                snapshot['settings'] = {'settings': copy.deepcopy(p['settings']), 'defaults': defaults, 'format_rules': copy.deepcopy(p['production']['format_rules'])}
-            if 'workflow' in sections:
-                snapshot['workflow'] = {'approval_policy': copy.deepcopy(p['approval_policy']), 'require_recorded_checks': p['production']['require_recorded_checks']}
-            if 'story' in sections:
-                bible = copy.deepcopy(p['production']['bible'])
-                for entity in bible:
-                    entity['asset_ids'] = []
-                shots = []
-                for s in p['shots']:
-                    shot = {k: copy.deepcopy(s[k]) for k in ['id', 'title', 'image_prompt', 'motion_prompt', 'narration', 'duration_seconds', 'edit_duration_seconds', 'edit_in_seconds']}
-                    shot['direction'] = portable_direction(s['direction'], True)
-                    shots.append(shot)
-                snapshot['story'] = {k: copy.deepcopy(p['production'][k]) for k in ['brief', 'story']}
-                snapshot['story'].update(bible=bible, shots=shots)
+            snapshot = recipe_snapshot(p, sections, settings_shot_id)
             t = {'id': 'saved-' + uuid.uuid4().hex, 'schema_version': 1, 'name': name, 'description': description, 'revision': 1,
-                 'created_at': datetime.now(timezone.utc).isoformat(), 'base_template_id': p['template_id'], 'sections': sections, 'snapshot': snapshot}
+                 'created_at': datetime.now(timezone.utc).isoformat(), 'base_template_id': p['template_id'], 'sections': sections, 'snapshot': snapshot,
+                 'source_project_id': p['id'], 'source_project_revision': p['revision'],
+                 'settings_shot_id': settings_shot_id if 'settings' in sections else '', 'snapshot_hash': snapshot_hash(snapshot)}
             conn.execute('INSERT INTO studio_templates VALUES (?,?)', (t['id'], json.dumps(t)))
         return summary(t)
 
@@ -118,6 +127,7 @@ class SavedTemplates:
 
     def _restore_template(self, p, t, sections):
         snapshot = t['snapshot']
+        ids = {}
         if 'settings' in sections:
             data = copy.deepcopy(snapshot['settings'])
             if 'story' not in sections:
@@ -157,7 +167,10 @@ class SavedTemplates:
                     (not r['entity_id'] or r['entity_id'] in entities) and r['asset_id'] in assets and
                     not assets[r['asset_id']].get('stale') and
                     (not assets[r['asset_id']].get('source_shot') or assets[r['asset_id']]['source_shot'] in ids.values())]
-        p['template_source'] = {'id': t['id'], 'name': t['name'], 'revision': t['revision'], 'sections': sections}
+        self._preserve_identity(p)
+        self._guard_identity(p, p['production'])
+        p['template_source'] = {'id': t['id'], 'name': t['name'], 'revision': t['revision'], 'sections': sections,
+                                'snapshot_hash': t.get('snapshot_hash', snapshot_hash(t['snapshot'])), 'shot_id_map': ids}
 
     def apply_project_template(self, project_id, template_id, sections, expected_revision, template_revision, actor):
         def update(p):

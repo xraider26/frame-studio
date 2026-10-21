@@ -44,6 +44,48 @@ async def list_projects() -> list[dict]:
 
 
 @mcp.tool()
+async def create_batch(name: str, idea: str, request_id: str, kind: str = 'variations', template_id: str = 'custom', count: int = 5, briefs: list[str] | None = None, identity_source_project_id: str | None = None, source_revision: int | None = None) -> dict:
+    """Create 1–100 independent episodes/variations/campaign items from an idea and built-in/saved template. Idempotent request_id. Optional per-item briefs and actual canonical identity source. This queues real work, never generates scripts/media itself. Spending/retry/approval policy remains user-controlled."""
+    return await command('create_batch', locals())
+
+
+@mcp.tool()
+async def production_queue(batch_id: str | None = None) -> dict:
+    """Read actual multi-project queue state, next actions, approvals/output waits, pauses, leases, failures and known/unknown costs. Use claim_queue_task for dispatchable work."""
+    return await command('production_queue', locals())
+
+
+@mcp.tool()
+async def get_batch(batch_id: str) -> dict:
+    """Read the batch idea, item IDs, identity version and user-controlled limits/retry policy."""
+    return await command('get_batch', locals())
+
+
+@mcp.tool()
+async def claim_queue_task(request_id: str, batch_id: str | None = None) -> dict:
+    """Claim an exclusive 15-minute project work lease. Idempotent request_id. Read current get_project and follow next_action using actual planning/generation/inspection tools. Does not fabricate outputs or bypass approval/spending. Renew before expiry; finish after real progress or report a blocker."""
+    return await command('claim_queue_task', locals())
+
+
+@mcp.tool()
+async def renew_queue_task(task_id: str) -> dict:
+    """Renew your active queue lease for 15 minutes while real work continues. Expired/other-agent leases are rejected."""
+    return await command('renew_queue_task', locals())
+
+
+@mcp.tool()
+async def finish_queue_task(task_id: str, status: str = 'done', note: str = '') -> dict:
+    """Finish your queue lease as done after recorded project progress, or blocked with a concrete reason. A blocked item requires user attention/resume. Never use this to claim generated media exists; return_generation requires an actual file."""
+    return await command('finish_queue_task', locals())
+
+
+@mcp.tool()
+async def recipe_metrics(template_id: str) -> dict:
+    """Read actual recipe usage, grouped known/unknown costs, defects and scoped historical human pilot/production endorsements. An untested recipe is not evidence of quality."""
+    return await command('recipe_metrics', locals())
+
+
+@mcp.tool()
 async def create_project(name: str, template_id: str = 'custom', request_id: str = '') -> dict:
     """Create from a built-in or saved template ID (list_templates). Saved settings/story are reused; workflow/QC policy stays at new-project defaults for agent creation. Use a stable unique request_id for retries."""
     return await command('create_project', locals())

@@ -10,6 +10,7 @@ import {
 import { studioApi as api } from "./client";
 import { DraftNotice, Field, PairEditor, useDraft } from "./creative-forms";
 import { TechniqueVisual } from "./visual-help";
+import { ControlModeSwitch, ModeDetail, useControlMode } from "./control-mode";
 import {
   emptyDirection,
   mergeRecord,
@@ -109,6 +110,7 @@ export function CreativeWorkspace({
   inbox: string;
   catalog: Catalog | null;
 }) {
+  const [mode, setMode] = useControlMode("directing");
   const plan = useDraft(project.shots, project.revision, `shots:${project.id}`),
     defaults = useDraft(
       project.settings,
@@ -208,6 +210,7 @@ export function CreativeWorkspace({
             : `${shots.length} shots · ${shots.reduce((n, s) => n + s.edit_duration_seconds, 0)}s edit`}
         </span>
       </div>
+      <ControlModeSwitch mode={mode} onChange={setMode} label="Directing" />
       <DraftNotice {...plan} />
       <div className="cv-director">
         <div className="cv-shot-rail">
@@ -391,46 +394,56 @@ export function CreativeWorkspace({
             {tab === "Camera" && (
               <div className="cv-form-grid">
                 {cameraFields.map(([key, label, help]) => (
-                  <Field
+                  <ModeDetail
                     key={key}
-                    label={label}
-                    value={d.camera[key] || ""}
-                    options={[
-                      ...new Set(
-                        (catalog?.entries || []).flatMap((e) =>
-                          e.apply.camera?.[key] ? [e.apply.camera[key]] : [],
+                    mode={mode}
+                    advanced={!["body_look", "lens", "framing", "angle", "move", "screen_direction"].includes(key)}
+                  >
+                    <Field
+                      label={label}
+                      value={d.camera[key] || ""}
+                      options={[
+                        ...new Set(
+                          (catalog?.entries || []).flatMap((e) =>
+                            e.apply.camera?.[key] ? [e.apply.camera[key]] : [],
+                          ),
                         ),
-                      ),
-                    ]}
-                    placeholder={`Inherit: ${inherited("camera", key)}`}
-                    onChange={(v) => dir({ camera: { [key]: v } })}
-                    help={help}
-                    {...common}
-                  />
+                      ]}
+                      placeholder={`Inherit: ${inherited("camera", key)}`}
+                      onChange={(v) => dir({ camera: { [key]: v } })}
+                      help={help}
+                      {...common}
+                    />
+                  </ModeDetail>
                 ))}
               </div>
             )}
             {tab === "Lighting" && (
               <div className="cv-form-grid">
                 {lightingFields.map(([key, label]) => (
-                  <Field
+                  <ModeDetail
                     key={key}
-                    label={label}
-                    value={d.lighting[key] || ""}
-                    options={[
-                      ...new Set(
-                        (catalog?.entries || []).flatMap((e) =>
-                          e.apply.lighting?.[key]
-                            ? [e.apply.lighting[key]]
-                            : [],
+                    mode={mode}
+                    advanced={!["technique", "world_source", "softness", "temperature"].includes(key)}
+                  >
+                    <Field
+                      label={label}
+                      value={d.lighting[key] || ""}
+                      options={[
+                        ...new Set(
+                          (catalog?.entries || []).flatMap((e) =>
+                            e.apply.lighting?.[key]
+                              ? [e.apply.lighting[key]]
+                              : [],
+                          ),
                         ),
-                      ),
-                    ]}
-                    placeholder={`Inherit: ${inherited("lighting", key)}`}
-                    onChange={(v) => dir({ lighting: { [key]: v } })}
-                    help="lighting"
-                    {...common}
-                  />
+                      ]}
+                      placeholder={`Inherit: ${inherited("lighting", key)}`}
+                      onChange={(v) => dir({ lighting: { [key]: v } })}
+                      help="lighting"
+                      {...common}
+                    />
+                  </ModeDetail>
                 ))}
               </div>
             )}
@@ -442,22 +455,27 @@ export function CreativeWorkspace({
                   ["materials", "Material rules"],
                   ["texture", "Texture"],
                 ].map(([key, label]) => (
-                  <Field
+                  <ModeDetail
                     key={key}
-                    label={label}
-                    value={d.art[key] || ""}
-                    options={[
-                      ...new Set(
-                        (catalog?.entries || []).flatMap((e) =>
-                          e.apply.art?.[key] ? [e.apply.art[key]] : [],
+                    mode={mode}
+                    advanced={!["style", "palette"].includes(key)}
+                  >
+                    <Field
+                      label={label}
+                      value={d.art[key] || ""}
+                      options={[
+                        ...new Set(
+                          (catalog?.entries || []).flatMap((e) =>
+                            e.apply.art?.[key] ? [e.apply.art[key]] : [],
+                          ),
                         ),
-                      ),
-                    ]}
-                    placeholder={`Inherit: ${inherited("art", key)}`}
-                    onChange={(v) => dir({ art: { [key]: v } })}
-                    help={key === "palette" ? "palette" : "style"}
-                    {...common}
-                  />
+                      ]}
+                      placeholder={`Inherit: ${inherited("art", key)}`}
+                      onChange={(v) => dir({ art: { [key]: v } })}
+                      help={key === "palette" ? "palette" : "style"}
+                      {...common}
+                    />
+                  </ModeDetail>
                 ))}
               </div>
             )}

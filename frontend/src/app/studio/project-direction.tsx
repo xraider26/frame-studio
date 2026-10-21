@@ -1,15 +1,18 @@
 "use client";
 import { Field } from "./creative-forms";
+import { ModeDetail, type ControlMode } from "./control-mode";
 import { mergeRecord, type Direction, type Catalog } from "./creative-types";
 
 export function ProjectDirection({
   value,
   onChange,
   catalog,
+  mode = "professional",
 }: {
   value: Direction;
   onChange: (d: Direction) => void;
   catalog: Catalog | null;
+  mode?: ControlMode;
 }) {
   const groups: {
     group: "camera" | "lighting" | "art";
@@ -51,7 +54,7 @@ export function ProjectDirection({
   ];
   return (
     <details className="cv-project-defaults">
-      <summary>Project-wide advanced direction</summary>
+      <summary>Project-wide direction</summary>
       <p className="fs-body">
         Set a common visual language here. A shot override replaces it. Blank
         values inherit the basic project settings.
@@ -61,24 +64,33 @@ export function ProjectDirection({
           <h3>{group[0].toUpperCase() + group.slice(1)}</h3>
           <div className="cv-form-grid">
             {fields.map(([key, label, help]) => (
-              <Field
+              <ModeDetail
                 key={key}
-                label={`Project ${label.toLowerCase()}`}
-                value={value[group][key] || ""}
-                onChange={(v) =>
-                  onChange(mergeRecord(value, { [group]: { [key]: v } }))
-                }
-                help={help}
-                entries={catalog?.entries}
-                options={[
-                  ...new Set(
-                    (catalog?.entries || []).flatMap((e) =>
-                      e.apply[group]?.[key] ? [e.apply[group]![key]] : [],
+                mode={mode}
+                advanced={!{
+                  camera: ["body_look", "lens", "framing", "move"],
+                  lighting: ["technique", "world_source", "softness", "temperature"],
+                  art: ["style", "palette"],
+                }[group].includes(key)}
+              >
+                <Field
+                  label={`Project ${label.toLowerCase()}`}
+                  value={value[group][key] || ""}
+                  onChange={(v) =>
+                    onChange(mergeRecord(value, { [group]: { [key]: v } }))
+                  }
+                  help={help}
+                  entries={catalog?.entries}
+                  options={[
+                    ...new Set(
+                      (catalog?.entries || []).flatMap((e) =>
+                        e.apply[group]?.[key] ? [e.apply[group]![key]] : [],
+                      ),
                     ),
-                  ),
-                ]}
-                onApply={(entry) => onChange(mergeRecord(value, entry.apply))}
-              />
+                  ]}
+                  onApply={(entry) => onChange(mergeRecord(value, entry.apply))}
+                />
+              </ModeDetail>
             ))}
           </div>
         </div>

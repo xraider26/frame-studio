@@ -5,6 +5,7 @@ import { Download, ArrowRight } from "lucide-react";
 import { studioApi } from "./client";
 import { DraftNotice, useDraft } from "./creative-forms";
 import { Checks } from "./creative-workspace";
+import { ControlModeSwitch, ModeDetail, useControlMode } from "./control-mode";
 import type { Project } from "./creative-types";
 
 type Profile = { id: string; name: string; hint: string; source?: string };
@@ -23,6 +24,7 @@ export function GeneratorExport({
   busy,
   save,
 }: Props) {
+  const [mode, setMode] = useControlMode("generator");
   const savedSettings = useMemo(
     () =>
       Object.fromEntries(
@@ -63,6 +65,7 @@ export function GeneratorExport({
         Choose the generator’s prompt profile. Export a portable package for
         your agent, or use the same prompts through a connected API.
       </p>
+      <ControlModeSwitch mode={mode} onChange={setMode} label="Generator" />
       <DraftNotice {...form} />
       <div className="fs-generator-controls">
         <div className="fs-form-grid">
@@ -117,35 +120,37 @@ export function GeneratorExport({
             Generator prompting guide ↗
           </a>
         )}
-        {settings.video_generator === "custom" && (
-          <label className="fs-label">
-            Custom video prompt template
-            <textarea
-              rows={4}
-              value={settings.custom_video_template}
-              onChange={(e) => change("custom_video_template", e.target.value)}
-            />
-          </label>
-        )}
-        {settings.image_generator === "custom" && (
-          <label className="fs-label">
-            Custom image prompt template
-            <textarea
-              rows={4}
-              value={settings.custom_image_template}
-              onChange={(e) => change("custom_image_template", e.target.value)}
-            />
-          </label>
-        )}
-        {(settings.video_generator === "custom" ||
-          settings.image_generator === "custom") && (
-          <p className="fs-hint">
-            Supported placeholders:{" "}
-            {
-              "{subject} {motion} {camera} {lighting} {style} {palette} {framing} {lens} {continuity} {narration} {sound} {aspect_ratio} {duration} {environment} {mood} {opening} {ending} {dialogue} {composition} {body_look} {state_before} {state_after} {references}"
-            }
-          </p>
-        )}
+        <ModeDetail mode={mode}>
+          {settings.video_generator === "custom" && (
+            <label className="fs-label">
+              Custom video prompt template
+              <textarea
+                rows={4}
+                value={settings.custom_video_template}
+                onChange={(e) => change("custom_video_template", e.target.value)}
+              />
+            </label>
+          )}
+          {settings.image_generator === "custom" && (
+            <label className="fs-label">
+              Custom image prompt template
+              <textarea
+                rows={4}
+                value={settings.custom_image_template}
+                onChange={(e) => change("custom_image_template", e.target.value)}
+              />
+            </label>
+          )}
+          {(settings.video_generator === "custom" ||
+            settings.image_generator === "custom") && (
+            <p className="fs-hint">
+              Supported placeholders:{" "}
+              {
+                "{subject} {motion} {camera} {lighting} {style} {palette} {framing} {lens} {continuity} {narration} {sound} {aspect_ratio} {duration} {environment} {mood} {opening} {ending} {dialogue} {composition} {body_look} {state_before} {state_after} {references}"
+              }
+            </p>
+          )}
+        </ModeDetail>
         <button
           className="fs-button"
           disabled={busy || !dirty || form.conflict}

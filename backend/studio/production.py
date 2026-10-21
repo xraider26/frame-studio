@@ -114,6 +114,21 @@ class ProductionTools:
                     'defect': str(review.get('defect', ''))[:8000], 'actor': actor, 'at': datetime.now(timezone.utc).isoformat()}
             asset.setdefault('review_history', []).append(copy.deepcopy(data))
             asset['review'] = data
+            shot = next((s for s in p['shots'] if s['id'] == asset.get('shot_id')), None)
+            if shot and p.get('batch_id') and asset.get('kind') in ['image', 'video'] and shot.get(asset['kind'] + '_asset') == asset_id:
+                policy = self.get_batch(p['batch_id'])
+                kind = asset['kind']
+                required_inspection = {'image'} if kind == 'image' else {'beginning', 'middle', 'end'}
+                failed = [c for c, passed in data['criteria'].items() if not passed]
+                if policy['auto_retry'] and required_inspection <= set(data['inspected']) and (data['defect'] or failed):
+                    counts = shot.setdefault('quality_retries', {'image': 0, 'video': 0})
+                    if counts[kind] < policy['retry_limit']:
+                        counts[kind] += 1
+                        shot['direction']['quality']['revision_reason'] = data['defect'] or ('Failed checks: ' + '; '.join(failed))
+                        self._invalidate_selected(p, {shot['id']: {kind}})
+                        audit(p, actor, 'Automatic targeted quality revision requested after actual inspection')
+                    else:
+                        shot.setdefault('quality_retry_exhausted', {})[kind] = True
             self._progress(p)
             audit(p, actor, 'Take inspection recorded: ' + asset_id)
         return self.mutate(project_id, expected_revision, update)
@@ -159,6 +174,7 @@ class ProductionTools:
             if not shot:
                 raise StudioError('not_found', 'Shot not found.', 404)
             shot['direction']['quality']['revision_reason'] = reason[:8000]
+            shot.setdefault('quality_retry_exhausted', {}).pop(kind, None)
             self._invalidate_selected(p, {shot_id: {kind}})
             self._progress(p)
             audit(p, actor, f'Targeted {kind} revision: {shot["title"]} — {reason}')

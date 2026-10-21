@@ -29,6 +29,7 @@ import {
   Checks,
 } from "./creative-workspace";
 import { ProductionWorkspace } from "./production-workspace";
+import { QueueWorkspace } from "./queue-workspace";
 import { TakesWorkspace } from "./takes-workspace";
 import { EditorWorkspace } from "./editor-workspace";
 import {
@@ -38,10 +39,12 @@ import {
 } from "./template-workspace";
 import type { Project, Job, Action, Catalog } from "./creative-types";
 import "./creative.css";
+import "./control-mode.css";
+import "./queue.css";
 
 type Step = { id: string; name: string };
 type Template = TemplateChoice;
-type Summary = Pick<Project, "id" | "name" | "template_id">;
+type Summary = Pick<Project, "id" | "name" | "template_id" | "revision">;
 type Connection = {
   id: string;
   name: string;
@@ -101,7 +104,7 @@ export default function StudioPage() {
   const [caps, setCaps] = useState<Capabilities | null>(null);
   const [projects, setProjects] = useState<Summary[]>([]);
   const [project, setProject] = useState<Project | null>(null);
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("queue");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -297,6 +300,12 @@ export default function StudioPage() {
             }}
           />
           <button
+            className={`fs-nav ${view === "queue" ? "active" : ""}`}
+            onClick={() => { setView("queue"); setMobileMenu(false); }}
+          >
+            <Layers size={16} /> Production queue
+          </button>
+          <button
             className={`fs-nav ${view === "templates" ? "active" : ""}`}
             onClick={() => setView("templates")}
           >
@@ -347,7 +356,7 @@ export default function StudioPage() {
           <div className="fs-breadcrumb">
             Workspace <ChevronRight size={12} />
             {project?.name || "Start a project"} <ChevronRight size={12} />
-            {nav.find((n) => n.id === view)?.label || "Template library"}
+            {view === "queue" ? "Production queue" : nav.find((n) => n.id === view)?.label || "Template library"}
             <button
               aria-label="Refresh studio"
               onClick={() =>
@@ -358,7 +367,12 @@ export default function StudioPage() {
             </button>
           </div>
 
-          {((!project && view !== "connections") || view === "templates") && (
+          {view === "queue" && (
+            <QueueWorkspace templates={caps?.templates || []} projects={projects}
+              onSelect={selectProject} onChanged={() => refresh(project?.id)} />
+          )}
+
+          {((!project && !["connections", "queue"].includes(view)) || view === "templates") && (
             <section className="fs-library">
               <div className="fs-eyebrow">TEMPLATE LIBRARY</div>
               <h1>Your reusable setups.</h1>

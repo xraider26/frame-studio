@@ -16,6 +16,9 @@ from .preflight import preflight, references_for
 from .production import ProductionTools, quality_passed, criteria_for
 from .resources import resource_gate
 from .saved_templates import SavedTemplates
+from .batching import Batching
+from .dispatch import Dispatch
+from .identity import Identity
 
 
 def uid():
@@ -36,7 +39,7 @@ def clean_text(value, limit=12000):
     return value.strip()
 
 
-class Studio(SavedTemplates, ProductionTools, Store):
+class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Store):
     def __init__(self, db_path, media_root, inbox):
         super().__init__(db_path)
         self.media_root, self.inbox = Path(media_root).resolve(), Path(inbox).resolve()
@@ -48,6 +51,9 @@ class Studio(SavedTemplates, ProductionTools, Store):
             for p in self.all():
                 if p.get('request_id') == request_id:
                     return p
+        return self.insert(self._build_project(name, template_id, request_id, actor, allow_template_policy))
+
+    def _build_project(self, name, template_id, request_id=None, actor='user', allow_template_policy=True):
         saved = self.get_saved_template(template_id) if isinstance(template_id, str) and template_id.startswith('saved-') else None
         if saved:
             template_id = saved['base_template_id']
@@ -67,7 +73,7 @@ class Studio(SavedTemplates, ProductionTools, Store):
             sections = [s for s in saved['sections'] if allow_template_policy or s != 'workflow']
             self._restore_template(p, saved, sections)
         event(p, 'created', actor, 'Project created from ' + template['name'])
-        return self.insert(p)
+        return p
 
     def list_projects(self):
         return [{k: p[k] for k in ['id', 'name', 'template_id', 'revision', 'created_at']} for p in self.all() if not p.get('deleted_at')]
@@ -179,6 +185,8 @@ class Studio(SavedTemplates, ProductionTools, Store):
                 if not shot:
                     return {'action': 'prepare_shots', 'step': step, 'message': 'Add shots to continue.'}
                 if shot[kind + '_asset'] and not quality_passed(p, shot, kind):
+                    if shot.get('quality_retry_exhausted', {}).get(kind):
+                        return {'action': 'quality_attention', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': 'Automatic quality retry limit reached. Inspect the defect and redesign or revise manually before spending again.'}
                     return {'action': 'record_quality', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'asset_id': shot[kind + '_asset'], 'criteria': criteria_for(p, shot, kind), 'message': 'Inspect the returned media and record the required quality checks.'}
                 if not (shot['image_prompt'] if kind == 'image' else (effective_direction(p, shot)['action']['primary_action'] or shot['motion_prompt'])).strip():
                     return {'action': 'write_prompt', 'step': step, 'shot_id': shot['id'], 'kind': kind, 'message': f"Prepare the {kind} prompt for {shot['title']}."}
@@ -288,6 +296,7 @@ class Studio(SavedTemplates, ProductionTools, Store):
             raise StudioError('invalid_creative_record', 'Production must be an object.')
         def update(p):
             data = validated(Production, merge(p['production'], production))
+            self._guard_identity(p, data)
             ids = [e['id'] for e in data['bible']]
             if len(ids) != len(set(ids)) or any(not key for key in ids):
                 raise StudioError('invalid_creative_record', 'Bible entities need distinct nonempty IDs.')
@@ -341,6 +350,9 @@ class Studio(SavedTemplates, ProductionTools, Store):
                                 'duration_seconds': duration, 'edit_duration_seconds': edit_duration, 'edit_in_seconds': edit_in, 'direction': direction,
                                 'image_asset': previous.get('image_asset'), 'video_asset': previous.get('video_asset'),
                                 **({'input_versions': copy.deepcopy(previous['input_versions'])} if 'input_versions' in previous else {})})
+                for key in ['quality_retries', 'quality_retry_exhausted']:
+                    if key in previous:
+                        changed[-1][key] = copy.deepcopy(previous[key])
             p['shots'] = changed
             affected = self._changed_inputs(before, p)
             if affected:
@@ -379,6 +391,9 @@ class Studio(SavedTemplates, ProductionTools, Store):
         if not clean_text(request_id, 200):
             raise StudioError('invalid_request', 'Provide a unique request_id, reused only for retries of this same handoff.')
         def update(p):
+            block = self._dispatch_block(p)
+            if block:
+                raise StudioError('dispatch_blocked', block, 409)
             retried = next((j for j in p['jobs'] if j.get('request_id') == request_id), None)
             if retried:
                 return {'job': copy.deepcopy(retried), 'handoff': copy.deepcopy(retried['handoff']), 'already_claimed': True}
@@ -390,6 +405,9 @@ class Studio(SavedTemplates, ProductionTools, Store):
             existing = next((j for j in p['jobs'] if j['fingerprint'] == fingerprint and j['status'] in ['awaiting_external_output', 'running', 'queued']), None)
             if existing:
                 return {'job': existing, 'handoff': existing['handoff'], 'already_claimed': True}
+            block = self._dispatch_block(p, action['kind'])
+            if block:
+                raise StudioError('dispatch_blocked', block, 409)
             refs = references_for(p, shot, action['kind'])
             prepared = prompt_for(p, shot, action['kind'])
             handoff = {'schema_version': 2, 'project_id': p['id'], 'project_name': p['name'], 'shot_id': shot['id'],
@@ -399,6 +417,7 @@ class Studio(SavedTemplates, ProductionTools, Store):
                        'execution_mode': p['settings']['generation_mode'],
                        'creative_settings': copy.deepcopy(p['settings']), 'narration': shot['narration'],
                        'effective_direction': prepared['effective_direction'], 'production': copy.deepcopy(p['production']),
+                       'identity_contract': copy.deepcopy(p.get('shared_identity')), 'idea_request': copy.deepcopy(p.get('idea_request')),
                        'acceptance_criteria': prepared['effective_direction']['quality']['criteria'], 'preflight': preflight(p, shot['id'], action['kind']),
                        'required_media_checks': criteria_for(p, shot, action['kind']), 'input_signature': self._input_signature(p, shot, action['kind']),
                        'revision_context': {'reason': shot['direction']['quality']['revision_reason'],

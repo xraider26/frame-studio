@@ -4,6 +4,7 @@ import { BookmarkPlus, ArrowRight, X } from "lucide-react";
 import { studioApi as api } from "./client";
 import { DraftNotice, Field, useDraft } from "./creative-forms";
 import type { Project, Save } from "./creative-types";
+import { RecipeEvidence } from "./recipe-evidence";
 
 export type TemplateSection = "settings" | "workflow" | "story";
 export type TemplateChoice = {
@@ -15,6 +16,8 @@ export type TemplateChoice = {
   saved?: boolean;
   revision?: number;
   sections?: TemplateSection[];
+  evidence_count?: number;
+  evidence_levels?: ("pilot" | "production")[];
 };
 export type SavedTemplate = TemplateChoice & {
   saved: true;
@@ -327,6 +330,7 @@ function TemplateRow({
           </button>
         </div>
       </div>
+      <RecipeEvidence key={template.id + ":" + (project?.id || "none")} template={template} project={project} busy={busy} save={save} />
       {mode === "apply" && project && (
         <ApplyTemplate
           key={template.id + project.id}

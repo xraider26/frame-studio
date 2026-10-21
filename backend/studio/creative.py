@@ -262,7 +262,19 @@ def effective_direction(project, shot):
                      lighting=Lighting(technique=s['lighting']), art=Art(style=s['style'], palette=s['palette']),
                      sound=Sound(ambience=s['sound'])).model_dump()
     base = merge(base, populated(project.get('production', {}).get('defaults', {})))
-    return merge(base, populated(shot.get('direction', {})))
+    result = merge(base, populated(shot.get('direction', {})))
+    identity = project.get('shared_identity', {})
+    locked = {e['id'] for e in identity.get('entities', [])}
+    canonical = identity.get('references', [])
+    relevant = set(result['action']['visible_entities']) | {result['sound']['speaker_id']} | {r.get('entity_id', '') for r in result['references']}
+    relevant.discard('')
+    if relevant:
+        styles = {e['id'] for e in identity.get('entities', []) if e['kind'] == 'style'}
+        canonical = [r for r in canonical if r['entity_id'] in relevant | styles]
+    if canonical:
+        result['references'] = [r for r in result['references'] if r.get('entity_id') not in locked or r.get('role') in ['start_frame', 'end_frame', 'motion', 'mask']]
+        result['references'] += copy.deepcopy(canonical)
+    return result
 
 
 def creative_schema():

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { studioApi as api } from "./client";
 import { DraftNotice, Field, useDraft } from "./creative-forms";
 import { ProjectDirection } from "./project-direction";
+import { ControlModeSwitch, ModeDetail, useControlMode } from "./control-mode";
 import type {
   Project,
   Production,
@@ -24,6 +25,7 @@ export function ProductionWorkspace({
   save: Save;
   catalog: Catalog | null;
 }) {
+  const [mode, setMode] = useControlMode("production");
   const form = useDraft(
       project.production,
       project.revision,
@@ -79,6 +81,9 @@ export function ProductionWorkspace({
           {form.dirty ? "Unapplied changes" : "Saved production plan"}
         </span>
       </div>
+      {view === "production" && (
+        <ControlModeSwitch mode={mode} onChange={setMode} label="Production" />
+      )}
       <DraftNotice {...form} />
       <details className="cv-format-rules">
         <summary>
@@ -436,6 +441,7 @@ export function ProductionWorkspace({
       {view === "production" && (
         <>
           <ProjectDirection
+            mode={mode}
             value={p.defaults}
             onChange={(defaults) => change({ defaults })}
             catalog={catalog}
@@ -642,91 +648,93 @@ export function ProductionWorkspace({
               </div>
             )}
           </div>
-          <div className="cv-section">
-            <h2>Pilot learning</h2>
-            <p className="fs-body">
-              Record sourced results and one deliberate variable. These are
-              manually supplied measurements.
-            </p>
-            {p.experiments.map((e, i) => (
-              <article className="cv-beat" key={e.id}>
-                <div className="cv-form-grid">
-                  {[
-                    ["variable", "Changed variable"],
-                    ["hypothesis", "Hypothesis"],
-                    ["result", "Observed result"],
-                    ["source_date", "Measurement source / date"],
-                  ].map(([key, label]) => (
-                    <Field
-                      key={key}
-                      label={`${label} ${i + 1}`}
-                      value={String(e[key as keyof typeof e] || "")}
-                      onChange={(v) =>
-                        change({
-                          experiments: p.experiments.map((x, n) =>
-                            n === i ? { ...x, [key]: v } : x,
-                          ),
-                        })
-                      }
-                    />
-                  ))}
-                  {[
-                    ["impressions", "Impressions"],
-                    ["ctr_percent", "CTR %"],
-                    ["completion_percent", "Completion %"],
-                  ].map(([key, label]) => (
-                    <Field
-                      key={key}
-                      label={`${label} ${i + 1}`}
-                      type="number"
-                      value={e[key as keyof typeof e] ?? ""}
-                      onChange={(v) =>
-                        change({
-                          experiments: p.experiments.map((x, n) =>
-                            n === i
-                              ? { ...x, [key]: v === "" ? null : Number(v) }
-                              : x,
-                          ),
-                        })
-                      }
-                    />
-                  ))}
-                </div>
-                <button
-                  className="fs-link"
-                  onClick={() =>
-                    change({
-                      experiments: p.experiments.filter((_, n) => n !== i),
-                    })
-                  }
-                >
-                  Remove experiment
-                </button>
-              </article>
-            ))}
-            <button
-              className="fs-button"
-              onClick={() =>
-                change({
-                  experiments: [
-                    ...p.experiments,
-                    {
-                      id: crypto.randomUUID(),
-                      variable: "",
-                      hypothesis: "",
-                      result: "",
-                      source_date: "",
-                      impressions: null,
-                      ctr_percent: null,
-                      completion_percent: null,
-                    },
-                  ],
-                })
-              }
-            >
-              Add pilot experiment
-            </button>
-          </div>
+          <ModeDetail mode={mode}>
+            <div className="cv-section">
+              <h2>Pilot learning</h2>
+              <p className="fs-body">
+                Record sourced results and one deliberate variable. These are
+                manually supplied measurements.
+              </p>
+              {p.experiments.map((e, i) => (
+                <article className="cv-beat" key={e.id}>
+                  <div className="cv-form-grid">
+                    {[
+                      ["variable", "Changed variable"],
+                      ["hypothesis", "Hypothesis"],
+                      ["result", "Observed result"],
+                      ["source_date", "Measurement source / date"],
+                    ].map(([key, label]) => (
+                      <Field
+                        key={key}
+                        label={`${label} ${i + 1}`}
+                        value={String(e[key as keyof typeof e] || "")}
+                        onChange={(v) =>
+                          change({
+                            experiments: p.experiments.map((x, n) =>
+                              n === i ? { ...x, [key]: v } : x,
+                            ),
+                          })
+                        }
+                      />
+                    ))}
+                    {[
+                      ["impressions", "Impressions"],
+                      ["ctr_percent", "CTR %"],
+                      ["completion_percent", "Completion %"],
+                    ].map(([key, label]) => (
+                      <Field
+                        key={key}
+                        label={`${label} ${i + 1}`}
+                        type="number"
+                        value={e[key as keyof typeof e] ?? ""}
+                        onChange={(v) =>
+                          change({
+                            experiments: p.experiments.map((x, n) =>
+                              n === i
+                                ? { ...x, [key]: v === "" ? null : Number(v) }
+                                : x,
+                            ),
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                  <button
+                    className="fs-link"
+                    onClick={() =>
+                      change({
+                        experiments: p.experiments.filter((_, n) => n !== i),
+                      })
+                    }
+                  >
+                    Remove experiment
+                  </button>
+                </article>
+              ))}
+              <button
+                className="fs-button"
+                onClick={() =>
+                  change({
+                    experiments: [
+                      ...p.experiments,
+                      {
+                        id: crypto.randomUUID(),
+                        variable: "",
+                        hypothesis: "",
+                        result: "",
+                        source_date: "",
+                        impressions: null,
+                        ctr_percent: null,
+                        completion_percent: null,
+                      },
+                    ],
+                  })
+                }
+              >
+                Add pilot experiment
+              </button>
+            </div>
+          </ModeDetail>
         </>
       )}
       <div className="cv-save-bar">

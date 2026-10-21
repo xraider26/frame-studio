@@ -95,7 +95,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         actor = 'user' if human else 'agent:' + body.actor[:94]
         if op == 'update_production' and isinstance(a.get('production'), dict) and any(k in a['production'] for k in ['resources', 'require_recorded_checks']) and not human:
             raise StudioError('human_only', 'Resource and quality policy belong to the user. Agents may report evidence and actual job costs.', 403)
-        if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template'] and not human:
+        if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template', 'update_batch', 'set_project_dispatch', 'sync_batch_identity', 'endorse_recipe'] and not human:
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'studio_capabilities':
             return {'server': 'Frame Studio', 'schema_version': 2, 'transport': 'stdio bridge',
@@ -104,6 +104,19 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
                     'connections': providers.public(), 'inbox': str(studio.inbox),
                     'video_profiles': VIDEO_PROFILES, 'image_profiles': IMAGE_PROFILES,
                     'steps': [{'id': s, 'name': l} for s, l in zip(STEPS, LABELS)], 'templates': TEMPLATES + studio.list_saved_templates()}
+        if op == 'create_batch': return studio.create_batch(a['name'], a['idea'], a.get('kind', 'variations'), a.get('template_id', 'custom'), a.get('count', 5), a['request_id'], actor,
+            policy=a.get('policy'), briefs=a.get('briefs'), allow_policy=human, identity_source_project_id=a.get('identity_source_project_id'), source_revision=a.get('source_revision'))
+        if op == 'list_batches': return studio.list_batches()
+        if op == 'get_batch': return studio.get_batch(a['batch_id'])
+        if op == 'update_batch': return studio.update_batch(a['batch_id'], a['policy'], a['expected_revision'])
+        if op == 'production_queue': return studio.production_queue(a.get('batch_id'))
+        if op == 'claim_queue_task': return studio.claim_queue_task(actor, a['request_id'], a.get('batch_id'))
+        if op == 'renew_queue_task': return studio.renew_queue_task(a['task_id'], actor)
+        if op == 'finish_queue_task': return studio.finish_queue_task(a['task_id'], actor, a['status'], a.get('note', ''))
+        if op == 'set_project_dispatch': return studio.set_project_dispatch(a['project_id'], a['paused'], a.get('priority', 0), a['expected_revision'])
+        if op == 'sync_batch_identity': return studio.sync_batch_identity(a['batch_id'], a['source_project_id'], a['expected_revision'], a['source_revision'])
+        if op == 'recipe_metrics': return studio.recipe_metrics(a['template_id'])
+        if op == 'endorse_recipe': return studio.endorse_recipe(a['template_id'], a['project_id'], a['note'], a['expected_revision'], a['template_revision'], a.get('level', 'pilot'))
         if op == 'list_templates': return TEMPLATES + studio.list_saved_templates()
         if op == 'get_saved_template': return studio.get_saved_template(a['template_id'])
         if op == 'save_project_template': return studio.save_project_template(a['project_id'], a['name'], a.get('description', ''), a['sections'], a['expected_revision'], a.get('settings_shot_id', ''))
