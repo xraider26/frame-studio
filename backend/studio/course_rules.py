@@ -3,8 +3,9 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+from .paths import resource_root
 
-SOURCE_FILE = Path(__file__).resolve().parents[2] / 'docs' / 'sources' / 'AI_Video_Course_Review_and_Workflow.md'
+SOURCE_FILE = resource_root() / 'docs' / 'sources' / 'AI_Video_Course_Review_and_Workflow.md'
 RULES = [
     ('brief', 'Establish the brief', 'Record the viewer promise, audience, format, runtime, references and resource limit.', 'Brief must name an opening and a payoff that can fit the selected duration.'),
     ('hook', 'Write and time the story', 'Choose a hook the ending actually pays off; each beat adds information or emotion.', 'Reject a hook that the planned ending does not deliver.'),

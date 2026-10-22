@@ -1,0 +1,41 @@
+{
+  "name": "frame-studio-desktop",
+  "version": "0.2.0",
+  "description": "Frame Studio local creative production workspace",
+  "private": true,
+  "author": "Frame Studio",
+  "main": "main.cjs",
+  "scripts": {
+    "test": "node --test tests/runtime.test.cjs tests/build.test.cjs",
+    "build": "node build.cjs",
+    "package": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.framestudio.desktop",
+    "productName": "Frame Studio",
+    "directories": { "output": "dist" },
+    "files": ["main.cjs", "runtime.cjs", "loading.html", "package.json", "icon.png"],
+    "extraResources": [{ "from": "build/resources", "to": ".", "filter": ["**/*"] }],
+    "asar": true,
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "artifactName": "Frame-Studio-Setup-${version}.${ext}",
+      "icon": "icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false
+    }
+  }
+}

@@ -2,6 +2,8 @@
 
 ## Frame Studio — connected MCP workflow
 
+Windows desktop packaging is available through the [installer build and usage guide](docs/WINDOWS.md). The installer bundles the studio runtimes and generates MCP setup from the actual installation and user-data paths.
+
 The new content workflow is available at **http://127.0.0.1:3000/studio**. Start it with `./launch-studio.ps1`; see [MCP setup and workflow](docs/MCP.md). It supports shared saved projects, agent generation handoff/return, per-step human/automatic review, generator-specific ZIP exports, API adapter connections, duplication and recoverable Trash. The legacy companion dashboard below is preserved at `/` and uses its separate API on port 8000.
 
 Generation requires an actual local/agent tool or a configured JSON Job API adapter. Frame does not automatically access a Flow account. The old port-52741 prototype is separate from this connected app.

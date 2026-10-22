@@ -118,6 +118,8 @@ Motion-source references: call `import_reference` with `kind="video"` for an act
 
 ## Reusable workflow templates
 
+For the installed Windows app, use **Connections & MCP** or **Frame Studio → Copy MCP configuration**. Its command points to the bundled `FrameStudioService.exe` and explicit per-user data directory. Keep the desktop app open; no Python installation or source-checkout path is needed. Source-checkout configuration is also generated dynamically from its running Python executable and actual data root. See [Windows installation](WINDOWS.md).
+
 Built-in formats now expose versioned course-informed production recipes. `recipe_catalog` returns their reference/planning/role/QC contracts, illustrative image metadata, source coverage and historical human video-trial summaries. `get_project`, compiled generation handoffs and queue tasks carry the active recipe context; generator ZIPs include readable and JSON recipe files. `recipe_trials` reads human final-production evidence. Recipe activation and recording final assessments remain human UI operations. See [production recipes](COURSE-RECIPES.md) for scope and limitations.
 
 In Template library, save a named snapshot of selected creative settings, workflow/quality gates, and/or story and shot plan. A successful shot can supply the reusable camera, lighting and art defaults. Notes record what worked. Use a saved template in the new-project picker or apply selected sections to the current project. Rename/delete manage library entries independently of existing projects. Templates live in the same local SQLite database and survive restarts and deletion of the source project.

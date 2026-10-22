@@ -3,9 +3,10 @@ import json
 from pathlib import Path, PurePosixPath
 
 from .course_rules import source_rules
+from .paths import resource_root
 
 
-PUBLIC_ROOT = Path(__file__).resolve().parents[2] / 'frontend' / 'public'
+PUBLIC_ROOT = resource_root() / 'frontend' / 'public'
 
 CATEGORY_RULES = {
     'camera': ['appearance'], 'lens': ['appearance', 'framing'],

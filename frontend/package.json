@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/visual-help.test.cjs tests/control-mode.test.cjs tests/recipe-evidence.test.cjs tests/queue-workspace.test.cjs tests/course-recipes.test.cjs tests/cinematography.test.cjs"
+    "test": "node --test tests/visual-help.test.cjs tests/control-mode.test.cjs tests/recipe-evidence.test.cjs tests/queue-workspace.test.cjs tests/course-recipes.test.cjs tests/cinematography.test.cjs tests/mcp-config.test.cjs"
   },
   "dependencies": {
     "lucide-react": "^1.56.0",

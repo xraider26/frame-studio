@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import "./studio.css";
 import { studioApi as api } from "./client";
+import { mcpConfig, type McpLaunch } from "./mcp-config";
 import { ProjectActions } from "./project-actions";
 import { GeneratorExport } from "./generator-export";
 import {
@@ -58,6 +59,7 @@ type Connection = {
   max_requests: number;
 };
 type Capabilities = {
+  mcp_launch?: McpLaunch;
   steps: Step[];
   templates: Template[];
   inbox: string;
@@ -1154,28 +1156,7 @@ function Connections({
     max_requests: 1,
   });
   const [client, setClient] = useState("Cursor / Claude Code");
-  const script = "G:/AI/YT/flow-companion-studio/backend/studio_mcp.py";
-  const python =
-    "G:/AI/YT/flow-companion-studio/backend/.venv/Scripts/python.exe";
-  const config =
-    client === "Codex"
-      ? `[mcp_servers.frame_studio]\ncommand = "${python}"\nargs = ["${script}"]\n\n[mcp_servers.frame_studio.env]\nSTUDIO_CLIENT_NAME = "codex"`
-      : JSON.stringify(
-          {
-            mcpServers: {
-              frame_studio: {
-                command: python,
-                args: [script],
-                env: {
-                  STUDIO_CLIENT_NAME:
-                    client === "Antigravity" ? "antigravity" : "agent",
-                },
-              },
-            },
-          },
-          null,
-          2,
-        );
+  const config = mcpConfig(caps?.mcp_launch,client);
   return (
     <section>
       <div className="fs-eyebrow">CONNECTIONS</div>
@@ -1225,7 +1206,7 @@ function Connections({
             onFocus={(e) => e.target.select()}
           />
           <p className="fs-hint">
-            Setup instructions: <code>docs/MCP.md</code> in the project folder.
+            {caps?.mcp_launch?.desktop ? "Keep Frame Studio open while your agent uses MCP." : "Setup instructions: docs/MCP.md in the project folder."}
             Client configurations are provided, not silently installed.
           </p>
           <h3>Try this in your agent</h3>

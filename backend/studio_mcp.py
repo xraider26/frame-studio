@@ -5,9 +5,9 @@ from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from studio.paths import data_root
 
-ROOT = Path(__file__).resolve().parent.parent
-DATA = Path(os.environ.get('STUDIO_DATA_DIR', ROOT / 'studio_data'))
+DATA = data_root()
 API = os.environ.get('STUDIO_API_URL', 'http://127.0.0.1:8010').rstrip('/')
 ACTOR = os.environ.get('STUDIO_CLIENT_NAME', 'mcp-agent')
 mcp = FastMCP('Frame Studio', instructions='Read studio_capabilities and get_project. Follow next_action; never invent outputs. Complete text steps with complete_step. For generation, claim_generation, use your authorized local/API tool, save its real output in the returned inbox, then return_generation. Approval policy is user controlled. await_approval means stop and let the user review. Refresh after mutations and before using expected_revision. API connections are optional, separately configured executors.')
@@ -18,17 +18,31 @@ async def command(operation, arguments=None):
     if not token:
         file = DATA / 'agent.token'
         if not file.exists():
+            if os.environ.get('STUDIO_DESKTOP_INSTANCE'):
+                raise ValueError('backend_unavailable: Open Frame Studio and retry the MCP connection.')
             raise ValueError('backend_unavailable: Start launch-studio.ps1 first; no studio token exists.')
         token = file.read_text(encoding='utf-8').strip()
     try:
-        async with httpx.AsyncClient(timeout=40) as client:
+        async with httpx.AsyncClient(timeout=40, trust_env=False) as client:
+            instance = os.environ.get('STUDIO_DESKTOP_INSTANCE')
+            if instance:
+                health = await client.get(API + '/health')
+                if health.is_error:
+                    raise ValueError('backend_unavailable: Open Frame Studio and retry the MCP connection.')
+                try:
+                    identity = health.json()
+                except ValueError as exc:
+                    raise ValueError('backend_unavailable: Open Frame Studio and retry the MCP connection.') from exc
+                if not isinstance(identity, dict) or identity.get('service') != 'frame-studio' or identity.get('status') != 'ok' or identity.get('instance_id') != instance:
+                    raise ValueError('backend_unavailable: Open Frame Studio and reconnect MCP; the desktop instance changed.')
             response = await client.post(API + '/studio/v1/command', headers={'Authorization': 'Bearer ' + token}, json={'operation': operation, 'arguments': arguments or {}, 'actor': ACTOR})
         result = response.json()
         if response.is_error:
             raise ValueError(f"{result.get('error', 'studio_error')}: {result.get('message', result.get('detail', 'Request failed'))}")
         return result
     except httpx.RequestError as exc:
-        raise ValueError('backend_unavailable: Studio API is not reachable. Start launch-studio.ps1 and retry.') from exc
+        instruction = 'Open Frame Studio and reconnect MCP.' if os.environ.get('STUDIO_DESKTOP_INSTANCE') else 'Start launch-studio.ps1 and retry.'
+        raise ValueError('backend_unavailable: Studio API is not reachable. ' + instruction) from exc
 
 
 @mcp.tool()

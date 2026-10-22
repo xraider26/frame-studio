@@ -5,6 +5,7 @@ import math
 import uuid
 from pathlib import Path
 from .course_rules import source_rules, course_coverage
+from .paths import resource_root
 
 VERSION = 1
 STAGES = {
@@ -142,7 +143,7 @@ def recipe_by_id(ident):
     r['stages']['visual_direction'] += ['Prepare: ' + v for v in r['references']] + ['Inspect: ' + v for v in r['image_checks']]
     r['stages']['production'] += ['Inspect: ' + v for v in r['video_checks']]
     r['stages']['editor_handoff'] += [v['title'] + ': ' + v['sound'] for v in r['roles']]
-    manifest = Path(__file__).resolve().parents[2] / 'frontend' / 'public' / 'recipe-examples' / 'manifest.json'
+    manifest = resource_root() / 'frontend' / 'public' / 'recipe-examples' / 'manifest.json'
     examples = {v['id']: v for v in json.loads(manifest.read_text(encoding='utf-8'))['examples']} if manifest.is_file() else {}
     for example in r['examples']:
         recorded = examples.get(example['id'], {})

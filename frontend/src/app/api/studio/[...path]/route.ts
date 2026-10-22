@@ -37,7 +37,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     outgoing.set('X-Content-Type-Options', 'nosniff');
     return new Response(response.body, { status: response.status, headers: outgoing });
   } catch {
-    return Response.json({ error: 'backend_unavailable', message: 'Studio backend is offline. Run launch-studio.ps1 from the project folder.' }, { status: 503 });
+    return Response.json({ error: 'backend_unavailable', message: 'Studio backend is offline. Reopen Frame Studio, or run launch-studio.ps1 when using a source checkout.' }, { status: 503 });
   }
 }
 

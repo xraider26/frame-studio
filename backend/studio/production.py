@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import math
+import os
 import shutil
 import subprocess
 import uuid
@@ -201,7 +202,7 @@ class ProductionTools:
             raise StudioError('ffmpeg_missing', 'Install FFmpeg to extract a real continuation frame.')
         out = self.inbox / (uuid.uuid4().hex + '.png')
         try:
-            subprocess.run([ffmpeg, '-y', '-sseof', '-0.1', '-i', str(source), '-frames:v', '1', str(out)], capture_output=True, timeout=30, check=True)
+            subprocess.run([ffmpeg, '-y', '-sseof', '-0.1', '-i', str(source), '-frames:v', '1', str(out)], capture_output=True, timeout=30, check=True, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
             _, metadata = checked_file(out, [self.inbox], 'image')
             def update(current):
                 key = uuid.uuid4().hex

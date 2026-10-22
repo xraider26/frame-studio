@@ -18,9 +18,7 @@ from .creative import creative_schema
 from .exports import export_editor
 from .recipes import recipe_catalog
 from .course_rules import course_coverage
-
-ROOT = Path(__file__).resolve().parents[2]
-
+from .paths import data_root as default_data_root, mcp_launch_configuration
 
 def credential(root, filename):
     root.mkdir(parents=True, exist_ok=True)
@@ -41,7 +39,7 @@ class Command(BaseModel):
 
 
 def create_app(data_root=None, agent_token=None, ui_token=None):
-    root = Path(data_root or os.environ.get('STUDIO_DATA_DIR', ROOT / 'studio_data')).resolve()
+    root = Path(data_root or default_data_root()).resolve()
     root.mkdir(parents=True, exist_ok=True)
     agent_token = agent_token or credential(root, 'agent.token')
     ui_token = ui_token or credential(root, 'browser.token')
@@ -76,7 +74,10 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
 
     @app.get('/health')
     def health():
-        return {'status': 'ok', 'service': 'frame-studio', 'schema_version': 2}
+        result = {'status': 'ok', 'service': 'frame-studio', 'schema_version': 2}
+        if os.environ.get('STUDIO_DESKTOP_INSTANCE'):
+            result['instance_id'] = os.environ['STUDIO_DESKTOP_INSTANCE']
+        return result
 
     @app.get('/studio/v1/media/{project_id}/{filename}')
     def media(project_id: str, filename: str, request: Request):
@@ -101,6 +102,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'studio_capabilities':
             return {'server': 'Frame Studio', 'schema_version': 2, 'transport': 'stdio bridge',
+                    'mcp_launch': mcp_launch_configuration(root),
                     'creative_schema': creative_schema(), 'knowledge_coverage': knowledge_catalog()['coverage'],
                     'execution_modes': ['agent_handoff', 'json_job_api'], 'flow_account': 'not_connected',
                     'connections': providers.public(), 'inbox': str(studio.inbox),

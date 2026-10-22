@@ -33,3 +33,7 @@ frontend/inspect-studio.js
 github_publish.py
 .worktrees/
 .superpowers/
+desktop/node_modules/
+desktop/build/
+desktop/dist/
+desktop/.venv-build/
