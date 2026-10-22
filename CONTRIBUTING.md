@@ -6,7 +6,7 @@ The project-wide license has not been selected yet. Do not assume public reposit
 
 ## Choose the right source
 
-The Windows beta is tagged `v0.2.0-beta.1`. The implementation branch `feature/course-production-recipes` is tracked by [PR #1](https://github.com/xraider26/frame-studio/pull/1) while integration into `main` is pending. Check the PR state before starting new work; repository documentation may be ahead of the released installer.
+The Windows beta is tagged `v0.2.0-beta.1` and its implementation is merged into `main` through [PR #1](https://github.com/xraider26/frame-studio/pull/1). Start new development branches from `main`; use the release tag to reproduce the shipped beta. Repository documentation and subsequent development may be ahead of the released installer.
 
 For a reproducible beta checkout, follow the [root README](README.md#develop-from-source). Use Node.js 22.12+, Python 3.12 and the existing lockfiles/requirements. Keep runtime data, test outputs and dependencies out of Git.
 

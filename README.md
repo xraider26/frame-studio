@@ -102,7 +102,7 @@ The beta passed actual installation, clean-PATH startup, bundled media tools, MC
 
 ## Develop from source
 
-The published beta's implementation is tagged `v0.2.0-beta.1`; [PR #1](https://github.com/xraider26/frame-studio/pull/1) tracks integration into `main`. Front-page documentation may be newer than the tagged installer.
+The published beta's implementation is tagged `v0.2.0-beta.1` and has been merged into `main` through [PR #1](https://github.com/xraider26/frame-studio/pull/1). Use the tag below for a reproducible beta checkout; `main` may include newer documentation or development changes.
 
 On Windows, install Node.js **22.12+**, npm, Python 3.12 through `uv`, and FFmpeg/FFprobe for media imports:
 

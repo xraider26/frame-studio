@@ -77,7 +77,7 @@ The structure is shared, but the executable/data paths are generated for each in
 They preserve direction, reference requirements and review standards. Actual consistency depends on the generator, references, execution and inspection. Test a representative pilot and record real results.
 
 **Why can't I download the release?**  
-While the repository is private, GitHub requires access to it. The Windows beta is listed under Releases and marked as a prerelease, so a generic “latest stable release” link may not find it.
+Use the [Windows beta release page](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1) and expand its Assets section. The beta is marked as a prerelease, so a generic “latest stable release” link may not find it. The public download does not require repository membership.
 
 **What should I include in a bug report?**  
 App version, desktop versus source mode, Windows version, exact steps and the expected/actual result. Use a small synthetic project where possible. Review logs for credentials/private content before attaching them. See [security reporting](../SECURITY.md).
