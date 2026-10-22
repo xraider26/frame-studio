@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test tests/visual-help.test.cjs tests/control-mode.test.cjs tests/recipe-evidence.test.cjs tests/queue-workspace.test.cjs tests/course-recipes.test.cjs tests/cinematography.test.cjs tests/mcp-config.test.cjs"
   },
   "dependencies": {
     "lucide-react": "^1.56.0",
@@ -21,6 +22,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "jsdom": "^26.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

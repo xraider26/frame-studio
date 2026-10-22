@@ -5,9 +5,9 @@ from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from studio.paths import data_root
 
-ROOT = Path(__file__).resolve().parent.parent
-DATA = Path(os.environ.get('STUDIO_DATA_DIR', ROOT / 'studio_data'))
+DATA = data_root()
 API = os.environ.get('STUDIO_API_URL', 'http://127.0.0.1:8010').rstrip('/')
 ACTOR = os.environ.get('STUDIO_CLIENT_NAME', 'mcp-agent')
 mcp = FastMCP('Frame Studio', instructions='Read studio_capabilities and get_project. Follow next_action; never invent outputs. Complete text steps with complete_step. For generation, claim_generation, use your authorized local/API tool, save its real output in the returned inbox, then return_generation. Approval policy is user controlled. await_approval means stop and let the user review. Refresh after mutations and before using expected_revision. API connections are optional, separately configured executors.')
@@ -18,17 +18,31 @@ async def command(operation, arguments=None):
     if not token:
         file = DATA / 'agent.token'
         if not file.exists():
+            if os.environ.get('STUDIO_DESKTOP_INSTANCE'):
+                raise ValueError('backend_unavailable: Open Frame Studio and retry the MCP connection.')
             raise ValueError('backend_unavailable: Start launch-studio.ps1 first; no studio token exists.')
         token = file.read_text(encoding='utf-8').strip()
     try:
-        async with httpx.AsyncClient(timeout=40) as client:
+        async with httpx.AsyncClient(timeout=40, trust_env=False) as client:
+            instance = os.environ.get('STUDIO_DESKTOP_INSTANCE')
+            if instance:
+                health = await client.get(API + '/health')
+                if health.is_error:
+                    raise ValueError('backend_unavailable: Open Frame Studio and retry the MCP connection.')
+                try:
+                    identity = health.json()
+                except ValueError as exc:
+                    raise ValueError('backend_unavailable: Open Frame Studio and retry the MCP connection.') from exc
+                if not isinstance(identity, dict) or identity.get('service') != 'frame-studio' or identity.get('status') != 'ok' or identity.get('instance_id') != instance:
+                    raise ValueError('backend_unavailable: Open Frame Studio and reconnect MCP; the desktop instance changed.')
             response = await client.post(API + '/studio/v1/command', headers={'Authorization': 'Bearer ' + token}, json={'operation': operation, 'arguments': arguments or {}, 'actor': ACTOR})
         result = response.json()
         if response.is_error:
             raise ValueError(f"{result.get('error', 'studio_error')}: {result.get('message', result.get('detail', 'Request failed'))}")
         return result
     except httpx.RequestError as exc:
-        raise ValueError('backend_unavailable: Studio API is not reachable. Start launch-studio.ps1 and retry.') from exc
+        instruction = 'Open Frame Studio and reconnect MCP.' if os.environ.get('STUDIO_DESKTOP_INSTANCE') else 'Start launch-studio.ps1 and retry.'
+        raise ValueError('backend_unavailable: Studio API is not reachable. ' + instruction) from exc
 
 
 @mcp.tool()
@@ -44,9 +58,81 @@ async def list_projects() -> list[dict]:
 
 
 @mcp.tool()
+async def create_batch(name: str, idea: str, request_id: str, kind: str = 'variations', template_id: str = 'custom', count: int = 5, briefs: list[str] | None = None, identity_source_project_id: str | None = None, source_revision: int | None = None) -> dict:
+    """Create 1–100 independent episodes/variations/campaign items from an idea and built-in/saved template. Idempotent request_id. Optional per-item briefs and actual canonical identity source. This queues real work, never generates scripts/media itself. Spending/retry/approval policy remains user-controlled."""
+    return await command('create_batch', locals())
+
+
+@mcp.tool()
+async def production_queue(batch_id: str | None = None) -> dict:
+    """Read actual multi-project queue state, next actions, approvals/output waits, pauses, leases, failures and known/unknown costs. Use claim_queue_task for dispatchable work."""
+    return await command('production_queue', locals())
+
+
+@mcp.tool()
+async def get_batch(batch_id: str) -> dict:
+    """Read the batch idea, item IDs, identity version and user-controlled limits/retry policy."""
+    return await command('get_batch', locals())
+
+
+@mcp.tool()
+async def claim_queue_task(request_id: str, batch_id: str | None = None) -> dict:
+    """Claim an exclusive 15-minute project work lease. Idempotent request_id. Read current get_project and follow next_action using actual planning/generation/inspection tools. Does not fabricate outputs or bypass approval/spending. Renew before expiry; finish after real progress or report a blocker."""
+    return await command('claim_queue_task', locals())
+
+
+@mcp.tool()
+async def renew_queue_task(task_id: str) -> dict:
+    """Renew your active queue lease for 15 minutes while real work continues. Expired/other-agent leases are rejected."""
+    return await command('renew_queue_task', locals())
+
+
+@mcp.tool()
+async def finish_queue_task(task_id: str, status: str = 'done', note: str = '') -> dict:
+    """Finish your queue lease as done after recorded project progress, or blocked with a concrete reason. A blocked item requires user attention/resume. Never use this to claim generated media exists; return_generation requires an actual file."""
+    return await command('finish_queue_task', locals())
+
+
+@mcp.tool()
+async def recipe_metrics(template_id: str) -> dict:
+    """Read actual recipe usage, grouped known/unknown costs, defects and scoped historical human pilot/production endorsements. An untested recipe is not evidence of quality."""
+    return await command('recipe_metrics', locals())
+
+
+@mcp.tool()
 async def create_project(name: str, template_id: str = 'custom', request_id: str = '') -> dict:
-    """Create a project. Use a stable unique request_id to avoid duplicate projects on retries."""
+    """Create from a built-in or saved template ID (list_templates). Saved settings/story are reused; workflow/QC policy stays at new-project defaults for agent creation. Use a stable unique request_id for retries."""
     return await command('create_project', locals())
+
+
+@mcp.tool()
+async def recipe_trials(project_id: str) -> dict:
+    """Read scoped human assessments of actual final edits, model/settings, file hashes and recorded checks. Agents cannot endorse a production or turn illustrative stills into video evidence."""
+    return await command('recipe_trials', locals())
+
+
+@mcp.tool()
+async def recipe_catalog() -> dict:
+    """Read versioned course-informed production recipes, source rules, stage instructions, motivated shot roles, inspection criteria, repair guidance and illustrative stills. Examples are not video validation. get_project includes the active recipe contract; preserve overrides and human policies."""
+    return await command('recipe_catalog')
+
+
+@mcp.tool()
+async def list_templates() -> list[dict]:
+    """List built-in formats and user-saved templates, with IDs and included sections."""
+    return await command('list_templates')
+
+
+@mcp.tool()
+async def get_saved_template(template_id: str) -> dict:
+    """Read a saved template snapshot. Media must be rebound; jobs/results/approvals/budgets are not reused."""
+    return await command('get_saved_template', locals())
+
+
+@mcp.tool()
+async def apply_project_template(project_id: str, template_id: str, sections: list[str], expected_revision: int, template_revision: int) -> dict:
+    """Apply saved settings and/or story sections to an existing project. Story replaces shots and prepared documents; affected outputs reopen. Workflow policy is human-only; never include workflow in sections. Read revisions first."""
+    return await command('apply_project_template', locals())
 
 
 @mcp.tool()
@@ -83,8 +169,80 @@ async def update_settings(project_id: str, settings: dict[str, Any], expected_re
 
 @mcp.tool()
 async def update_shots(project_id: str, shots: list[dict[str, Any]], expected_revision: int) -> dict:
-    """Save the complete ordered shot list (1–200). Include existing IDs when editing. Fields: title, image_prompt, motion_prompt, narration, duration_seconds. This replaces the current plan and invalidates its generated outputs while preserving takes."""
+    """Save ordered shots (1–200), keeping existing IDs. Read creative_schema for structured direction: camera, lighting, art, action/states, references, sound and quality. edit_duration_seconds is retained edit timing. Omitted direction is preserved for older clients. Changes reopen affected output/review steps; takes remain stored."""
     return await command('update_shots', locals())
+
+
+@mcp.tool()
+async def creative_schema() -> dict:
+    """Read validated production/shot-direction JSON schemas, field names and inheritance rules."""
+    return await command('creative_schema')
+
+
+@mcp.tool()
+async def knowledge_catalog(query: str = '', category: str = '') -> dict:
+    """Search source-linked directing techniques, use cases, risks and editable apply patches. Read coverage/provenance: this is not a claim that all original course PDF catalogues are imported."""
+    return await command('knowledge_catalog', locals())
+
+
+@mcp.tool()
+async def update_production(project_id: str, production: dict[str, Any], expected_revision: int) -> dict:
+    """Patch structured brief/story/bible/default direction/capability observations/QC/experiments. Read creative_schema first. Resource policy is human-only; omit resources and require_recorded_checks. Never mark unobserved model settings confirmed."""
+    return await command('update_production', locals())
+
+
+@mcp.tool()
+async def validate_project(project_id: str) -> dict:
+    """Check timing, references, continuity and recorded generator capabilities. Resolve errors before generation; warnings require judgment. These deterministic checks do not inspect actual media."""
+    return await command('validate_project', locals())
+
+
+@mcp.tool()
+async def preview_shot(project_id: str, shot_id: str) -> dict:
+    """Read the same effective direction, image/video compiled prompts, reference slots and preflight shown in the studio. No paid generation."""
+    return await command('preview_shot', locals())
+
+
+@mcp.tool()
+async def record_take_review(project_id: str, asset_id: str, review: dict[str, Any], expected_revision: int) -> dict:
+    """Record actual inspected media evidence: criteria {text:bool}, inspected [image] or [beginning,middle,end], notes, defect. Use handoff.required_media_checks plus shot criteria. Never invent inspection or impersonate human approval. This only satisfies configured media-evidence requirements."""
+    return await command('record_take_review', locals())
+
+
+@mcp.tool()
+async def select_take(project_id: str, asset_id: str, expected_revision: int) -> dict:
+    """Select a compatible actual take. Different creative inputs are rejected. Dependent motion/continuations and reviews reopen; previous files stay stored."""
+    return await command('select_take', locals())
+
+
+@mcp.tool()
+async def revise_shot(project_id: str, shot_id: str, kind: str, reason: str, expected_revision: int) -> dict:
+    """Request a targeted image/video revision with a specific defect. Reopens that shot/dependencies while retaining unrelated takes. Follow next_action and current budget/policy for any new generation."""
+    return await command('revise_shot', locals())
+
+
+@mcp.tool()
+async def extract_continuation(project_id: str, asset_id: str, expected_revision: int) -> dict:
+    """Extract a real near-final frame from a current returned MP4 using local FFmpeg. Inspect it, then explicitly bind its actual ID/version as a following shot's start_frame. Does not claim continuity or auto-generate."""
+    return await command('extract_continuation', locals())
+
+
+@mcp.tool()
+async def repair_handoff(project_id: str, asset_id: str, defect: str, expected_revision: int, mask_asset_id: str = '') -> dict:
+    """Prepare an original/mask/defect/preservation brief for an external image-editing tool. This does not execute inpainting. Compare real output against original and return through a permitted revision job."""
+    return await command('repair_handoff', locals())
+
+
+@mcp.tool()
+async def record_job_cost(project_id: str, job_id: str, actual: float, evidence: str, expected_revision: int) -> dict:
+    """Report actual executor/provider cost in the project's single unit, with evidence. Keeps correction history and settles the conservative reservation. Cancellation is not proof of a vendor refund."""
+    return await command('record_job_cost', locals())
+
+
+@mcp.tool()
+async def production_metrics(project_id: str) -> dict:
+    """Read known reserved/spent costs, unknown jobs, attempts, selected clips, reported defects and completed job time. No external analytics connection is implied."""
+    return await command('production_metrics', locals())
 
 
 @mcp.tool()
@@ -118,8 +276,8 @@ async def cancel_job(job_id: str) -> dict:
 
 
 @mcp.tool()
-async def import_reference(project_id: str, path: str, name: str, expected_revision: int) -> dict:
-    """Import a real image reference from the allowed inbox. Changing references invalidates dependent work."""
+async def import_reference(project_id: str, path: str, name: str, expected_revision: int, kind: str = 'image') -> dict:
+    """Import a real image (kind=image) or MP4 motion source (kind=video) from the allowed inbox. Changing references invalidates dependent work."""
     return await command('import_reference', locals())
 
 
@@ -133,6 +291,12 @@ async def import_final(project_id: str, path: str, expected_revision: int) -> di
 async def editor_handoff(project_id: str) -> dict:
     """Get ordered take paths, narration, timing and editing notes for an external editor."""
     return await command('editor_handoff', locals())
+
+
+@mcp.tool()
+async def export_editor_package(project_id: str) -> dict:
+    """Create a local ZIP with chosen actual MP4s, editor-manifest.json and edit-decision.csv (source/timeline ranges, dialogue, captions and sound). Missing files or short source ranges are reported. Not a native editor project or a rendered final video."""
+    return await command('export_editor_package', locals())
 
 
 @mcp.tool()

@@ -1,13 +1,24 @@
 import json
 import sqlite3
-from contextlib import contextmanager
+from contextlib import contextmanager, closing
 from pathlib import Path
 from .templates import DEFAULT_SETTINGS
+from .creative import default_production, Direction, merge
 
 
 def load(value):
     project = json.loads(value)
     project['settings'] = dict(DEFAULT_SETTINGS, **project['settings'])
+    project['schema_version'] = 2
+    project.setdefault('dispatch', {'paused': False, 'priority': 0, 'blocked_reason': ''})
+    defaults = default_production(project.get('template_id', 'custom'))
+    if 'production' not in project:
+        defaults['defaults'] = Direction().model_dump()
+    project['production'] = merge(defaults, project.get('production', {}))
+    for shot in project['shots']:
+        shot['direction'] = merge(Direction().model_dump(), shot.get('direction', {}))
+        shot.setdefault('edit_duration_seconds', shot['duration_seconds'])
+        shot.setdefault('edit_in_seconds', 0)
     return project
 
 
@@ -21,8 +32,19 @@ class Store:
     def __init__(self, path):
         self.db_path = Path(path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        backup = self.db_path.with_name(self.db_path.stem + '.pre-creative-v2.sqlite3')
+        if self.db_path.exists() and not backup.exists():
+            with closing(sqlite3.connect(self.db_path)) as source:
+                table = source.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='studio_projects'").fetchone()
+                if table and any(json.loads(row[0]).get('schema_version', 1) < 2 for row in source.execute('SELECT payload FROM studio_projects')):
+                    with closing(sqlite3.connect(backup)) as target:
+                        source.backup(target)
         with self.connect() as conn:
             conn.execute('CREATE TABLE IF NOT EXISTS studio_projects (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+            conn.execute('CREATE TABLE IF NOT EXISTS studio_templates (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+            conn.execute('CREATE TABLE IF NOT EXISTS studio_batches (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+            conn.execute('CREATE TABLE IF NOT EXISTS studio_tasks (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, request_key TEXT UNIQUE NOT NULL, status TEXT NOT NULL, expires_at TEXT NOT NULL, payload TEXT NOT NULL)')
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS studio_active_task ON studio_tasks(project_id) WHERE status='active'")
 
     @contextmanager
     def connect(self):

@@ -1,0 +1,40 @@
+.cv-control-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 18px 0 24px;
+}
+.cv-control-mode [role="radiogroup"] {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .025);
+}
+.cv-control-mode [role="radio"] {
+  min-height: 34px;
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.cv-control-mode [role="radio"][aria-checked="true"] {
+  background: rgba(242, 132, 60, .17);
+  color: #ffaf78;
+}
+.cv-control-mode [role="radio"]:focus-visible {
+  outline: 2px solid #ffaf78;
+  outline-offset: 2px;
+}
+.cv-control-mode p { margin: 0; max-width: 560px; font-size: 12px; color: #a8a6a3; }
+.cv-mode-detail { display: contents; }
+.cv-mode-detail[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .cv-control-mode [role="radio"] { transition: none; }
+}

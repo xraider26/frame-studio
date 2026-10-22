@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-22",
+  "tool": "built-in image_gen",
+  "scope": "Illustrative generated stills from one reference scene. Individual variations may change more than the selected technique. Not calibrated optical tests, real camera captures, or evidence of video generator performance.",
+  "reference_scene": "An artist at a pottery workbench; image digital-cinema is the reference for all generated edits.",
+  "examples": [
+    {
+      "id": "digital-cinema",
+      "category": "camera",
+      "prompt": "Create one photorealistic cinematic reference photograph, landscape 16:9. An adult woman ceramic artist with short dark curly bob hair, warm brown eyes, wearing a plain indigo denim apron over a cream shirt, stands calmly behind a walnut pottery workbench in a modest sunlit workshop. She gently holds one small ochre amber ceramic cup at waist height with natural hands. Large rectangular window on left wall, orderly shelves of cream pottery behind, small brass desk lamp at far back right, plaster walls. A few pottery tools on bench. Eye-level waist-up medium shot, camera about2.5metres away,50mm full-frame equivalent feel, soft left window light with readable right cheek shadows, gentle shallow background focus. Neutral clean digital cinema image, natural textures and correct anatomy. No words,text,logo,watermark,frame,collage,split image or UI. This will be the canonical reference for a visual cinematography teaching library; concrete stable subject and room geography matter.",
+      "caption": "Neutral digital-cinema interpretation: natural skin, restrained contrast and readable highlight detail.",
+      "image": "/cinematography/digital-cinema.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "film-35",
+      "category": "camera",
+      "prompt": "Edit the reference photograph into ONE landscape 16:9 cinematography teaching sample. Preserve the same adult woman's face, short curly dark bob, indigo denim apron, cream shirt, amber ceramic cup, walnut bench, left-wall window, shelves and workshop geography unless the specified framing hides them. Keep pose and neutral expression consistent. Change ONLY the instructed photographic setup, do not redesign the subject or set. Same medium eye-level composition and lighting as reference. Change image treatment only to restrained 35mm film-inspired fine grain, subtle warm highlight halation, gentle organic contrast, no scratches. No text, labels,logos,watermarks,split panels,collage,UI or black bars. This is an illustrative visual cue, not a calibrated camera test.",
+      "caption": "Film-inspired interpretation: warmer highlights, subtle halation and restrained texture. Lighting also varies slightly from the reference.",
+      "image": "/cinematography/film-35.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "anamorphic",
+      "category": "camera",
+      "prompt": "Edit the reference photograph into ONE landscape16:9 teaching image. Preserve same woman's curly dark bob, indigo apron,cream shirt,ochre cup,walnut bench and room layout. Keep the same medium framing, face,workshop and subject. Demonstrate a subtle anamorphic-inspired lens treatment: ONLY a very thin restrained horizontal blue-gold streak directly from the single real brass lamp at back right, softly oval blur of its lamp bulb. Do not add ANY floating light dots,bokeh balls or new bulbs on shelves; ceramics and walls are opaque surfaces and must remain ordinary. Subtle background blur, natural subject and unchanged room. No black bars. No text,labels,logos,split panels,collage or UI.",
+      "caption": "Anamorphic-inspired highlight treatment: a horizontal streak from the visible lamp. An optical look cue, not a camera-body simulation.",
+      "image": "/cinematography/anamorphic.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "phone",
+      "category": "camera",
+      "prompt": "Edit the reference photograph into ONE landscape 16:9 cinematography teaching sample. Preserve the same adult woman's face, short curly dark bob, indigo denim apron, cream shirt, amber ceramic cup, walnut bench, left-wall window, shelves and workshop geography unless the specified framing hides them. Keep pose and neutral expression consistent. Change ONLY the instructed photographic setup, do not redesign the subject or set. Same scene and subject, natural smartphone video frame aesthetic, moderately deep focus, everyday neutral exposure, restrained contrast, no beauty smoothing or cinema teal-orange grade. No text, labels,logos,watermarks,split panels,collage,UI or black bars. This is an illustrative visual cue, not a calibrated camera test.",
+      "caption": "Phone-footage interpretation: a wider everyday framing and moderately deep workshop detail.",
+      "image": "/cinematography/phone.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "24mm",
+      "category": "lens",
+      "prompt": "Edit the reference photograph into ONE landscape 16:9 cinematography teaching sample. Preserve the same adult woman's face, short curly dark bob, indigo denim apron, cream shirt, amber ceramic cup, walnut bench, left-wall window, shelves and workshop geography unless the specified framing hides them. Keep pose and neutral expression consistent. Change ONLY the instructed photographic setup, do not redesign the subject or set. 24mm full-frame-equivalent wide field of view, camera remains at baseline position about 2.5m from woman. Show wide workshop geography and bench around her. Normal rectilinear lens, no fisheye. No text, labels,logos,watermarks,split panels,collage,UI or black bars. This is an illustrative visual cue, not a calibrated camera test.",
+      "caption": "Approximate wide field of view: more room and foreground are visible. AI example, not a measured focal-length test.",
+      "image": "/cinematography/24mm.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "35mm",
+      "category": "lens",
+      "prompt": "Edit the reference photograph into ONE landscape 16:9 cinematography teaching sample. Preserve the same adult woman's face, short curly dark bob, indigo denim apron, cream shirt, amber ceramic cup, walnut bench, left-wall window, shelves and workshop geography unless the specified framing hides them. Keep pose and neutral expression consistent. Change ONLY the instructed photographic setup, do not redesign the subject or set. 35mm full-frame-equivalent field of view, camera at same baseline position about 2.5m. Environmental medium-wide view, woman and workbench readable. No text, labels,logos,watermarks,split panels,collage,UI or black bars. This is an illustrative visual cue, not a calibrated camera test.",
+      "caption": "Approximate environmental field of view: the artist stays connected to the surrounding workshop.",
+      "image": "/cinematography/35mm.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "50mm",
+      "category": "lens",
+      "prompt": "Edit reference into ONE landscape 16:9 cinematography teaching photograph. Preserve same woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only photographic setup as specified. 50mm full-frame-equivalent field of view, camera same baseline position about 2.5m. Natural waist-up medium frame. Natural anatomy and concrete scene. No text,logos,UI,collage,split panels or black bars. Approximate illustrative photograph not a calibrated optical test.",
+      "caption": "Approximate natural medium view: attention rests on the artist and cup.",
+      "image": "/cinematography/50mm.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "85mm",
+      "category": "lens",
+      "prompt": "Edit reference into ONE landscape 16:9 cinematography teaching photograph. Preserve same woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only photographic setup as specified. 85mm full-frame-equivalent narrow field of view, camera same baseline position about 2.5m. Tight head-and-shoulder portrait, background softly separated. Do not change viewpoint. Natural anatomy and concrete scene. No text,logos,UI,collage,split panels or black bars. Approximate illustrative photograph not a calibrated optical test.",
+      "caption": "Approximate portrait view: a tighter subject crop and softly separated background. Pose and framing vary from the reference.",
+      "image": "/cinematography/85mm.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "deep-focus",
+      "category": "lens",
+      "prompt": "Edit reference into ONE landscape 16:9 cinematography teaching photograph. Preserve same woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only photographic setup as specified. Same baseline 50mm medium composition and light. Deep focus keeping near bench pottery, woman midground and shelves behind all crisply readable, avoid shallow depth of field. Natural anatomy and concrete scene. No text,logos,UI,collage,split panels or black bars. Approximate illustrative photograph not a calibrated optical test.",
+      "caption": "Depth study: foreground tools, artist and rear shelves remain readable together.",
+      "image": "/cinematography/deep-focus.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "wide-shot",
+      "category": "framing",
+      "prompt": "Edit reference into ONE landscape 16:9 cinematography teaching photograph. Preserve same woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only photographic setup as specified. Wide establishing view from farther back showing full woman, complete workbench and room, foreground pottery on lower bench edge, woman small enough to read room geography. Eye level. Natural anatomy and concrete scene. No text,logos,UI,collage,split panels or black bars. Approximate illustrative photograph not a calibrated optical test.",
+      "caption": "The full artist, workbench and room establish geography before closer coverage.",
+      "image": "/cinematography/wide-shot.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "medium-shot",
+      "category": "framing",
+      "prompt": "Edit reference into ONE landscape 16:9 cinematography teaching photograph. Preserve same woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only photographic setup as specified. Waist-up medium shot at eye level of woman at workbench, both hands and amber cup fully visible, natural proportions. Natural anatomy and concrete scene. No text,logos,UI,collage,split panels or black bars. Approximate illustrative photograph not a calibrated optical test.",
+      "caption": "Waist-up framing retains expression, hand gestures and the cup.",
+      "image": "/cinematography/medium-shot.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "close-up",
+      "category": "framing",
+      "prompt": "Edit reference into ONE landscape 16:9 photographic cinematography study. Preserve same adult woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only specified photographic setup/framing. Close-up of woman's face at eye level, eyes and subtle contemplative expression sharply readable, soft workshop background. Her face fills most of frame. Natural anatomy and plausible physical scene. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "A closer face-and-cup view gives expression greater emphasis.",
+      "image": "/cinematography/close-up.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "extreme-close",
+      "category": "framing",
+      "prompt": "Edit reference into ONE landscape 16:9 photographic cinematography study. Preserve same adult woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only specified photographic setup/framing. Extreme close-up insert of woman's clay-dusted fingertips gently shaping rim of amber cup; tactile clay contact and subtle fingerprints visible, no face needed. Natural anatomy and plausible physical scene. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "Detail insert: fingers and the ceramic surface occupy most of the image.",
+      "image": "/cinematography/extreme-close.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "low-angle",
+      "category": "framing",
+      "prompt": "Edit reference into ONE landscape 16:9 photographic cinematography study. Preserve same adult woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only specified photographic setup/framing. Low angle camera at workbench height looking upward toward woman, restrained perspective, face and upper torso above bench; window and high shelving recede behind. Same woman pose and room. Natural anatomy and plausible physical scene. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "A camera near workbench height looks upward; the high shelves recede behind the artist.",
+      "image": "/cinematography/low-angle.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "high-angle",
+      "category": "framing",
+      "prompt": "Edit reference into ONE landscape 16:9 photographic cinematography study. Preserve same adult woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only specified photographic setup/framing. High angle camera looking downward from elevated 45degree viewpoint onto woman and full workbench surface. Cup and hands readable, preserve room layout. Natural anatomy and plausible physical scene. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "An elevated viewpoint looks down onto the artist and work surface.",
+      "image": "/cinematography/high-angle.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "over-shoulder",
+      "category": "framing",
+      "prompt": "Edit reference into ONE landscape 16:9 photographic cinematography study. Preserve same adult woman's face, short dark curly bob, indigo apron/cream shirt, amber cup and workshop layout (left window, rear pottery shelves,right lamp). Change only specified photographic setup/framing. Over-the-shoulder medium view: out-of-focus back shoulder of an additional observer at near right edge, woman at bench faces observer; woman and cup sharp, clear eyeline and spatial relationship. The additional observer is only for demonstrating foreground framing. Natural anatomy and plausible physical scene. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "A second person's soft foreground shoulder connects the viewer to the artist's eyeline.",
+      "image": "/cinematography/over-shoulder.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "soft-window",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup, pose, eye-level waist-up medium framing, walnut bench and room geography (window left wall,shelves rear,small lamp back right). Change lighting only to: Same baseline eye-level medium composition. Large diffused window at frame left produces broad soft transitions, gentle shadow-side fill and neutral natural colours. Skin and materials remain realistic, exposure controlled. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "A broad left window produces soft shadow transitions on the face.",
+      "image": "/cinematography/soft-window.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "hard-side",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup, pose, eye-level waist-up medium framing, walnut bench and room geography (window left wall,shelves rear,small lamp back right). Change lighting only to: Same baseline composition and room. Small hard source from frame-left window creates crisp-edged shadow across face and visible pottery texture, controlled highlight exposure, one dominant side key. Skin and materials remain realistic, exposure controlled. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "Directional window light draws crisp shadows and emphasises texture.",
+      "image": "/cinematography/hard-side.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "low-key",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup, pose, eye-level waist-up medium framing, walnut bench and room geography (window left wall,shelves rear,small lamp back right). Change lighting only to: Same baseline composition, night mood. One controlled side source selectively lights woman and cup; deep dark background and shadows, maintain readable eyes and cup rim, no crushed subject detail. Skin and materials remain realistic, exposure controlled. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "A selective key preserves the face and cup against a darker room.",
+      "image": "/cinematography/low-key.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "high-key",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup, pose, eye-level waist-up medium framing, walnut bench and room geography (window left wall,shelves rear,small lamp back right). Change lighting only to: Same baseline composition. Bright soft window key with generous broad fill creates low contrast and airy approachable room, preserve highlight texture and skin colour, not blown out. Skin and materials remain realistic, exposure controlled. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "Brighter soft fill reduces shadow contrast while retaining surface detail.",
+      "image": "/cinematography/high-key.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "rim-light",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup, pose, eye-level waist-up medium framing, walnut bench and room geography (window left wall,shelves rear,small lamp back right). Change lighting only to: Same baseline composition. Backlight behind woman's right shoulder creates fine luminous edge on hair and apron against dim background, subtle soft frontal fill keeps face readable, plausible source. Skin and materials remain realistic, exposure controlled. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "Backlight outlines the hair and shoulders, with readable face fill.",
+      "image": "/cinematography/rim-light.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "rembrandt",
+      "category": "lighting",
+      "prompt": "Edit the reference photograph into ONE landscape16:9 teaching image. Preserve same woman's curly dark bob, indigo apron,cream shirt,ochre cup,walnut bench and room layout. Make a textbook dramatic Rembrandt portrait lighting example, strongly change light, keep identity,wardrobe,cup and room. The original LEFT window is fully blacked out with an opaque blackout blind. One studio key raised45degrees to camera RIGHT lights the RIGHT side of her face. Her LEFT side face is in deep shadow except a small clearly distinct triangular patch of light on the LEFT cheek below the eye, formed by connected nose and cheek shadows. Both eyes still discernible, strong10:1 lighting ratio, background dark, no rimlight,no windowfill,no sunlight. This is a lighting diagram brought to life; triangle on shadow cheek is essential. No text,labels,logos,split panels,collage or UI.",
+      "caption": "A raised side key sculpts the face, leaving a small lit cheek area within the shadow side.",
+      "image": "/cinematography/rembrandt.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "practical",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup,pose,eye-level waist-up medium framing, walnut bench and workshop geography (left-wall window,rear shelves,right lamp). Change lighting only: Same baseline composition at evening. Clearly visible warm task lamp on workbench frame-left motivates warm light on woman's hands, face and amber cup, cool dim room ambient, shadows consistent with lamp. Plausible physical lighting with readable skin and materials, retain details. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "A visible task lamp motivates the warm pool of light against cool evening ambient.",
+      "image": "/cinematography/practical.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "golden-hour",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup,pose,eye-level waist-up medium framing, walnut bench and workshop geography (left-wall window,rear shelves,right lamp). Change lighting only: Same baseline interior composition. Low warm late-afternoon sunlight through left window, long diagonal shadows across bench, warm hair edge and cooler skylight shadows, believable clear late-day sun direction. Plausible physical lighting with readable skin and materials, retain details. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "Low warm sunlight creates long bench shadows and warm edge highlights.",
+      "image": "/cinematography/golden-hour.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "blue-hour",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup,pose,eye-level waist-up medium framing, walnut bench and workshop geography (left-wall window,rear shelves,right lamp). Change lighting only: Same baseline interior composition near dusk. Cool blue diffuse ambient sky light through window balanced with one small restrained warm visible desk lamp, quiet blue-hour atmosphere, skin remains readable. Plausible physical lighting with readable skin and materials, retain details. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "Cool window ambience contrasts with a restrained warm practical.",
+      "image": "/cinematography/blue-hour.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    },
+    {
+      "id": "neon",
+      "category": "lighting",
+      "prompt": "Edit reference into ONE landscape 16:9 lighting teaching photograph. Preserve identical woman face, dark curly bob, indigo apron/cream shirt, amber cup,pose,eye-level waist-up medium framing, walnut bench and workshop geography (left-wall window,rear shelves,right lamp). Change lighting only: Same baseline composition at night. Visible cyan workshop tube on left wall and amber task lamp on right create restrained motivated coloured light pools; preserve readable skin and amber cup identity, avoid arbitrary all-over colour wash. Plausible physical lighting with readable skin and materials, retain details. No text,logos,UI,collage,split panels or black bars.",
+      "caption": "Visible cyan and amber fixtures create controlled coloured pools in the workshop.",
+      "image": "/cinematography/neon.png",
+      "comparison_group": "workshop-v1",
+      "tool": "built-in image_gen"
+    }
+  ]
+}

@@ -13,9 +13,12 @@ from .store import StudioError
 from .templates import LABELS, STEPS, TEMPLATES
 from .generators import VIDEO_PROFILES, IMAGE_PROFILES
 from .workflow import Studio
-
-ROOT = Path(__file__).resolve().parents[2]
-
+from .knowledge import knowledge_catalog
+from .creative import creative_schema
+from .exports import export_editor
+from .recipes import recipe_catalog
+from .course_rules import course_coverage
+from .paths import data_root as default_data_root, mcp_launch_configuration
 
 def credential(root, filename):
     root.mkdir(parents=True, exist_ok=True)
@@ -36,7 +39,7 @@ class Command(BaseModel):
 
 
 def create_app(data_root=None, agent_token=None, ui_token=None):
-    root = Path(data_root or os.environ.get('STUDIO_DATA_DIR', ROOT / 'studio_data')).resolve()
+    root = Path(data_root or default_data_root()).resolve()
     root.mkdir(parents=True, exist_ok=True)
     agent_token = agent_token or credential(root, 'agent.token')
     ui_token = ui_token or credential(root, 'browser.token')
@@ -71,7 +74,10 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
 
     @app.get('/health')
     def health():
-        return {'status': 'ok', 'service': 'frame-studio', 'schema_version': 1}
+        result = {'status': 'ok', 'service': 'frame-studio', 'schema_version': 2}
+        if os.environ.get('STUDIO_DESKTOP_INSTANCE'):
+            result['instance_id'] = os.environ['STUDIO_DESKTOP_INSTANCE']
+        return result
 
     @app.get('/studio/v1/media/{project_id}/{filename}')
     def media(project_id: str, filename: str, request: Request):
@@ -89,18 +95,62 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
     async def command(body: Command, request: Request):
         human = authorize(request)
         op, a = body.operation, body.arguments
-        actor = 'user' if human else body.actor[:100]
-        if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted'] and not human:
+        actor = 'user' if human else 'agent:' + body.actor[:94]
+        if op == 'update_production' and isinstance(a.get('production'), dict) and any(k in a['production'] for k in ['resources', 'require_recorded_checks', 'recipe']) and not human:
+            raise StudioError('human_only', 'Resource and quality policy belong to the user. Agents may report evidence and actual job costs.', 403)
+        if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template', 'update_batch', 'set_project_dispatch', 'sync_batch_identity', 'endorse_recipe'] and not human:
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'studio_capabilities':
-            return {'server': 'Frame Studio', 'schema_version': 1, 'transport': 'stdio bridge',
+            return {'server': 'Frame Studio', 'schema_version': 2, 'transport': 'stdio bridge',
+                    'mcp_launch': mcp_launch_configuration(root),
+                    'creative_schema': creative_schema(), 'knowledge_coverage': knowledge_catalog()['coverage'],
                     'execution_modes': ['agent_handoff', 'json_job_api'], 'flow_account': 'not_connected',
                     'connections': providers.public(), 'inbox': str(studio.inbox),
                     'video_profiles': VIDEO_PROFILES, 'image_profiles': IMAGE_PROFILES,
-                    'steps': [{'id': s, 'name': l} for s, l in zip(STEPS, LABELS)], 'templates': TEMPLATES}
-        if op == 'list_templates': return TEMPLATES
+                    'steps': [{'id': s, 'name': l} for s, l in zip(STEPS, LABELS)], 'templates': TEMPLATES + studio.list_saved_templates()}
+        if op == 'create_batch': return studio.create_batch(a['name'], a['idea'], a.get('kind', 'variations'), a.get('template_id', 'custom'), a.get('count', 5), a['request_id'], actor,
+            policy=a.get('policy'), briefs=a.get('briefs'), allow_policy=human, identity_source_project_id=a.get('identity_source_project_id'), source_revision=a.get('source_revision'))
+        if op == 'list_batches': return studio.list_batches()
+        if op == 'get_batch': return studio.get_batch(a['batch_id'])
+        if op == 'update_batch': return studio.update_batch(a['batch_id'], a['policy'], a['expected_revision'])
+        if op == 'production_queue': return studio.production_queue(a.get('batch_id'))
+        if op == 'claim_queue_task': return studio.claim_queue_task(actor, a['request_id'], a.get('batch_id'))
+        if op == 'renew_queue_task': return studio.renew_queue_task(a['task_id'], actor)
+        if op == 'finish_queue_task': return studio.finish_queue_task(a['task_id'], actor, a['status'], a.get('note', ''))
+        if op == 'set_project_dispatch': return studio.set_project_dispatch(a['project_id'], a['paused'], a.get('priority', 0), a['expected_revision'])
+        if op == 'sync_batch_identity': return studio.sync_batch_identity(a['batch_id'], a['source_project_id'], a['expected_revision'], a['source_revision'])
+        if op == 'recipe_metrics': return studio.recipe_metrics(a['template_id'])
+        if op == 'recipe_catalog':
+            validation = studio.recipe_validation_summary()
+            return {'recipes': [{**r, 'validation': validation.get(r['id'], {'reviewed_outputs': 0, 'passed_outputs': 0, 'ideas': 0, 'models': []})} for r in recipe_catalog()], 'coverage': course_coverage()}
+        if op == 'recipe_trials': return studio.recipe_trials(a['project_id'])
+        if op == 'record_recipe_trial': return studio.record_recipe_trial(a['project_id'], a['assessment'], a['expected_revision'], actor)
+        if op == 'activate_recipe': return studio.activate_recipe(a['project_id'], a['expected_revision'], actor)
+        if op == 'endorse_recipe': return studio.endorse_recipe(a['template_id'], a['project_id'], a['note'], a['expected_revision'], a['template_revision'], a.get('level', 'pilot'))
+        if op == 'list_templates': return TEMPLATES + studio.list_saved_templates()
+        if op == 'get_saved_template': return studio.get_saved_template(a['template_id'])
+        if op == 'save_project_template': return studio.save_project_template(a['project_id'], a['name'], a.get('description', ''), a['sections'], a['expected_revision'], a.get('settings_shot_id', ''))
+        if op == 'rename_project_template': return studio.rename_project_template(a['template_id'], a['name'], a.get('description', ''), a['expected_revision'])
+        if op == 'delete_project_template': return studio.delete_project_template(a['template_id'], a['expected_revision'])
+        if op == 'apply_project_template':
+            if not human and isinstance(a.get('sections'), list) and 'workflow' in a['sections']:
+                raise StudioError('human_only', 'Applying workflow approval/quality policy belongs to the user.', 403)
+            return studio.apply_project_template(a['project_id'], a['template_id'], a['sections'], a['expected_revision'], a['template_revision'], actor)
+        if op == 'knowledge_catalog': return knowledge_catalog(a.get('query', ''), a.get('category', ''))
+        if op == 'creative_schema': return creative_schema()
+        if op == 'update_production': return studio.update_production(a['project_id'], a['production'], a['expected_revision'], actor)
+        if op == 'validate_project': return studio.validate_project(a['project_id'])
+        if op == 'preview_shot': return studio.preview_shot(a['project_id'], a['shot_id'])
+        if op == 'record_take_review': return studio.record_take_review(a['project_id'], a['asset_id'], a['review'], a['expected_revision'], actor)
+        if op == 'select_take': return studio.select_take(a['project_id'], a['asset_id'], a['expected_revision'], actor)
+        if op == 'revise_shot': return studio.revise_shot(a['project_id'], a['shot_id'], a['kind'], a['reason'], a['expected_revision'], actor)
+        if op == 'extract_continuation': return studio.extract_continuation(a['project_id'], a['asset_id'], a['expected_revision'], actor)
+        if op == 'repair_handoff': return studio.repair_handoff(a['project_id'], a['asset_id'], a['defect'], a.get('mask_asset_id', ''), a['expected_revision'], actor)
+        if op == 'record_job_cost': return studio.record_job_cost(a['project_id'], a['job_id'], a['actual'], a['evidence'], a['expected_revision'], actor)
+        if op == 'production_metrics': return studio.production_metrics(a['project_id'])
+        if op == 'export_editor_package': return export_editor(studio, a['project_id'])
         if op == 'list_projects': return studio.list_projects()
-        if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor)
+        if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor, allow_template_policy=human)
         if op == 'duplicate_project': return studio.duplicate_project(a['project_id'], a.get('name'), actor)
         if op == 'delete_project': return studio.delete_project(a['project_id'], a['expected_revision'])
         if op == 'restore_project': return studio.restore_project(a['project_id'])
@@ -115,7 +165,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'return_generation': return studio.return_result(a['job_id'], a['output_path'], actor)
         if op == 'get_job': return studio.find_job(a['job_id'])[1]
         if op == 'cancel_job': return studio.cancel_job(a['job_id'], actor)
-        if op == 'import_reference': return studio.import_reference(a['project_id'], a['path'], a.get('name', 'Reference'), a['expected_revision'], actor)
+        if op == 'import_reference': return studio.import_reference(a['project_id'], a['path'], a.get('name', 'Reference'), a['expected_revision'], actor, kind=a.get('kind', 'image'))
         if op == 'import_final': return studio.import_final(a['project_id'], a['path'], a['expected_revision'], actor)
         if op == 'editor_handoff': return studio.editor_handoff(a['project_id'])
         if op == 'set_policy': return studio.set_policy(a['project_id'], a['policy'], a['expected_revision'])

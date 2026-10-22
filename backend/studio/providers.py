@@ -68,6 +68,9 @@ class Providers:
             j = next(j for j in p['jobs'] if j['id'] == job_id)
             if j['status'] != 'awaiting_external_output':
                 raise StudioError('job_closed', 'Job is already running or closed.', 409)
+            block = self.studio._dispatch_block(p, j['kind'], existing_job=job_id)
+            if block:
+                raise StudioError('dispatch_blocked', block, 409)
             action = self.studio._next(p)
             if action.get('action') != 'generate' or any(action.get(k) != j.get(k) for k in ['step', 'shot_id', 'kind']):
                 raise StudioError('step_blocked', 'This generation is blocked by the current workflow or approval policy. Read next_action first.', 409)
