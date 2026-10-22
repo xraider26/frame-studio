@@ -58,7 +58,7 @@ def recipe_snapshot(p, sections, settings_shot_id=''):
                 defaults[key] = copy.deepcopy(look[key])
             defaults['quality']['criteria'] = copy.deepcopy(look['quality']['criteria'])
         defaults['action']['continuity_from'] = ''
-        snapshot['settings'] = {'settings': copy.deepcopy(p['settings']), 'defaults': defaults, 'format_rules': copy.deepcopy(p['production']['format_rules'])}
+        snapshot['settings'] = {'settings': copy.deepcopy(p['settings']), 'defaults': defaults, 'format_rules': copy.deepcopy(p['production']['format_rules']), 'recipe': copy.deepcopy(p['production'].get('recipe', {}))}
     if 'workflow' in sections:
         snapshot['workflow'] = {'approval_policy': copy.deepcopy(p['approval_policy']), 'require_recorded_checks': p['production']['require_recorded_checks']}
     if 'story' in sections:
@@ -133,7 +133,10 @@ class SavedTemplates(RecipeEvidence):
             if 'story' not in sections:
                 data['defaults'] = portable_direction(data['defaults'], False)
             p['settings'].update(data['settings'])
-            p['production'].update(defaults=data['defaults'], format_rules=data['format_rules'])
+            p['production']['defaults'] = data['defaults']
+            # A transferred look must not replace the target content format's standards.
+            if t['base_template_id'] == p['template_id']:
+                p['production'].update(format_rules=data['format_rules'], recipe=data.get('recipe', {}))
         if 'workflow' in sections:
             data = snapshot['workflow']
             p['approval_policy'] = copy.deepcopy(data['approval_policy'])
@@ -183,6 +186,8 @@ class SavedTemplates(RecipeEvidence):
                 self._invalidate(p, 'brief')
                 p['documents'] = {}
             self._restore_template(p, t, chosen)
+            if actor != 'user' and p['production'].get('recipe', {}) != before['production'].get('recipe', {}):
+                raise StudioError('human_only', 'This saved setup changes recipe standards. Apply it as the user or reuse sections that preserve the current recipe.', 403)
             if 'story' not in chosen:
                 affected = self._changed_inputs(before, p)
                 if affected:

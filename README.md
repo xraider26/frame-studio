@@ -8,6 +8,8 @@ Generation requires an actual local/agent tool or a configured JSON Job API adap
 
 The creative production workspace adds per-shot camera/lighting/art direction, visual (?) option guides, story timing, production bibles, reference/state continuity, recorded quality checks, take comparison, targeted revisions and resource limits. The same records feed MCP and generator exports. The editor ZIP carries chosen clips and JSON/CSV timing. See [creative feature/source coverage](docs/CREATIVE-COVERAGE.md) for what is implemented and what remains externally validated.
 
+Template library now includes nine [production recipes](docs/COURSE-RECIPES.md), three generated illustration images per format, verified course-page citations, shot-role quality checks and human finished-video assessments. Recipes guide connected agents and exports; consistent artistic quality still requires real production trials.
+
 ### Set up a fresh checkout (Windows)
 
 Requires Node.js/npm, Python 3.12 managed by `uv`, and FFmpeg/FFprobe on PATH for video imports.

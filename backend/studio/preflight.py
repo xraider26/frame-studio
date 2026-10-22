@@ -26,6 +26,11 @@ def preflight(project, shot_id=None, kind=None):
     def issue(rule, severity, shot, path, message):
         issues.append({'rule': rule, 'severity': severity, 'shot_id': shot.get('id') if shot else None, 'path': path, 'message': message})
     production = project['production']
+    selection = production.get('recipe', {})
+    if selection.get('id'):
+        from .recipes import recipe_context
+        if not recipe_context(project)['active']:
+            issue('recipe_version', 'error', None, 'production.recipe', 'Recipe ID/version is unavailable. Explicitly activate the current recipe in the studio before generation.')
     caps = production['capabilities']
     assets = {a['id']: a for a in project['assets']}
     entities = {e['id']: e for e in production['bible']}
@@ -35,6 +40,8 @@ def preflight(project, shot_id=None, kind=None):
             continue
         d = effective_direction(project, shot)
         action, sound = d['action'], d['sound']
+        if selection.get('id') and (not d.get('story_purpose') or not d.get('decision_reason')):
+            issue('recipe_decision', 'warning', shot, 'direction.decision_reason', 'Explain the shot purpose and how camera/light choices serve it; recipe defaults are suggestions.')
         duration = shot['duration_seconds']
         retained = shot.get('edit_duration_seconds', duration)
         if retained + shot.get('edit_in_seconds', 0) > duration:

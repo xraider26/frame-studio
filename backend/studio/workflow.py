@@ -19,6 +19,8 @@ from .saved_templates import SavedTemplates
 from .batching import Batching
 from .dispatch import Dispatch
 from .identity import Identity
+from .recipes import seed_recipe, recipe_context, retime_seeded_shots
+from .recipe_trials import RecipeTrials
 
 
 def uid():
@@ -39,7 +41,7 @@ def clean_text(value, limit=12000):
     return value.strip()
 
 
-class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Store):
+class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, ProductionTools, Store):
     def __init__(self, db_path, media_root, inbox):
         super().__init__(db_path)
         self.media_root, self.inbox = Path(media_root).resolve(), Path(inbox).resolve()
@@ -69,9 +71,16 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Stor
              'assets': [], 'jobs': [], 'history': [], 'production': default_production(template_id)}
         for shot in p['shots']:
             shot.update(direction=Direction().model_dump(), edit_duration_seconds=shot['duration_seconds'], edit_in_seconds=0)
+        seed_recipe(p, preserve=False)
         if saved:
             sections = [s for s in saved['sections'] if allow_template_policy or s != 'workflow']
+            if 'settings' in sections and 'story' not in sections:
+                for shot in p['shots']:
+                    for group in ['camera', 'lighting', 'art']:
+                        shot['direction'][group] = Direction().model_dump()[group]
             self._restore_template(p, saved, sections)
+            if 'settings' in sections and 'story' not in sections:
+                retime_seeded_shots(p)
         event(p, 'created', actor, 'Project created from ' + template['name'])
         return p
 
@@ -135,6 +144,7 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Stor
 
     def get_project(self, project_id):
         p = self.get(project_id)
+        p['recipe_context'] = recipe_context(p)
         p['next_action'] = self._next(p)
         p['preflight'] = preflight(p)
         for asset in p['assets']:
@@ -142,6 +152,20 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Stor
             if shot and not asset.get('role'):
                 asset['required_checks'] = criteria_for(p, shot, asset['kind'])
         return p
+
+    def activate_recipe(self, project_id, expected_revision, actor):
+        if actor != 'user':
+            raise StudioError('human_only', 'Activating or migrating recipe standards belongs to the user.', 403)
+        if type(expected_revision) is not int:
+            raise StudioError('invalid_revision', 'Refresh the project revision before activating a recipe.')
+        def update(p):
+            if any(j['status'] == 'running' for j in p['jobs']):
+                raise StudioError('job_running', 'Wait for running generation before changing recipe standards.', 409)
+            seed_recipe(p, preserve=True)
+            self._reopen(p, 'visual_direction')
+            self._progress(p)
+            event(p, 'recipe_activated', actor, 'Applied versioned course-informed standards; custom direction and approval/QC policy preserved')
+        return self.mutate(project_id, expected_revision, update)
 
     def validate_project(self, project_id):
         return preflight(self.get(project_id))
@@ -298,6 +322,8 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Stor
             raise StudioError('invalid_creative_record', 'Production must be an object.')
         def update(p):
             data = validated(Production, merge(p['production'], production))
+            if actor != 'user' and data['recipe'] != p['production']['recipe']:
+                raise StudioError('human_only', 'Changing recipe standards belongs to the user.', 403)
             self._guard_identity(p, data)
             ids = [e['id'] for e in data['bible']]
             if len(ids) != len(set(ids)) or any(not key for key in ids):
@@ -420,7 +446,7 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, ProductionTools, Stor
                        'creative_settings': copy.deepcopy(p['settings']), 'narration': shot['narration'],
                        'effective_direction': prepared['effective_direction'], 'production': copy.deepcopy(p['production']),
                        'identity_contract': copy.deepcopy(p.get('shared_identity')), 'idea_request': copy.deepcopy(p.get('idea_request')),
-                       'acceptance_criteria': prepared['effective_direction']['quality']['criteria'], 'preflight': preflight(p, shot['id'], action['kind']),
+                       'acceptance_criteria': prepared['separate_notes']['acceptance_criteria'], 'recipe_contract': prepared['recipe_contract'], 'preflight': preflight(p, shot['id'], action['kind']),
                        'required_media_checks': criteria_for(p, shot, action['kind']), 'input_signature': self._input_signature(p, shot, action['kind']),
                        'revision_context': {'reason': shot['direction']['quality']['revision_reason'],
                                             'previous_takes': [{k: a.get(k) for k in ['id', 'path', 'kind', 'stale', 'review']} for a in p['assets'] if a.get('shot_id') == shot['id'] and a['kind'] == action['kind']][-3:]},

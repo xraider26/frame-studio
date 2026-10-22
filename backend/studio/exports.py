@@ -8,6 +8,7 @@ from pathlib import Path
 from .generators import prompt_for
 from .preflight import preflight, references_for
 from .knowledge import knowledge_catalog
+from .recipes import recipe_context
 
 
 def export_project(studio, project):
@@ -21,7 +22,7 @@ def export_project(studio, project):
                 included[asset['id']] = (file, 'references/' + asset['id'] + file.suffix)
     active = studio._next(p)
     manifest = {'schema_version': 2, 'package_type': 'studio_generation_handoff', 'project_id': p['id'], 'project_name': p['name'],
-                'source_revision': p['revision'], 'execution_mode': 'external_agent',
+                'source_revision': p['revision'], 'execution_mode': 'external_agent', 'recipe_contract': recipe_context(p),
                 'video_generator': p['settings']['video_generator'], 'image_generator': p['settings']['image_generator'],
                 'creative_settings': p['settings'], 'documents': p['documents'], 'approval_policy': p['approval_policy'],
                 'production': p['production'], 'preflight': preflight(p), 'source_coverage': knowledge_catalog()['coverage'],
@@ -53,6 +54,14 @@ def export_project(studio, project):
         archive.writestr('manifest.json', json.dumps(manifest, indent=2, ensure_ascii=False))
         archive.writestr('prompts.md', text)
         archive.writestr('techniques.json', json.dumps(knowledge_catalog(), indent=2, ensure_ascii=False))
+        contract = manifest['recipe_contract']
+        archive.writestr('production-recipe.json', json.dumps(contract, indent=2, ensure_ascii=False))
+        if contract['active']:
+            recipe_text = [f'# {contract["name"]} · recipe v{contract["version"]}', '', contract['intent'], '', '## Creative decisions', *contract['decision_requirements']]
+            for stage, instructions in contract['stage_instructions'].items():
+                recipe_text += ['', '## ' + stage.replace('_', ' '), *['- ' + v for v in instructions]]
+            recipe_text += ['', '## Source rules', *[f'- {v["section"]}: {v["teaching"]} Correction: {v["correction"]}' for v in contract['source_rules']]]
+            archive.writestr('production-recipe.md', '\n'.join(recipe_text))
         archive.writestr('README.txt', 'Give manifest.json and prompts.md to your generator agent, plus the references folder.\nThis is a portable planning package, not native Flow/Runway project format.\nUse the selected generator profile and check its actual model/settings.\nFollow the current approval policy in the studio before generating.\nReturn outputs through MCP with the current job ID; do not claim completion without real files.\n')
         for file, rel in included.values():
             archive.write(file, rel)

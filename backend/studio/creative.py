@@ -99,6 +99,8 @@ class Quality(Record):
 
 
 class Direction(Record):
+    recipe_role: Short = ''
+    decision_reason: Text = ''
     scene_id: Short = ''
     story_purpose: Text = ''
     script_beat: Text = ''
@@ -191,7 +193,13 @@ class Experiment(Record):
     completion_percent: float | None = Field(default=None, ge=0, le=100)
 
 
+class RecipeSelection(Record):
+    id: Short = ''
+    version: int = Field(default=0, ge=0, le=100000)
+
+
 class Production(Record):
+    recipe: RecipeSelection = Field(default_factory=RecipeSelection)
     brief: Brief = Field(default_factory=Brief)
     story: Story = Field(default_factory=Story)
     bible: list[Entity] = Field(default_factory=list, max_length=200)

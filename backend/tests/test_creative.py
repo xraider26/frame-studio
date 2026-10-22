@@ -15,6 +15,12 @@ class CreativeTests(unittest.TestCase):
         root = Path(self.temp.name)
         self.studio = Studio(root / 'db.sqlite', root / 'media', root / 'inbox')
         self.p = self.studio.create_project('Directed film', 'ai-film')
+        # Keep the pre-recipe fixture contract; new defaults have dedicated recipe tests.
+        def legacy(p):
+            p['production'].update(recipe={}, require_recorded_checks=False)
+            for s in p['shots']:
+                s.update(duration_seconds=4, edit_duration_seconds=4)
+        self.p = self.studio.mutate(self.p['id'], self.p['revision'], legacy)
 
     def test_nested_direction_survives_an_old_client_edit_and_restart(self):
         p = self.p

@@ -26,6 +26,8 @@ class StudioTests(unittest.TestCase):
         self.inbox.mkdir()
         self.studio = Studio(root / 'workflow.db', root / 'media', self.inbox)
         self.project = self.studio.create_project('A small film', 'ai-film')
+        # Exercise the original optional-QC workflow; course contracts have separate tests.
+        self.project = self.studio.update_production(self.project['id'], {'recipe': {}, 'require_recorded_checks': False}, self.project['revision'], 'user')
 
     def complete(self, step, output):
         p = self.studio.get_project(self.project['id'])

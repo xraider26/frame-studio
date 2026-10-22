@@ -37,6 +37,8 @@ import {
   type TemplateChoice,
   type SavedTemplate,
 } from "./template-workspace";
+import { RecipeWorkspace } from "./recipe-workspace";
+import "./recipes.css";
 import type { Project, Job, Action, Catalog } from "./creative-types";
 import "./creative.css";
 import "./control-mode.css";
@@ -377,8 +379,9 @@ export default function StudioPage() {
               <div className="fs-eyebrow">TEMPLATE LIBRARY</div>
               <h1>Your reusable setups.</h1>
               <p className="fs-lead">
-                Save what works, or start with a built-in content format.
+                Choose a production recipe, inspect its examples, or reuse your own setup.
               </p>
+              <RecipeWorkspace project={project} busy={busy} save={(fn)=>act(fn,"Recipe updated")} onNew={(id)=>{setTemplate(id);setCreating(true);}} />
               <TemplateWorkspace
                 project={project}
                 templates={(caps?.templates || []).filter(
@@ -391,35 +394,6 @@ export default function StudioPage() {
                   setCreating(true);
                 }}
               />
-              <div className="fs-eyebrow fs-section-label">
-                BUILT-IN FORMATS
-              </div>
-              <div className="fs-template-list">
-                {caps?.templates
-                  .filter((t) => !t.saved)
-                  .map((t, i) => (
-                    <button
-                      className="fs-template"
-                      key={t.id}
-                      onClick={() => {
-                        setTemplate(t.id);
-                        setCreating(true);
-                      }}
-                    >
-                      <span className="fs-template-number">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <div>
-                        <h3>{t.name}</h3>
-                        <p>{t.description}</p>
-                        <small>
-                          {t.aspect} · {t.structure.join(" → ")}
-                        </small>
-                      </div>
-                      <ArrowRight size={20} />
-                    </button>
-                  ))}
-              </div>
               {!caps && (
                 <button
                   className="fs-button"

@@ -26,7 +26,9 @@ This upgrade extends the connected `/studio` application, its existing API and M
 
 The accessible source is the supplied `AI_Video_Course_Review_and_Workflow.md` review/playbook. The library distinguishes adapted playbook principles from studio-authored practical examples. It supplies source/section/provenance/use/risk/apply data to both the UI and MCP. Entry counts are returned by `knowledge_catalog`, rather than treated as the original course's catalogue counts.
 
-The named original guide/transcript PDF collection was not located in the current workspace or Downloads during this implementation. Consequently the original 37-movement / 30-move / 24-style / 16-framework / 10-UGC-format catalogues are **not certified as fully imported**. Page citations are not invented. The coverage notice is visible in the library and exports. Further source ingestion can extend this collection without replacing the creative model.
+Original PDFs were subsequently recovered from the authenticated course classroom. Selected pages now ground the versioned production recipes, with source hashes, page citations, paraphrased directing principles, named frameworks and explicit studio corrections. See [source verification scope](COURSE-SOURCES.md) and the machine-readable [ledger](sources/verified-course-lessons.json). This is selected-page verification, not certification that all 45 originals or every technique catalogue has been imported. Lesson videos and current provider capabilities remain outside that verification.
+
+The Template library adds nine production recipes and 27 individually generated illustrative stills. Each recipe carries reference preparation, timed shot roles, purpose-based camera/light suggestions, workflow guidance, shot-specific acceptance criteria and repair directions into MCP and exports. Basic and Professional views use the same recipe contract. New projects use the recipe; existing projects require explicit activation that preserves their settings and approval policy. See [recipe workflow and validation](COURSE-RECIPES.md).
 
 ## Verification and remaining validation
 
@@ -47,6 +49,6 @@ npm run build
 
 SDK transport tests use actual stdio MCP and the actual FastAPI command handlers through an in-process TestClient. Media fixtures are explicitly synthetic, including the FFmpeg clip/frame extraction test. They prove software/data flow, not artistic quality or live vendor integration.
 
-An attempted combined test-server/browser launch was rejected by automatic approval review with `blocked by policy`. No full-browser screenshot or live visual QA is claimed. Safe React/JSDOM tests cover the option-help behaviour and shot-inspector save payload instead.
+React/JSDOM tests cover option help, shot-inspector save payloads, template browsing, illustration inspection and recipe activation. Local browser checks complement these tests; they do not validate generated video quality.
 
 No paid artistic pilot has been generated or reviewed. Production-quality claims require a real representative pilot, actual authorized generation tools/settings/budget and inspection of the full output against its criteria.

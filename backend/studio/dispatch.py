@@ -8,6 +8,7 @@ from decimal import Decimal
 from .batching import utc, checked_text
 from .store import StudioError, load
 from .resources import total, exposure
+from .recipes import recipe_context
 
 ACTIVE = ['awaiting_external_output', 'queued', 'running']
 
@@ -123,7 +124,7 @@ class Dispatch:
                 task = {'id': uuid.uuid4().hex, 'project_id': p['id'], 'batch_id': p.get('batch_id'), 'actor': actor,
                         'project_revision': p['revision'], 'created_at': utc(), 'expires_at': expiry(), 'status': 'active',
                         'progress_hash': progress_hash(p),
-                        'next_action': row['next_action'], 'idea_request': p.get('idea_request'), 'identity_contract': p.get('shared_identity'),
+                        'next_action': row['next_action'], 'idea_request': p.get('idea_request'), 'identity_contract': p.get('shared_identity'), 'recipe_contract': recipe_context(p),
                         'instructions': 'Read get_project and follow next_action. Use actual documents and authorized generation tools; claim_generation returns exact prompts and file return contract. Record real media inspection. Do not approve user gates. Finish this lease after progress or block it with the actual reason; renew before expiry.'}
                 conn.execute('INSERT INTO studio_tasks VALUES (?,?,?,?,?,?)', (task['id'], p['id'], key, 'active', task['expires_at'], json.dumps(task)))
                 return task

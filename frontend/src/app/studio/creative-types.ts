@@ -20,6 +20,8 @@ export type TakeReview = {
   inspected: string[];
 };
 export type Direction = {
+  recipe_role?: string;
+  decision_reason?: string;
   scene_id: string;
   story_purpose: string;
   script_beat: string;
@@ -116,6 +118,7 @@ export type Resources = {
   cost_evidence: string;
 };
 export type Production = {
+  recipe?: {id:string; version:number};
   brief: Record<string, string>;
   story: {
     hooks: string[];
@@ -194,7 +197,7 @@ export type Project = {
   settings: Record<string, string | number>;
   approval_policy: Record<string, boolean>;
   steps: Record<string, { ready: boolean; status: string }>;
-  documents: Record<string, { text: string }>;
+  documents: Record<string, { text: string; export_asset_id?: string }>;
   shots: Shot[];
   assets: Asset[];
   jobs: Job[];

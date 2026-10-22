@@ -15,6 +15,7 @@ from .generators import prompt_for
 from .preflight import references_for
 from .resources import metrics
 from .store import StudioError
+from .recipes import recipe_criteria
 
 
 def audit(p, actor, message):
@@ -22,7 +23,7 @@ def audit(p, actor, message):
 
 
 def criteria_for(p, shot, kind):
-    return list(dict.fromkeys((['Identity and composition serve the shot'] if kind == 'image' else ['Identity, anatomy and physics remain coherent', 'Camera, lighting and background serve the shot', 'Audio and lip sync match the intended performance']) + [c for c in effective_direction(p, shot)['quality']['criteria'] if c.strip()]))
+    return list(dict.fromkeys((['Identity and composition serve the shot'] if kind == 'image' else ['Identity, anatomy and physics remain coherent', 'Camera, lighting and background serve the shot', 'Audio and lip sync match the intended performance']) + recipe_criteria(p, shot, kind) + [c for c in effective_direction(p, shot)['quality']['criteria'] if c.strip()]))
 
 
 def quality_passed(p, shot, kind):

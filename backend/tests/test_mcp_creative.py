@@ -54,7 +54,7 @@ class McpCreativeTests(unittest.TestCase):
                 file=root/'inbox'/'synthetic.png';Image.new('RGB',(32,18),'orange').save(file)
                 result=await call('return_generation',{'job_id':task['job']['id'],'output_path':str(file)})
                 p=await call('get_project',{'project_id':p['id']})
-                p=await call('record_take_review',{'project_id':p['id'],'asset_id':result['asset']['id'],'review':{'criteria':{'Identity and composition serve the shot':True},'inspected':['image'],'notes':'Synthetic fixture inspected','defect':''},'expected_revision':p['revision']})
+                p=await call('record_take_review',{'project_id':p['id'],'asset_id':result['asset']['id'],'review':{'criteria':{c:True for c in p['assets'][0]['required_checks']},'inspected':['image'],'notes':'Synthetic fixture inspected','defect':''},'expected_revision':p['revision']})
                 self.assertEqual(p['assets'][0]['review']['actor'],'agent:sdk-test')
                 bundle=await call('export_generation_package',{'project_id':p['id']})
                 with zipfile.ZipFile(bundle['path']) as archive:

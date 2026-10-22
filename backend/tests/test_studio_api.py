@@ -90,6 +90,7 @@ class ApiTests(unittest.TestCase):
             self.client = client
             p = self.command('create_project', {'name': 'API connector fixture', 'template_id': 'ai-film'}).json()
             p = self.command('set_policy', {'project_id': p['id'], 'policy': {'brief': False, 'script': False, 'visual_direction': False}, 'expected_revision': p['revision']}, self.browser).json()
+            p = self.command('update_production', {'project_id': p['id'], 'production': {'require_recorded_checks': False}, 'expected_revision': p['revision']}, self.browser).json()
             for step in ['brief', 'script']:
                 p = self.command('complete_step', {'project_id': p['id'], 'step': step, 'output': {'text': 'Actual test document'}, 'expected_revision': p['revision']}).json()
             p = self.command('update_shots', {'project_id': p['id'], 'shots': [{'title': 'Test', 'image_prompt': 'Fixture image', 'motion_prompt': 'Slow motion'}], 'expected_revision': p['revision']}).json()

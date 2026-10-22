@@ -92,6 +92,18 @@ async def create_project(name: str, template_id: str = 'custom', request_id: str
 
 
 @mcp.tool()
+async def recipe_trials(project_id: str) -> dict:
+    """Read scoped human assessments of actual final edits, model/settings, file hashes and recorded checks. Agents cannot endorse a production or turn illustrative stills into video evidence."""
+    return await command('recipe_trials', locals())
+
+
+@mcp.tool()
+async def recipe_catalog() -> dict:
+    """Read versioned course-informed production recipes, source rules, stage instructions, motivated shot roles, inspection criteria, repair guidance and illustrative stills. Examples are not video validation. get_project includes the active recipe contract; preserve overrides and human policies."""
+    return await command('recipe_catalog')
+
+
+@mcp.tool()
 async def list_templates() -> list[dict]:
     """List built-in formats and user-saved templates, with IDs and included sections."""
     return await command('list_templates')

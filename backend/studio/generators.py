@@ -4,6 +4,7 @@ import json
 
 from .store import StudioError
 from .creative import effective_direction
+from .recipes import recipe_context, recipe_criteria
 
 VIDEO_PROFILES = [
     {'id': 'flow_veo', 'name': 'Google Flow / Veo', 'hint': 'Scene, action, camera and audio direction. Hand over to your Flow agent; no automatic account access.', 'source': 'https://deepmind.google/models/veo/prompt-guide/'},
@@ -67,7 +68,7 @@ def prompt_for(project, shot, kind):
         template = visual + '. Action: {motion}. Camera: {camera}. Sound: {sound}. Dialogue: {dialogue}. Narration: {narration}'
     # Empty optional fields should not leave unreadable punctuation-only sentences.
     rendered = '. '.join(part.strip(' ;') for part in template.format_map(values).split('. ') if part.strip(' ;.'))
-    return {'generator_profile': profile, 'prompt': rendered.strip(), 'effective_direction': d,
+    return {'generator_profile': profile, 'prompt': rendered.strip(), 'effective_direction': d, 'recipe_contract': recipe_context(project, shot),
             'negative_prompt': settings.get('negative_prompt', '') if profile not in ['runway_i2v', 'runway_t2v', 'runway_image'] else '',
-            'separate_notes': {'sound': sound, 'narration': shot['narration'], 'avoid': settings.get('negative_prompt', ''), 'reference_map': d['references'], 'acceptance_criteria': d['quality']['criteria'], 'generation_mode': d['generation_mode']},
+            'separate_notes': {'sound': sound, 'narration': shot['narration'], 'avoid': settings.get('negative_prompt', ''), 'reference_map': d['references'], 'acceptance_criteria': list(dict.fromkeys(recipe_criteria(project, shot, kind) + d['quality']['criteria'])), 'generation_mode': d['generation_mode']},
             'duration_seconds': shot['duration_seconds'], 'aspect_ratio': settings['aspect_ratio']}

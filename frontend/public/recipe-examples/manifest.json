@@ -1,0 +1,277 @@
+{
+  "tool": "built-in image_gen",
+  "generated_at": "2026-10-22",
+  "scope": "Illustrative AI stills. Not motion/audio/continuity validation or finished-production evidence.",
+  "examples": [
+    {
+      "id": "ai-film-1",
+      "template_id": "ai-film",
+      "title": "Establish the world",
+      "why": "Depth layers and motivated light establish geography and mood.",
+      "prompt": "Generate a single professional cinematic film still, landscape 16:9, no panels, no text, no logos. A lone female observatory caretaker in a weathered rust-orange canvas coat stands small in a decommissioned mountain observatory, opening a narrow dome hatch toward an immense blue twilight sky. Wide 24mm environmental framing; foreground dark telescope structure, midground readable character, background circular dome opening. Motivated cool skylight with one warm tungsten work lamp, restrained natural textures, readable shadow detail, controlled film grain. Emotional intent: curiosity and solitude. Plausible architecture and anatomy. This is a visual direction example for an AI film production template, not a UI mockup.",
+      "image": "/recipe-examples/ai-film-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "ai-film-2",
+      "template_id": "ai-film",
+      "title": "Observatory discovery",
+      "why": "Close framing isolates a discovery; the practical lamp motivates warm contrast.",
+      "prompt": "An adult female observatory caretaker in a rust-orange canvas coat discovers a small brass star chart in a drawer. Intimate 85mm close shot of her thoughtful face and the chart near the bottom of frame; soft cool light from the dome opening and warm work-lamp edge light, restrained cinema realism, deliberate negative space, readable eyes. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/ai-film-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "ai-film-3",
+      "template_id": "ai-film",
+      "title": "Deliberate closing image",
+      "why": "A resolved composition pays off the opening instead of aimless camera drift.",
+      "prompt": "A lone female observatory caretaker in a rust-orange canvas coat, seen in profile beside a telescope, has aligned it toward a luminous moon through an open observatory hatch. Medium environmental 50mm composition, quiet blue twilight with warm tungsten practicals, coherent observatory geography, natural skin, subtle grain, measured hopeful mood. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/ai-film-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "ugc-1",
+      "template_id": "ugc",
+      "title": "Creator opening",
+      "why": "Natural phone perspective and soft window light keep the creator approachable.",
+      "prompt": "Portrait 9:16 believable phone photograph for a native creator demonstration. Adult woman with curly brown hair and cream knit top at her own kitchen table holding a plain unbranded sage-green reusable insulated cup at chest height, looking toward the camera naturally. Soft window light, moderately deep focus, authentic skin, restrained contrast and saturation, lived-in clean kitchen, no beauty-filter look. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/ugc-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "ugc-2",
+      "template_id": "ugc",
+      "title": "Readable demonstration",
+      "why": "Frame the hands and product so the demonstration is understandable.",
+      "prompt": "Portrait 9:16 natural smartphone still of adult woman with curly brown hair and cream knit top placing a plain sage-green reusable insulated cup into a canvas tote at a kitchen table. Medium framing, hands and cup fully visible, simple single action, broad soft window light, realistic finger contact, restrained native colors. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/ugc-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "ugc-3",
+      "template_id": "ugc",
+      "title": "Simple takeaway",
+      "why": "The ending visibly completes the demonstration without invented testimonial claims.",
+      "prompt": "Portrait 9:16 natural creator photograph. Adult woman with curly brown hair and cream knit top standing by her apartment doorway, holding a canvas tote with the top of her sage-green reusable cup visibly tucked into its side pocket. Calm candid expression, moderate depth, soft daylight, authentic material detail. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/ugc-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "short-drama-1",
+      "template_id": "short-drama",
+      "title": "Conflict in the frame",
+      "why": "Establish geography and emotional distance before moving closer.",
+      "prompt": "Portrait 9:16 cinematic drama still. An adult daughter in a burgundy cardigan stands on one side of a modest kitchen table, her older father in a navy work shirt seated on the other; a sealed cream envelope between them. Medium-wide shot establishes their physical separation, motivated cool north-window light, warm dim kitchen practical, restrained faces and grounded realism. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/short-drama-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "short-drama-2",
+      "template_id": "short-drama",
+      "title": "Reaction beat",
+      "why": "A restrained close-up makes the reaction readable; simple staging reduces failure risk.",
+      "prompt": "Portrait 9:16 dramatic close-up of an older father in a navy work shirt at a modest kitchen table, holding a sealed cream envelope just below his chin. Readable eyes and restrained conflicted expression, 85mm portrait feel, side window softly lighting his face, burgundy sleeve of daughter subtly out of focus foreground. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/short-drama-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "short-drama-3",
+      "template_id": "short-drama",
+      "title": "Visible emotional turn",
+      "why": "The changed staging and visible action communicate the reversal.",
+      "prompt": "Portrait 9:16 cinematic medium shot in a modest kitchen: adult daughter in a burgundy cardigan sits beside her older father in a navy work shirt; he slides a sealed cream envelope across the table toward her. Clear hands, plausible contact, one primary action, motivated soft side-window light, matching subdued palette, quiet reconciliation. Generate ONE polished individual still image. No collage, no panels, no text, subtitles, watermark or logos. Accurate anatomy and plausible geometry. This is an illustrative template look example, not evidence of a generated video.",
+      "image": "/recipe-examples/short-drama-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "advertisement-1",
+      "template_id": "advertisement",
+      "title": "Audience context",
+      "why": "The opening establishes a recognizable use context before making a product claim.",
+      "prompt": "Portrait 9:16 polished lifestyle advertising photograph: a plain matte ochre reusable insulated travel flask beside a canvas backpack on a sunlit train-window table, rolling hills beyond. One clear product, believable scale, 50mm environmental feel, motivated soft daylight, muted warm palette, restrained premium material response. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/advertisement-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "advertisement-2",
+      "template_id": "advertisement",
+      "title": "Material and benefit",
+      "why": "Controlled reflections and a readable material detail support faithful product direction.",
+      "prompt": "Portrait 9:16 macro product advertising still: close detail of a plain matte ochre reusable insulated travel flask with brushed steel rim, small water beads on the exterior, tactile finish, controlled broad softbox reflections, dark warm-neutral background, crisp clean silhouette, plausible cylindrical geometry. No labels or technical claims. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/advertisement-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "advertisement-3",
+      "template_id": "advertisement",
+      "title": "Product hero",
+      "why": "The held hero composition leaves room for an accurate end card in the editor.",
+      "prompt": "Portrait 9:16 premium product advertising photograph: one unbranded matte ochre reusable insulated travel flask upright on a warm stone plinth. Shaped soft key and narrow rim, rich neutral background, subtle tactile detail, clear silhouette, generous clean upper negative space for typography to be added later in editing, restrained optical perspective. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/advertisement-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "explainer-1",
+      "template_id": "explainer",
+      "title": "A clear question",
+      "why": "One visual question establishes the topic without dense captions.",
+      "prompt": "Landscape 16:9 polished editorial explanatory illustration with tactile paper-cut geometry: a small blue house model on a muted cream hillside, one large cloud above, three simple blue raindrops suspended between cloud and roof, a small young tree nearby. Sparse composition, clear hierarchy, soft even light, warm sand and muted blue palette, no labels or arrows. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/explainer-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "explainer-2",
+      "template_id": "explainer",
+      "title": "Show the mechanism",
+      "why": "A consistent visual metaphor makes the mechanism readable one step at a time.",
+      "prompt": "Landscape 16:9 polished explanatory paper-cut illustration: clean cross-section of a hillside with a small blue house on top, simple blue rainwater paths curving down into brown porous soil and collecting at a lower underground reservoir. Use a few continuous blue channels without arrows, restrained cream blue and ochre palette, clear layer separation, no text. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/explainer-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "explainer-3",
+      "template_id": "explainer",
+      "title": "Apply the idea",
+      "why": "The closing example applies the idea while preserving the established metaphor.",
+      "prompt": "Landscape 16:9 polished editorial explanatory paper-cut illustration: small blue house on a cream hillside, green young tree and a simple blue rainwater collection barrel beside the house, a neat garden bed watered by one clear blue channel, same tactile layered-paper treatment, muted blue sand and ochre palette, soft even light, no arrows or text. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/explainer-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "podcast-1",
+      "template_id": "podcast",
+      "title": "Host opening",
+      "why": "Stable medium coverage establishes the assigned speaker and studio light.",
+      "prompt": "Landscape 16:9 professional podcast studio still: adult woman host with short curly dark hair in a warm cream blazer, seated facing slightly screen right, black broadcast microphone correctly on boom at mouth level. Soft large key, warm visible amber practical behind her, muted charcoal acoustic treatment, 50mm medium close-up, natural skin, plausible microphone geometry. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/podcast-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "podcast-2",
+      "template_id": "podcast",
+      "title": "Guest response",
+      "why": "Opposing eyeline and consistent set treatment support conversation geography.",
+      "prompt": "Landscape 16:9 professional podcast studio still: adult male guest with salt-and-pepper hair and navy knit top seated facing slightly screen left, black broadcast microphone correctly positioned near mouth, soft key motivated by the established studio, warm amber practical and charcoal acoustic background, natural skin, 50mm medium close-up. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/podcast-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "podcast-3",
+      "template_id": "podcast",
+      "title": "Listener cutaway",
+      "why": "A silent listener reaction can carry the other speaker's uninterrupted audio.",
+      "prompt": "Landscape 16:9 polished podcast studio still: adult woman host with short curly dark hair and cream blazer listening silently with lips closed, thoughtful slight smile and relaxed hands low in frame. Facing screen right, black boom microphone stable near her face, soft key and warm amber practical, charcoal acoustic set, same measured 50mm medium-close framing. Generate one individual high-quality image, not a collage or UI. No text, captions, logos or watermark. Coherent anatomy and geometry. Illustrative template direction example, not a tested video.",
+      "image": "/recipe-examples/podcast-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "2d-animation-1",
+      "template_id": "2d-animation",
+      "title": "Introduce the metaphor",
+      "why": "Lock silhouette, wardrobe and metaphor before introducing change.",
+      "prompt": "Landscape 16:9 sophisticated hand-drawn 2D animation keyframe: a small adult messenger with a cobalt-blue bob haircut, mustard raincoat and red satchel stands beneath one tiny charcoal raincloud that follows only them, in a sparse cream-paper city with terracotta shapes. Clean consistent dark line weight, flat muted colour, expressive silhouette, gentle paper grain, simple staging. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/2d-animation-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "2d-animation-2",
+      "template_id": "2d-animation",
+      "title": "Expressive change",
+      "why": "One expressive action changes the established emotional metaphor.",
+      "prompt": "Landscape 16:9 beautiful 2D animation keyframe: small messenger with cobalt-blue bob haircut, mustard raincoat and red satchel in a sparse cream-paper city reaches one hand toward a bright small orange paper sun, with a tiny charcoal raincloud just above their head. Readable single reaching action, clean dark outlines, flat terracotta and cream palette, subtle paper texture, expressive restrained face. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/2d-animation-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "2d-animation-3",
+      "template_id": "2d-animation",
+      "title": "Resolve the feeling",
+      "why": "The final metaphor changes deliberately while character design remains fixed.",
+      "prompt": "Landscape 16:9 beautiful 2D animation keyframe: small messenger with cobalt-blue bob haircut, mustard raincoat and red satchel walks peacefully through sparse cream-paper city; the small raincloud has become a soft white cloud beside a small orange sun overhead. Clean dark line weight, controlled flat cream terracotta mustard blue palette, subtle paper grain, clear resolved silhouette. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/2d-animation-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "claymation-1",
+      "template_id": "claymation",
+      "title": "The miniature world",
+      "why": "Miniature eye-level framing establishes material, scale and set geography.",
+      "prompt": "Landscape 16:9 polished practical stop-motion clay animation still: a small handmade terracotta fox with tiny teal knitted scarf in a miniature wood-and-clay bakery, beside a tiny round wooden table with one cream ceramic bowl. Tactile clay, subtle fingerprints, consistent miniature scale, soft tabletop key and readable contact shadows, eye-level medium wide composition, charming restrained expression. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/claymation-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "claymation-2",
+      "template_id": "claymation",
+      "title": "Tactile action",
+      "why": "A clearly framed contact point supports tactile action and synchronized foley.",
+      "prompt": "Landscape 16:9 polished stop-motion clay animation still: terracotta clay fox wearing tiny teal knitted scarf carefully presses a small ball of dough on a round wooden table, cream ceramic bowl to the side, miniature bakery behind. Medium detail composition includes both paws and dough contact point, readable soft contact shadows, gentle tabletop key, handmade fingerprints and clay material. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/claymation-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "claymation-3",
+      "template_id": "claymation",
+      "title": "Character reaction",
+      "why": "The reaction preserves the action outcome and established handmade treatment.",
+      "prompt": "Landscape 16:9 polished practical clay animation still: small terracotta fox with tiny teal knitted scarf proudly looks at one small baked round loaf on a round wooden table, cream ceramic bowl still beside it, miniature bakery set, restrained delighted expression. Tactile clay with subtle fingerprints, soft tabletop key, coherent scale and contact shadows, medium eye-level composition. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/claymation-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "custom-1",
+      "template_id": "custom",
+      "title": "Architectural study",
+      "why": "Custom direction can use architectural restraint while retaining intentional framing and physical light.",
+      "prompt": "Landscape 16:9 exquisite architectural photography of a quiet modern concrete courtyard in a desert landscape. A single shallow circular reflecting pool, sculptural pale walls and one olive tree, long warm late-afternoon shadows, subtle stone and concrete texture, wide environmental framing, calm precise geometry, controlled highlight detail. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/custom-1.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "custom-2",
+      "template_id": "custom",
+      "title": "Surreal botanical world",
+      "why": "An imaginative treatment still benefits from coherent materials, light and a clear point of attention.",
+      "prompt": "Landscape 16:9 high-end surreal botanical concept photograph: a single enormous translucent amber flower rises from a small moss island in a calm dark lake at blue hour, fine botanical veins visible through the petals, soft cool sky, restrained warm internal glow, tactile moss and reflections, coherent perspective, clear single focal point. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/custom-2.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    },
+    {
+      "id": "custom-3",
+      "template_id": "custom",
+      "title": "Documentary portrait",
+      "why": "Documentary intent calls for natural skin, motivated light and a readable relationship to the environment.",
+      "prompt": "Landscape 16:9 intimate documentary portrait photograph: adult elderly female ceramic artist with silver hair in a charcoal linen apron in a real pottery workshop, holding a simple unfinished clay vessel low in frame. Natural unretouched skin, soft side window, 50mm environmental feel, shelves of quiet pottery behind, readable hands and grounded warm-neutral colours. Generate one individual professional-quality still. No collage, no panels, no typography, captions, logo or watermark. Coherent anatomy and geometry. Illustrative visual direction only; not a video-validation result.",
+      "image": "/recipe-examples/custom-3.png",
+      "kind": "illustrative_ai_still",
+      "video_validated": false
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 import { useId, useSyncExternalStore, type ReactNode } from "react";
 
 export type ControlMode = "basic" | "professional";
-type Workspace = "directing" | "production" | "generator" | "queue";
+type Workspace = "directing" | "production" | "generator" | "queue" | "recipe";
 const localModes = new Map<Workspace, ControlMode>();
 const memoryOnly = new Set<Workspace>();
 const eventName = "frame-control-mode-change";

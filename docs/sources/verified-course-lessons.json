@@ -1,0 +1,1416 @@
+{
+  "schema_version": 1,
+  "verified_on": "2026-10-22",
+  "page_numbering": "One-based PDF file pages, including covers; not lesson video timestamps.",
+  "rights_note": "Concise original paraphrases and source metadata only. Original PDFs and extracted full text stay in git-ignored studio_data/course_sources/. Lesson URLs are stable classroom links, not signed attachment links.",
+  "coverage": {
+    "status": "partial_original_source_verification",
+    "original_pdf_count": 10,
+    "original_pdf_pages": 296,
+    "selected_pages_verified": 66,
+    "review_claimed_pdf_count": 45,
+    "review_claim_is_independently_verified": false,
+    "limitations": [
+      "The supplied review reports a wider 45-PDF review; this ledger verifies only recovered originals and listed pages.",
+      "No original lesson videos watched or video-only material verified.",
+      "No current provider capabilities, pricing, audience results or finished generated recipe videos verified."
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "short-film-blueprint",
+      "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5",
+      "sha256": "a8038c9f3aa3ec58342e9bbd43ef4ce9458cb98317d553379202e09c775f2915",
+      "page_count": 173,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          1,
+          2,
+          3,
+          8,
+          13,
+          14,
+          18,
+          19,
+          37,
+          45,
+          157,
+          158,
+          165,
+          166,
+          173
+        ],
+        "extraction": "Text extracted from all pages using pypdf; only the listed complete pages inspected for this ledger.",
+        "limitations": [
+          "No claim of visual inspection of every illustration.",
+          "Source prompts describe intentions; they do not demonstrate generator compliance or current Flow capabilities."
+        ]
+      }
+    },
+    {
+      "source_id": "podcast-guide",
+      "title": "AI Podcast: Miya & Sonya Production Guide",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca",
+      "sha256": "89d699ed9f8589ee41b933a8f714194267726930acbced65321c38e5478e0c22",
+      "page_count": 14,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          2,
+          6,
+          8,
+          14
+        ],
+        "extraction": "Text extracted from all pages using pypdf; only the listed complete pages inspected for this ledger.",
+        "limitations": [
+          "No claim of visual inspection of every illustration.",
+          "Source prompts describe intentions; they do not demonstrate generator compliance or current Flow capabilities."
+        ]
+      }
+    },
+    {
+      "source_id": "podcast-master",
+      "title": "Podcast Master Prompt",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca",
+      "sha256": "8601c4eea809e202a7d2d16ed7f35271c8d2b76a53ca89cdcac0889b9243ffb5",
+      "page_count": 4,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "extraction": "Text extracted from all pages using pypdf; only the listed complete pages inspected for this ledger.",
+        "limitations": [
+          "No claim of visual inspection of every illustration.",
+          "Source prompts describe intentions; they do not demonstrate generator compliance or current Flow capabilities."
+        ]
+      }
+    },
+    {
+      "source_id": "2d-animation-guide",
+      "title": "2D Animation Advert Production Guide",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c",
+      "sha256": "c9ba1ffda1ce729aa991484a69e5e3918a6fff0b572f728fb46c1d70b8f5557f",
+      "page_count": 14,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          1,
+          8,
+          9,
+          12,
+          14
+        ],
+        "extraction": "Text extracted from all pages using pypdf; only the listed complete pages inspected for this ledger.",
+        "limitations": [
+          "No claim of visual inspection of every illustration.",
+          "Source prompts describe intentions; they do not demonstrate generator compliance or current Flow capabilities."
+        ]
+      }
+    },
+    {
+      "source_id": "2d-animation-master",
+      "title": "2D Animation Master Prompt",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c",
+      "sha256": "94d9412b527832036ac13e4b53d353f278aa24ce7b08c2c053c0444c14d2ff47",
+      "page_count": 4,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "extraction": "Text extracted from all pages using pypdf; only the listed complete pages inspected for this ledger.",
+        "limitations": [
+          "No claim of visual inspection of every illustration.",
+          "Source prompts describe intentions; they do not demonstrate generator compliance or current Flow capabilities."
+        ]
+      }
+    },
+    {
+      "source_id": "claymation-guide",
+      "title": "Sir Scent: AI Claymation Production Guide",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=21c4f55fc4ae457dbb524c7412f51c87",
+      "sha256": "3f32c36e4a079b801fb2b0a10c347036f7a1e0399b03400fe50ec3232cc5bd15",
+      "page_count": 29,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          1,
+          15,
+          22,
+          29
+        ],
+        "extraction": "Text extracted from all pages using pypdf; only the listed complete pages inspected for this ledger.",
+        "limitations": [
+          "No claim of visual inspection of every illustration.",
+          "Source prompts describe intentions; they do not demonstrate generator compliance or current Flow capabilities."
+        ]
+      }
+    },
+    {
+      "source_id": "claymation-master",
+      "title": "Claymation Master Prompt",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=21c4f55fc4ae457dbb524c7412f51c87",
+      "sha256": "8cd175c5e2b7cf90b93f143c2af54abcf326c55fbd44126168a3fc55dbb81bf5",
+      "page_count": 4,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "extraction": "Text extracted from all pages using pypdf; only the listed complete pages inspected for this ledger.",
+        "limitations": [
+          "No claim of visual inspection of every illustration.",
+          "Source prompts describe intentions; they do not demonstrate generator compliance or current Flow capabilities."
+        ]
+      }
+    },
+    {
+      "source_id": "lighting-mood-guide",
+      "title": "Cinematic Lighting With Light Logic",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a",
+      "sha256": "0cdba7745cd73298d376c313292ef98c0283cc5933681d8ac1cead4bc32ca439",
+      "page_count": 12,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          2,
+          3,
+          4,
+          5,
+          9,
+          10,
+          11,
+          12
+        ],
+        "extraction": "All page text extracted using pypdf; only listed complete pages inspected.",
+        "limitations": [
+          "Examples illustrate visual intent, not controlled optical measurements or guaranteed model behavior.",
+          "No claim of inspection of unlisted pages or current Flow capability verification."
+        ]
+      }
+    },
+    {
+      "source_id": "camera-angles-techniques",
+      "title": "Camera Techniques Visual Reference Guide",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f",
+      "sha256": "53fe740cf2b6361adc112d57c763f8b1ebe9bd8d5678c4f43a81aaf1e988c8d7",
+      "page_count": 33,
+      "review_scope": {
+        "method": "selected_page_text_and_visual_verification",
+        "pages": [
+          5,
+          8,
+          9,
+          12,
+          15,
+          17,
+          19,
+          21,
+          22,
+          23,
+          24,
+          25
+        ],
+        "extraction": "All page text extracted using pypdf; only listed pages inspected. Camera examples on listed pages also rendered with PDFium and visually inspected.",
+        "limitations": [
+          "Examples illustrate visual intent, not controlled optical measurements or guaranteed model behavior.",
+          "No claim of inspection of unlisted pages or current Flow capability verification."
+        ]
+      }
+    },
+    {
+      "source_id": "depth-framing-guide",
+      "title": "Depth & Cinematic Framing",
+      "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=9ef5a287b982435daa42400a0429b03d",
+      "sha256": "2d8c31f3b1858d346f9493c769ee6cd8ed76226bc990c1bfdccc9e02d990a1fa",
+      "page_count": 9,
+      "review_scope": {
+        "method": "selected_page_text_verification",
+        "pages": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "extraction": "All page text extracted using pypdf; complete listed pages inspected for the cited principles.",
+        "limitations": [
+          "No claim that adding atmosphere or off-centre placement improves every shot.",
+          "Suggestions are directing choices, not proof of generator compliance."
+        ]
+      }
+    }
+  ],
+  "principles": [
+    {
+      "id": "film-character-passports",
+      "format": "short_film",
+      "principle": "Build checked character views and record distinguishing wardrobe and physical features before shot generation.",
+      "application": "Resolve each shot reference to the approved asset; inspect generated identity rather than assuming a reference guarantees it.",
+      "rule_ids": [
+        "identity"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 1,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        },
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        },
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "film-object-state",
+      "format": "short_film",
+      "principle": "Separate persistent object identity from the properties that change during the story.",
+      "application": "Record geometry, markings and wear once; version a new state when paint, material or configuration changes.",
+      "rule_ids": [
+        "identity",
+        "state"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 13,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        },
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 14,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "film-shot-contract",
+      "format": "short_film",
+      "principle": "A shot plan identifies reference slots, cast count, staging, action timing, acting and sound.",
+      "application": "Use opening state, one main action and an ending state; simplify overloaded instructions and validate every uploaded slot.",
+      "rule_ids": [
+        "appearance",
+        "motion",
+        "identity"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 19,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "film-purposeful-stillness",
+      "format": "short_film",
+      "principle": "A fixed composition and a held conversational pause can carry a scene without visual spectacle.",
+      "application": "Use a locked two-shot for a quiet payoff, preserving natural performance and a measured pause.",
+      "rule_ids": [
+        "framing",
+        "hook",
+        "edit"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 165,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        },
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 166,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "film-location-geography",
+      "format": "short_film",
+      "principle": "Specify where the camera is and which direction it faces to establish location geography.",
+      "application": "Maintain a world-space set and light map; choose framing and lens feel for each shot.",
+      "rule_ids": [
+        "light",
+        "framing"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "podcast-dialogue-roles",
+      "format": "podcast",
+      "principle": "Assign the main insight to one speaker and let the other ask, react and follow up.",
+      "application": "Open with an interesting exchange, preserve role labels and check which mouth is speaking in every shot.",
+      "rule_ids": [
+        "brief",
+        "hook",
+        "podcast"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "podcast-reaction-audio",
+      "format": "podcast",
+      "principle": "Speaker audio can continue while the picture shows the silent listener reacting.",
+      "application": "Plan separate speaker and reaction shots; keep the listener silent and maintain continuous dialogue in the edit.",
+      "rule_ids": [
+        "podcast",
+        "edit"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 6,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        },
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "podcast-studio-geography",
+      "format": "podcast",
+      "principle": "Maintain microphone placement, eyelines, wardrobe and a consistent studio setup across angles.",
+      "application": "Approve a shared two-person reference and map individual identities to explicit upload slots.",
+      "rule_ids": [
+        "identity",
+        "light",
+        "podcast"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        },
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 6,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        },
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "podcast-finish-in-edit",
+      "format": "podcast",
+      "principle": "Assemble clips, trim excess, add captions and overlay the final text card in editing.",
+      "application": "Render exact text after generation; inspect captions and the exported picture and audio before release.",
+      "rule_ids": [
+        "edit",
+        "final"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 14,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "animation-readable-performance",
+      "format": "2d_animation",
+      "principle": "Use a named recurring character, readable expressions and simple compositions to show the problem through action.",
+      "application": "Lock design and scale, then give each shot one observable emotional change.",
+      "rule_ids": [
+        "animation",
+        "appearance",
+        "identity"
+      ],
+      "citations": [
+        {
+          "source_id": "2d-animation-master",
+          "title": "2D Animation Master Prompt",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c"
+        }
+      ]
+    },
+    {
+      "id": "animation-metaphor-state",
+      "format": "2d_animation",
+      "principle": "A recurring weather metaphor changes with the character from distress toward relief.",
+      "application": "Track metaphor colour, density and motion alongside character emotion so the transition earns its payoff.",
+      "rule_ids": [
+        "animation",
+        "state",
+        "hook"
+      ],
+      "citations": [
+        {
+          "source_id": "2d-animation-guide",
+          "title": "2D Animation Advert Production Guide",
+          "page": 9,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c"
+        },
+        {
+          "source_id": "2d-animation-guide",
+          "title": "2D Animation Advert Production Guide",
+          "page": 12,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c"
+        }
+      ]
+    },
+    {
+      "id": "animation-layered-world",
+      "format": "2d_animation",
+      "principle": "Maintain a coherent illustrated surface, palette and layered environment across shots.",
+      "application": "Use painterly parallax and restrained movement where they help readability; split location changes into separate shot cards.",
+      "rule_ids": [
+        "animation",
+        "appearance",
+        "motion"
+      ],
+      "citations": [
+        {
+          "source_id": "2d-animation-guide",
+          "title": "2D Animation Advert Production Guide",
+          "page": 9,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c"
+        }
+      ]
+    },
+    {
+      "id": "clay-material-world",
+      "format": "claymation",
+      "principle": "Build a consistent miniature world with sculpted surfaces, seams, fingerprints and intentionally uneven motion.",
+      "application": "Keep material scale, set construction and puppet design coherent; avoid changing to a smooth digital surface between shots.",
+      "rule_ids": [
+        "clay",
+        "identity",
+        "appearance"
+      ],
+      "citations": [
+        {
+          "source_id": "claymation-master",
+          "title": "Claymation Master Prompt",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=21c4f55fc4ae457dbb524c7412f51c87"
+        }
+      ]
+    },
+    {
+      "id": "clay-tactile-audio",
+      "format": "claymation",
+      "principle": "Small footsteps, prop contact and soft material sounds make the miniature world feel physical.",
+      "application": "Assign foley to visible contact and reserve a distinct sound for the reveal.",
+      "rule_ids": [
+        "clay",
+        "edit"
+      ],
+      "citations": [
+        {
+          "source_id": "claymation-master",
+          "title": "Claymation Master Prompt",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=21c4f55fc4ae457dbb524c7412f51c87"
+        }
+      ]
+    },
+    {
+      "id": "clay-establish-then-detail",
+      "format": "claymation",
+      "principle": "An establishing view can communicate the scale of a miniature scene before closer character action.",
+      "application": "Choose a wide reveal followed by simpler performance coverage rather than packing every move into one generation.",
+      "rule_ids": [
+        "clay",
+        "framing",
+        "motion"
+      ],
+      "citations": [
+        {
+          "source_id": "claymation-guide",
+          "title": "Sir Scent: AI Claymation Production Guide",
+          "page": 15,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=21c4f55fc4ae457dbb524c7412f51c87"
+        }
+      ]
+    },
+    {
+      "id": "framework-brief-and-selection",
+      "format": "all",
+      "principle": "Select a story structure from the actual audience, offer, evidence and desired outcome.",
+      "application": "Write one primary angle and a backup; use commercial claims only when supplied evidence supports them.",
+      "rule_ids": [
+        "brief",
+        "claims"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        },
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "framework-timed-blueprint",
+      "format": "all",
+      "principle": "Turn the selected hook into a timed script and a shot plan covering visuals, dialogue, camera, props and text.",
+      "application": "Measure a scratch read and resize beats to the requested runtime; suggested source timestamps are examples.",
+      "rule_ids": [
+        "hook",
+        "timing",
+        "appearance",
+        "motion"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "light-motivated-source",
+      "format": "all",
+      "principle": "Name a plausible light source and read its direction through the subject and shadows; the source can remain off-screen.",
+      "application": "Record the source in the set map, then describe how it illuminates the subject from the selected camera position.",
+      "rule_ids": [
+        "light",
+        "appearance"
+      ],
+      "citations": [
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        },
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        }
+      ]
+    },
+    {
+      "id": "light-quality-and-shape",
+      "format": "all",
+      "principle": "Choose hard or soft light for the dramatic intent and use direction to define form and separation.",
+      "application": "Specify shadow-edge softness, key direction and background separation rather than relying on a cinematic adjective.",
+      "rule_ids": [
+        "light",
+        "appearance"
+      ],
+      "citations": [
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        },
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 5,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        }
+      ]
+    },
+    {
+      "id": "light-material-response",
+      "format": "all",
+      "principle": "Different materials need different visible highlights, reflection and absorption.",
+      "application": "Describe a few relevant material responses, such as a metal highlight, glass reflection and softer fabric, instead of giving every surface the same gloss.",
+      "rule_ids": [
+        "light",
+        "appearance"
+      ],
+      "citations": [
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 9,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        }
+      ]
+    },
+    {
+      "id": "light-sequence-continuity",
+      "format": "all",
+      "principle": "Anchor source, softness, colour and contrast in the establishing setup and preserve that logic in closer coverage.",
+      "application": "Carry a physical light map across angles; recalculate screen direction when the camera reverses.",
+      "rule_ids": [
+        "light",
+        "state"
+      ],
+      "citations": [
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 10,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        },
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 11,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        },
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 12,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        }
+      ]
+    },
+    {
+      "id": "camera-coverage-scale",
+      "format": "all",
+      "principle": "The visual examples distinguish environment-led wide views, gesture-readable medium views, facial close-ups and detail inserts.",
+      "application": "Choose the information a shot must show: geography, body action, emotion or an identifying detail.",
+      "rule_ids": [
+        "framing",
+        "appearance"
+      ],
+      "citations": [
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 12,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 15,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 17,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 19,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        }
+      ]
+    },
+    {
+      "id": "camera-viewpoint",
+      "format": "all",
+      "principle": "The examples distinguish over-the-shoulder, low, high, tilted, overhead and first-person viewpoints.",
+      "application": "Choose an angle that reveals the intended spatial relationship or subjective perspective; specify the eyeline and preserve screen geography.",
+      "rule_ids": [
+        "framing"
+      ],
+      "citations": [
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 5,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 9,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        }
+      ]
+    },
+    {
+      "id": "camera-depth-and-lens-intent",
+      "format": "all",
+      "principle": "The reference compares wider fields of view, portrait framing, telephoto looks and shallow versus deeper background detail.",
+      "application": "Describe desired spatial depth and background readability explicitly; lens and aperture numbers are approximate visual cues in generation.",
+      "rule_ids": [
+        "framing",
+        "appearance"
+      ],
+      "citations": [
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 21,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 22,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 23,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 24,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 25,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        }
+      ]
+    },
+    {
+      "id": "depth-three-planes",
+      "format": "all",
+      "principle": "Build spatial depth with foreground, subject-bearing midground and a receding background.",
+      "application": "Name each useful plane and keep near-camera framing objects from hiding the story action.",
+      "rule_ids": [
+        "framing",
+        "appearance"
+      ],
+      "citations": [
+        {
+          "source_id": "depth-framing-guide",
+          "title": "Depth & Cinematic Framing",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=9ef5a287b982435daa42400a0429b03d"
+        },
+        {
+          "source_id": "depth-framing-guide",
+          "title": "Depth & Cinematic Framing",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=9ef5a287b982435daa42400a0429b03d"
+        }
+      ]
+    },
+    {
+      "id": "depth-atmosphere",
+      "format": "all",
+      "principle": "Haze, dust or mist can separate distance layers and make space readable.",
+      "application": "Add atmosphere only when the world and mood support it; preserve the subject silhouette and light logic.",
+      "rule_ids": [
+        "framing",
+        "appearance",
+        "light"
+      ],
+      "citations": [
+        {
+          "source_id": "depth-framing-guide",
+          "title": "Depth & Cinematic Framing",
+          "page": 5,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=9ef5a287b982435daa42400a0429b03d"
+        }
+      ]
+    },
+    {
+      "id": "composition-attention",
+      "format": "all",
+      "principle": "Off-centre placement and existing architectural lines can guide attention toward a subject.",
+      "application": "Use thirds or symmetry deliberately; direct roads, rails or edges toward the point that matters.",
+      "rule_ids": [
+        "framing"
+      ],
+      "citations": [
+        {
+          "source_id": "depth-framing-guide",
+          "title": "Depth & Cinematic Framing",
+          "page": 6,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=9ef5a287b982435daa42400a0429b03d"
+        },
+        {
+          "source_id": "depth-framing-guide",
+          "title": "Depth & Cinematic Framing",
+          "page": 7,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=9ef5a287b982435daa42400a0429b03d"
+        }
+      ]
+    },
+    {
+      "id": "composition-lead-room",
+      "format": "all",
+      "principle": "Leave purposeful space ahead of a subject looking or moving across the frame.",
+      "application": "State the subject position and facing or movement direction; preserve that direction across coverage.",
+      "rule_ids": [
+        "framing",
+        "motion"
+      ],
+      "citations": [
+        {
+          "source_id": "depth-framing-guide",
+          "title": "Depth & Cinematic Framing",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=9ef5a287b982435daa42400a0429b03d"
+        }
+      ]
+    }
+  ],
+  "frameworks": [
+    {
+      "id": "spark",
+      "name": "SPARK Method",
+      "purpose": "Show a change already underway and explain the reason to join.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "myth-killer",
+      "name": "Myth Killer",
+      "purpose": "Challenge a mistaken belief and explain a supported alternative.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "countdown",
+      "name": "Countdown",
+      "purpose": "Organize useful lessons or mistakes into a numbered progression.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "origin-story",
+      "name": "Origin Story",
+      "purpose": "Connect a founder or character problem to the moment of discovery.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "shortcut",
+      "name": "Shortcut",
+      "purpose": "Explain a simpler path to a desired result without unsupported promises.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "raw-take",
+      "name": "Raw Take",
+      "purpose": "Use an informal relatable moment and conversational delivery.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "pressure-cooker",
+      "name": "Pressure Cooker",
+      "purpose": "Build a concrete problem and its consequences before relief.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "grit-ad",
+      "name": "Grit Ad",
+      "purpose": "Apply a rough visual treatment to a separate story structure.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "conviction",
+      "name": "Conviction",
+      "purpose": "Answer specific objections with evidence and a clear point of view.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "face-off",
+      "name": "Face-Off",
+      "purpose": "Compare two approaches through a fair visible demonstration.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "bridge",
+      "name": "Bridge",
+      "purpose": "Show the gap between a goal and the means of reaching it.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "cliffhanger",
+      "name": "Cliffhanger",
+      "purpose": "Create a specific question and deliver the promised explanation.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 3,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "witness",
+      "name": "Witness",
+      "purpose": "Build a narrative around authentic supplied testimonial evidence.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "demo-drop",
+      "name": "Demo Drop",
+      "purpose": "Show operation and result, then explain the relevant mechanism.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "time-machine",
+      "name": "Time Machine",
+      "purpose": "Contrast initial and final states through an earned transition.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "educator",
+      "name": "Educator",
+      "purpose": "Teach a useful insight before connecting it to a next step.",
+      "scope": "Source advertising framework; entertainment application is a studio adaptation.",
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    }
+  ],
+  "corrections": [
+    {
+      "id": "reference-not-guarantee",
+      "origin": "studio_review_correction",
+      "correction": "The source says references leave nothing for the model to invent. Treat them as constraints requiring output inspection, not a guarantee of identity or instruction following.",
+      "rule_ids": [
+        "identity",
+        "inspection",
+        "iteration"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 1,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "world-space-light",
+      "origin": "studio_review_correction",
+      "correction": "The source repeats rightward shadows for a location. Keep the physical sun position stable and derive screen direction for each camera angle.",
+      "rule_ids": [
+        "light"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "lens-per-shot",
+      "origin": "studio_review_correction",
+      "correction": "The source requires one focal length per location. Use lenses for shot purpose while preserving geography and continuity.",
+      "rule_ids": [
+        "framing"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "door-state-conflict",
+      "origin": "studio_review_correction",
+      "correction": "The earlier shot retrieves through the window after closing the door; a later prompt requires an already open door. Resolve the state change explicitly.",
+      "rule_ids": [
+        "state"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 37,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        },
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 45,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "film-timing-overrun",
+      "origin": "studio_review_correction",
+      "correction": "An eight-second shot header includes action through nine seconds. Measure dialogue and retime or split the shot.",
+      "rule_ids": [
+        "timing"
+      ],
+      "citations": [
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 157,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        },
+        {
+          "source_id": "short-film-blueprint",
+          "title": "Bootcamp vs Slop Dawgz: Complete Short-Film Workflow",
+          "page": 158,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=bcd0c5434fd74009a43e771e48c9d0f5"
+        }
+      ]
+    },
+    {
+      "id": "podcast-identity-slots",
+      "origin": "studio_review_correction",
+      "correction": "The attachment list and prompt body reverse the individual image identities. Resolve character IDs to actual reference slots before generation.",
+      "rule_ids": [
+        "identity",
+        "podcast"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        },
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 6,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "podcast-dense-edit",
+      "origin": "studio_review_correction",
+      "correction": "A fifteen-second prompt specifies fourteen cuts and a referenced wide setup. Generate manageable coverage, supply a checked wide reference, and cut in editing.",
+      "rule_ids": [
+        "motion",
+        "podcast",
+        "timing"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        },
+        {
+          "source_id": "podcast-guide",
+          "title": "AI Podcast: Miya & Sonya Production Guide",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "animation-missing-step",
+      "origin": "studio_review_correction",
+      "correction": "The product reference points to a standalone Step 4, but the supplied guide ends with Step 5 assembly. Supply a complete product reference and explicit shot plan.",
+      "rule_ids": [
+        "animation",
+        "identity"
+      ],
+      "citations": [
+        {
+          "source_id": "2d-animation-guide",
+          "title": "2D Animation Advert Production Guide",
+          "page": 1,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c"
+        },
+        {
+          "source_id": "2d-animation-guide",
+          "title": "2D Animation Advert Production Guide",
+          "page": 8,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c"
+        },
+        {
+          "source_id": "2d-animation-guide",
+          "title": "2D Animation Advert Production Guide",
+          "page": 14,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=583740af7d124258ad525eabfe20720c"
+        }
+      ]
+    },
+    {
+      "id": "clay-vo-overrun",
+      "origin": "studio_review_correction",
+      "correction": "The closing voiceover begins at 1:26. Budget time for its delivery and the closing hold instead of ending the film at its start.",
+      "rule_ids": [
+        "clay",
+        "timing"
+      ],
+      "citations": [
+        {
+          "source_id": "claymation-guide",
+          "title": "Sir Scent: AI Claymation Production Guide",
+          "page": 29,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=21c4f55fc4ae457dbb524c7412f51c87"
+        }
+      ]
+    },
+    {
+      "id": "master-runtime-template",
+      "origin": "studio_review_correction",
+      "correction": "The master offers a fifteen-second option but later prescribes a sequence through forty seconds plus a close. Rebuild timings for the actual duration.",
+      "rule_ids": [
+        "timing"
+      ],
+      "citations": [
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 2,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        },
+        {
+          "source_id": "podcast-master",
+          "title": "Podcast Master Prompt",
+          "page": 4,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/950d18f8?md=71d00869790442ffb1e4051bc1731fca"
+        }
+      ]
+    },
+    {
+      "id": "lighting-reverse-angle",
+      "origin": "studio_review_correction",
+      "correction": "The guide repeats same-side lighting in closer shots. Preserve the physical source in the set; a reverse angle may change camera-relative light direction.",
+      "rule_ids": [
+        "light"
+      ],
+      "citations": [
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 10,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        },
+        {
+          "source_id": "lighting-mood-guide",
+          "title": "Cinematic Lighting With Light Logic",
+          "page": 11,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=b158a2e16067416f81ce69f6a3fefe9a"
+        }
+      ]
+    },
+    {
+      "id": "optics-are-visual-cues",
+      "origin": "studio_review_correction",
+      "correction": "Treat labelled focal lengths and apertures as approximate appearance references. These example images do not establish a physically calibrated camera or isolate every changed variable.",
+      "rule_ids": [
+        "framing",
+        "capabilities"
+      ],
+      "citations": [
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 21,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 22,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 23,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 24,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        },
+        {
+          "source_id": "camera-angles-techniques",
+          "title": "Camera Techniques Visual Reference Guide",
+          "page": 25,
+          "lesson_url": "https://www.skool.com/aivideobootcamp/classroom/11e9be50?md=bbafc11c71dd4444bbc54d7c492e655f"
+        }
+      ]
+    }
+  ]
+}

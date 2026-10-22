@@ -358,6 +358,8 @@ export function CreativeWorkspace({
                     value={d.script_beat}
                     onChange={(script_beat) => dir({ script_beat })}
                   />
+                    <Field label="Why these creative choices?" multiline value={d.decision_reason || ""} onChange={(decision_reason)=>dir({decision_reason})} placeholder="Explain how framing, camera movement and light serve this beat."/>
+                    <Field label="Recipe shot role" value={d.recipe_role || ""} onChange={(recipe_role)=>dir({recipe_role})} placeholder="Use the role ID in the recipe contract, or leave custom."/>
                   <Field
                     label="Environment"
                     value={d.environment}
