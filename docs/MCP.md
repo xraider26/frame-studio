@@ -1,10 +1,32 @@
 # Frame Studio: agent-controlled workflow
 
+## Creative production upgrade (schema v2)
+
+The studio now shares structured story/bible/shot direction with its agents. See [feature and source coverage](CREATIVE-COVERAGE.md) for exact capabilities, tests and current limits.
+
+- `creative_schema`: field definitions, validation and inheritance rules. Shot `direction` includes camera/composition, lighting, art, action/states, sound, exact references and quality criteria; `edit_duration_seconds` and `edit_in_seconds` are separate from generation duration.
+- `knowledge_catalog(query, category)`: searchable technique explanations, generated stills/spatial demonstrations, use cases, risks, source/provenance and editable `apply` patches. Coverage distinguishes studio-authored examples, the supplied playbook and selected verified original pages from a complete course catalogue import.
+- `update_production`: patch structured brief/story/bible/defaults/capability observations and experiments. Resource policy and the required-QC switch remain human-only. Omit those fields in agent updates.
+- `preview_shot` and `validate_project`: same compiler and deterministic checks used by browser and generation handoffs. A blank shot field inherits project direction. Generator/profile changes do not create an account connection.
+- `record_take_review`: actual inspection evidence with `criteria: {text: true/false}`, `inspected: [image]` or `[beginning,middle,end]`, `notes` and `defect`. Required criteria arrive in `handoff.required_media_checks`. Agent actor names are prefixed `agent:`. Evidence never grants human approval.
+- `select_take`, `revise_shot`: explicit compatible take selection or targeted image/video revision with a named reason. Unrelated selections remain; linked dependencies/review stages reopen. Old media is retained.
+- `extract_continuation`: real local near-final-frame extraction; explicitly bind and inspect the resulting image. `repair_handoff` supplies original/mask/defect/preservation data for an external editor; it does not execute inpainting.
+- `record_job_cost`: actual cost plus evidence in the project's single unit, retaining correction history. `production_metrics` reports known reserved/spent costs and unknown jobs. A claim reserves evidenced planned cost once; unknown costs or an exhausted hard limit block additional generation. Cancellation is not a refund.
+- `export_editor_package`: selected actual MP4s plus editor JSON and source/timeline CSV; no native editor-project or rendered-video claim.
+
+Additional `next_action` states: `resolve_preflight`, `resolve_resources` and `record_quality`. Resolve the stated inputs/evidence or let the user adjust their policy; do not bypass them. `await_approval` still means stop for the user's browser review.
+
+New custom-template placeholders: `{environment} {mood} {opening} {ending} {dialogue} {composition} {body_look} {state_before} {state_after} {references}`. Existing placeholders remain accepted. The ZIP now includes structured production, direction, preflight/source coverage and technique data alongside compiled prompts and portable references.
+
+Existing project IDs and documents remain intact. Older clients that omit `direction` retain that shot's saved nested data. Existing databases receive a one-time `*.pre-creative-v2.sqlite3` backup before upgrading persisted projects. These local private files remain excluded from Git.
+
 This is the connected application at **http://127.0.0.1:3000/studio**. The earlier port-52741 HTML preview remains a separate prototype. Frame's real projects, generation tasks and imported media are stored locally in `studio_data/`. The existing companion dashboard, backend and media are preserved.
 
 ## Start
 
-From `G:/AI/YT/flow-companion-studio`, run `./launch-studio.ps1`. It starts the loopback workflow API on port 8010 and the Next.js frontend on port 3000 in hidden background processes. Logs are in the project directory. Run `./launch-studio.ps1 -BackendOnly` if the UI is already running. The legacy companion API on port 8000 is separate.
+For the installed app, launch **Frame Studio** from its shortcut. It starts its bundled services on available loopback ports. See [Windows setup](WINDOWS.md).
+
+For a source checkout, run `./launch-studio.ps1` from that checkout's root. It starts the workflow API on port 8010 and frontend on port 3000 in hidden background processes. Logs are in the project directory. Run `./launch-studio.ps1 -BackendOnly` if the UI is already running. The legacy companion API on port 8000 is separate.
 
 If dependencies need installing:
 
@@ -16,15 +38,15 @@ Install frontend dependencies using its package lock if they are missing. FFmpeg
 
 ## Connect your agent
 
-All four clients run the same local stdio command. Use the exact executable and script in `configs/mcp-clients.json`; merge only the `frame_studio` entry into existing client settings. Do not replace other servers. Change paths if the project moves. No credential needs to be copied into client config: the bridge reads the local agent token created by the backend. Set `STUDIO_CLIENT_NAME` to identify the client in project activity.
+Open **Connections & MCP**, choose your client format and copy the generated configuration for your own installation. The installed app uses its bundled service executable; a source checkout uses its actual Python/script paths. The [static examples](../configs/README.md) illustrate formats only. Merge the `frame_studio` entry into existing settings without replacing other servers. No credential needs copying: the bridge reads the local agent token. `STUDIO_CLIENT_NAME` identifies the client in activity.
 
-- **Codex:** merge `configs/codex-config.toml` into the MCP configuration using Codex Settings → MCP servers, or its trusted-project/user `config.toml` workflow. Restart/reconnect and inspect available tools. See https://developers.openai.com/codex/mcp.
+- **Codex:** copy the studio's generated TOML entry into the client's MCP configuration using Codex Settings → MCP servers, or its trusted-project/user `config.toml` workflow. Restart/reconnect and inspect available tools. See https://developers.openai.com/codex/mcp.
 - **Cursor:** merge the JSON entry into workspace `.cursor/mcp.json` or add it through MCP settings. See https://cursor.com/docs/mcp.
-- **Claude Code:** merge the JSON entry into project `.mcp.json`, or use `claude mcp add --transport stdio frame_studio -- G:/AI/YT/flow-companion-studio/backend/.venv/Scripts/python.exe G:/AI/YT/flow-companion-studio/backend/studio_mcp.py`. Review project trust when prompted. See https://code.claude.com/docs/en/mcp.
+- **Claude Code:** use the generated JSON entry through the client's supported MCP setup, with the actual command/arguments from your studio. See https://code.claude.com/docs/en/mcp.
 - **Antigravity:** add the JSON entry through Manage MCP Servers / raw configuration. The relevant setting differs between IDE, app and CLI; see https://antigravity.google/docs/mcp.
 - **Claude Desktop:** use the same JSON server entry in its supported local MCP server configuration and restart it. This is a desktop server, not a public remote connector.
 
-These are portable config examples. Verification of the MCP protocol and SDK bridge does not mean every installed client has already been configured. Existing client/global settings are not modified by this project.
+Use the entry generated by your running installation, rather than the placeholder paths in this repository. Verification of the MCP protocol and SDK bridge does not mean every installed client has already been configured. Existing client/global settings are not modified by this project.
 
 ## The agent loop
 
@@ -93,3 +115,19 @@ Save and enable the connection, then claim a generation handoff and call `run_pr
 ## Verification
 
 Backend behavior suite, from the `backend` directory: `.venv/Scripts/python.exe -m unittest discover -s tests -v`. Live MCP/browser verification scripts use an isolated `.studio-test` database and fixture media. Test images are explicitly synthetic fixtures, not AI-generated output.
+
+Motion-source references: call `import_reference` with `kind="video"` for an actual MP4 in the inbox, then bind its asset ID with role `motion` and pose/framing compatibility notes. Image imports retain the default `kind="image"`. Video references are excluded from image-generation inputs. Portable ZIPs include accepted bound media and per-shot `reference_files` mappings.
+
+## Reusable workflow templates
+
+For the installed Windows app, use **Connections & MCP** or **Frame Studio → Copy MCP configuration**. Its command points to the bundled `FrameStudioService.exe` and explicit per-user data directory. Keep the desktop app open; no Python installation or source-checkout path is needed. Source-checkout configuration is also generated dynamically from its running Python executable and actual data root. See [Windows installation](WINDOWS.md).
+
+Built-in formats now expose versioned course-informed production recipes. `recipe_catalog` returns their reference/planning/role/QC contracts, illustrative image metadata, source coverage and historical human video-trial summaries. `get_project`, compiled generation handoffs and queue tasks carry the active recipe context; generator ZIPs include readable and JSON recipe files. `recipe_trials` reads human final-production evidence. Recipe activation and recording final assessments remain human UI operations. See [production recipes](COURSE-RECIPES.md) for scope and limitations.
+
+In Template library, save a named snapshot of selected creative settings, workflow/quality gates, and/or story and shot plan. A successful shot can supply the reusable camera, lighting and art defaults. Notes record what worked. Use a saved template in the new-project picker or apply selected sections to the current project. Rename/delete manage library entries independently of existing projects. Templates live in the same local SQLite database and survive restarts and deletion of the source project.
+
+MCP: `list_templates` includes built-in and saved IDs, `get_saved_template` reads saved snapshots, `create_project` accepts a saved ID, and `apply_project_template` accepts `settings` and/or `story` with both project and template revisions. Saving/renaming/deleting templates and applying workflow policy are human UI controls. Agent-created projects retain default approval/quality policy. Story application replaces shots and prepared documents, reconciling references into the replaced cast/shot plan; affected outputs reopen, original media is retained. Snapshots omit reference file bindings (reattach them), output takes, completed approvals, spending settings/history, observed capabilities and experiment results.
+
+## Batch production and queue workers
+
+See `docs/PRODUCTION-SCALE.md` for the full workflow and limits. MCP tools: `create_batch`, `production_queue`, `get_batch`, `claim_queue_task`, `renew_queue_task`, `finish_queue_task`, and `recipe_metrics`. `create_batch` queues actual independent planning projects from an idea; it does not invent completed scripts/media. Claim work with a unique stable request ID, refresh the project, execute its real next action, and renew a 15-minute lease during long work. Finish after meaningful recorded progress or block with a real reason. User approval waits must be respected. Queue policy, pause/priority, identity sync and recipe endorsements are human controls in the UI. Batch caps also govern direct generation/provider starts.

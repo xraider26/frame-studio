@@ -1,6 +1,6 @@
 [mcp_servers.frame_studio]
-command = "G:/AI/YT/flow-companion-studio/backend/.venv/Scripts/python.exe"
-args = ["G:/AI/YT/flow-companion-studio/backend/studio_mcp.py"]
+command = "C:/path/to/frame-studio/backend/.venv/Scripts/python.exe"
+args = ["C:/path/to/frame-studio/backend/studio_mcp.py"]
 
 [mcp_servers.frame_studio.env]
 STUDIO_CLIENT_NAME = "codex"
