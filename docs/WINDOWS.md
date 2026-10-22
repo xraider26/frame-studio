@@ -1,6 +1,6 @@
 # Frame Studio for Windows
 
-The Windows x64 beta is distributed as `Frame-Studio-Setup-0.2.0.exe`. The setup is currently a local artifact under `desktop/dist/`; it has not been published to GitHub Releases. It is unsigned. Publisher signing and testing on a second physical computer remain release work.
+Download `Frame-Studio-Setup-0.2.0.exe` and its SHA256 file from the [Windows beta release](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1). It is unsigned. Publisher signing and testing on a second physical computer remain release work. GitHub requires repository access while the repository is private.
 
 ## Install and use
 

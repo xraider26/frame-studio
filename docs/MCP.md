@@ -5,7 +5,7 @@
 The studio now shares structured story/bible/shot direction with its agents. See [feature and source coverage](CREATIVE-COVERAGE.md) for exact capabilities, tests and current limits.
 
 - `creative_schema`: field definitions, validation and inheritance rules. Shot `direction` includes camera/composition, lighting, art, action/states, sound, exact references and quality criteria; `edit_duration_seconds` and `edit_in_seconds` are separate from generation duration.
-- `knowledge_catalog(query, category)`: searchable technique explanations, visual keys, use cases, risks, source/provenance and editable `apply` patches. Coverage explicitly distinguishes the supplied playbook from unavailable original PDF catalogues.
+- `knowledge_catalog(query, category)`: searchable technique explanations, generated stills/spatial demonstrations, use cases, risks, source/provenance and editable `apply` patches. Coverage distinguishes studio-authored examples, the supplied playbook and selected verified original pages from a complete course catalogue import.
 - `update_production`: patch structured brief/story/bible/defaults/capability observations and experiments. Resource policy and the required-QC switch remain human-only. Omit those fields in agent updates.
 - `preview_shot` and `validate_project`: same compiler and deterministic checks used by browser and generation handoffs. A blank shot field inherits project direction. Generator/profile changes do not create an account connection.
 - `record_take_review`: actual inspection evidence with `criteria: {text: true/false}`, `inspected: [image]` or `[beginning,middle,end]`, `notes` and `defect`. Required criteria arrive in `handoff.required_media_checks`. Agent actor names are prefixed `agent:`. Evidence never grants human approval.
@@ -24,7 +24,9 @@ This is the connected application at **http://127.0.0.1:3000/studio**. The earli
 
 ## Start
 
-From `G:/AI/YT/flow-companion-studio`, run `./launch-studio.ps1`. It starts the loopback workflow API on port 8010 and the Next.js frontend on port 3000 in hidden background processes. Logs are in the project directory. Run `./launch-studio.ps1 -BackendOnly` if the UI is already running. The legacy companion API on port 8000 is separate.
+For the installed app, launch **Frame Studio** from its shortcut. It starts its bundled services on available loopback ports. See [Windows setup](WINDOWS.md).
+
+For a source checkout, run `./launch-studio.ps1` from that checkout's root. It starts the workflow API on port 8010 and frontend on port 3000 in hidden background processes. Logs are in the project directory. Run `./launch-studio.ps1 -BackendOnly` if the UI is already running. The legacy companion API on port 8000 is separate.
 
 If dependencies need installing:
 
@@ -36,15 +38,15 @@ Install frontend dependencies using its package lock if they are missing. FFmpeg
 
 ## Connect your agent
 
-All four clients run the same local stdio command. Use the exact executable and script in `configs/mcp-clients.json`; merge only the `frame_studio` entry into existing client settings. Do not replace other servers. Change paths if the project moves. No credential needs to be copied into client config: the bridge reads the local agent token created by the backend. Set `STUDIO_CLIENT_NAME` to identify the client in project activity.
+Open **Connections & MCP**, choose your client format and copy the generated configuration for your own installation. The installed app uses its bundled service executable; a source checkout uses its actual Python/script paths. The [static examples](../configs/README.md) illustrate formats only. Merge the `frame_studio` entry into existing settings without replacing other servers. No credential needs copying: the bridge reads the local agent token. `STUDIO_CLIENT_NAME` identifies the client in activity.
 
-- **Codex:** merge `configs/codex-config.toml` into the MCP configuration using Codex Settings → MCP servers, or its trusted-project/user `config.toml` workflow. Restart/reconnect and inspect available tools. See https://developers.openai.com/codex/mcp.
+- **Codex:** copy the studio's generated TOML entry into the client's MCP configuration using Codex Settings → MCP servers, or its trusted-project/user `config.toml` workflow. Restart/reconnect and inspect available tools. See https://developers.openai.com/codex/mcp.
 - **Cursor:** merge the JSON entry into workspace `.cursor/mcp.json` or add it through MCP settings. See https://cursor.com/docs/mcp.
-- **Claude Code:** merge the JSON entry into project `.mcp.json`, or use `claude mcp add --transport stdio frame_studio -- G:/AI/YT/flow-companion-studio/backend/.venv/Scripts/python.exe G:/AI/YT/flow-companion-studio/backend/studio_mcp.py`. Review project trust when prompted. See https://code.claude.com/docs/en/mcp.
+- **Claude Code:** use the generated JSON entry through the client's supported MCP setup, with the actual command/arguments from your studio. See https://code.claude.com/docs/en/mcp.
 - **Antigravity:** add the JSON entry through Manage MCP Servers / raw configuration. The relevant setting differs between IDE, app and CLI; see https://antigravity.google/docs/mcp.
 - **Claude Desktop:** use the same JSON server entry in its supported local MCP server configuration and restart it. This is a desktop server, not a public remote connector.
 
-These are portable config examples. Verification of the MCP protocol and SDK bridge does not mean every installed client has already been configured. Existing client/global settings are not modified by this project.
+Use the entry generated by your running installation, rather than the placeholder paths in this repository. Verification of the MCP protocol and SDK bridge does not mean every installed client has already been configured. Existing client/global settings are not modified by this project.
 
 ## The agent loop
 
