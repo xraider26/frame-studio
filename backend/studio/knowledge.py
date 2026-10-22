@@ -1,5 +1,7 @@
 """Small, traceable reference library; never misrepresents unavailable course PDFs."""
 import copy
+from .cinematography import enrich_visual_entries
+from .course_rules import verified_course_material
 
 SOURCE = 'AI Video Course Review and Workflow · Production playbook'
 ENTRIES = []
@@ -71,8 +73,11 @@ def knowledge_catalog(query='', category=''):
     query = query.casefold().strip()[:200]
     entries = [e for e in ENTRIES if (not category or e['category'] == category) and
                (not query or query in ' '.join(str(e[k]) for k in ['name', 'explanation', 'use_when', 'category']).casefold())]
-    return {'entries': copy.deepcopy(entries), 'categories': sorted({e['category'] for e in ENTRIES}),
+    enriched, sample_count = enrich_visual_entries(copy.deepcopy(entries))
+    material = verified_course_material()
+    return {'entries': enriched, 'categories': sorted({e['category'] for e in ENTRIES}),
             'coverage': {'full_original_catalogues': False, 'available_source': SOURCE,
-                         'status': 'Supplied review/playbook mapped; original named PDF catalogues not located in the current workspace/Downloads.',
+                         'status': 'Selected original source pages verified; examples and applications are studio-authored, not an exhaustive original catalogue.',
+                         'source_count': len(material['sources']), 'sample_count': sample_count,
                          'entry_count': len(ENTRIES), 'original_pdf_entries_verified': 0,
                          'limitations': 'Illustrations explain intent; they are not actual camera tests or predictions of generator output.'}}

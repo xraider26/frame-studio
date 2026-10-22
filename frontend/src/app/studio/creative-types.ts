@@ -219,7 +219,19 @@ export type Technique = {
   source_note: string;
   provenance: string;
   apply: Partial<Direction>;
-  visual: { kind: string; variant: string };
+  visual: {
+    kind: string;
+    variant: string;
+    sample?: {
+      image: string;
+      prompt: string;
+      caption: string;
+      comparison_group: string;
+      kind: "generated_still";
+    };
+    motion?: { id: string; duration_seconds: 6; kind: "spatial_demonstration" };
+  };
+  citations?: { source_id: string; title: string; page: number; lesson_url: string }[];
 };
 export type Catalog = {
   entries: Technique[];

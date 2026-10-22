@@ -10,6 +10,8 @@ The creative production workspace adds per-shot camera/lighting/art direction, v
 
 Template library now includes nine [production recipes](docs/COURSE-RECIPES.md), three generated illustration images per format, verified course-page citations, shot-role quality checks and human finished-video assessments. Recipes guide connected agents and exports; consistent artistic quality still requires real production trials.
 
+The [visual cinematography library](docs/CINEMATOGRAPHY.md) adds 26 comparable generated camera/lens/framing/lighting studies, eight interactive spatial camera movements, side-by-side inspection and explicit application to shots or project defaults. The same samples appear in shot-control (?) help.
+
 ### Set up a fresh checkout (Windows)
 
 Requires Node.js/npm, Python 3.12 managed by `uv`, and FFmpeg/FFprobe on PATH for video imports.

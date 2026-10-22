@@ -103,12 +103,14 @@ export function CreativeWorkspace({
   save,
   inbox,
   catalog,
+  onOpenLibrary,
 }: {
   project: Project;
   busy: boolean;
   save: Save;
   inbox: string;
   catalog: Catalog | null;
+  onOpenLibrary?: () => void;
 }) {
   const [mode, setMode] = useControlMode("directing");
   const plan = useDraft(project.shots, project.revision, `shots:${project.id}`),
@@ -211,6 +213,7 @@ export function CreativeWorkspace({
         </span>
       </div>
       <ControlModeSwitch mode={mode} onChange={setMode} label="Directing" />
+      {onOpenLibrary && <button type="button" className="fs-button" onClick={onOpenLibrary}>Explore camera, angles & lighting examples <ArrowRight size={14}/></button>}
       <DraftNotice {...plan} />
       <div className="cv-director">
         <div className="cv-shot-rail">

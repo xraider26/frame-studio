@@ -6,7 +6,7 @@ This upgrade extends the connected `/studio` application, its existing API and M
 | --- | --- | --- |
 | Camera, lens, composition and movement | Shot Camera inspector; project advanced defaults; custom inputs and technique patches | Effective-direction/compiler tests ensure overrides replace shared defaults. Camera/body/optics descriptions and visuals are artistic cues, not calibrated simulations. |
 | Lighting and art direction | Physical source, camera-relative direction, softness, shadow depth, colour, practicals, materials, palette and style | Saved structured data travels through prompts, MCP and exports. World-light mismatch is a planning warning, not a physically solved lighting model. |
-| (?) visual help | Hover/focus preview, click/tap pin, example selector, apply-to-draft, use/risk/source notes, Escape/outside dismissal | React DOM tests exercise real component events and narrow-viewport positioning. SVG scene illustrations show intent; no brand-specific camera test photography is claimed. |
+| (?) visual help | Hover/focus preview, click/tap pin, generated still examples, playable spatial movement previews, apply-to-draft, use/risk/source notes, Escape/outside dismissal | React DOM tests exercise real component events and narrow-viewport positioning. Teaching examples show intent; no brand-specific camera test photography is claimed. |
 | Story and timing | Brief/promise/payoff, hook alternatives, independent framework, timed beats, measured speech, captions and fact/source notes | Runtime and measured dialogue validation. Timing redistribution changes beat allocation, not the actual performance. No internal LLM is supplied. |
 | Format templates | AI film, drama, UGC, advertisement, explainer, podcast, 2D, claymation and custom with distinct guidance; selected formats seed relevant direction | Editable starting structure and rules; not ready-made finished scripts or guaranteed outcomes. |
 | Production bible | Stable character/location/prop/style IDs, versions, identity, wardrobe, voice, layout, world lights, materials and actual imported image links | Reference bindings validate IDs/asset versions/slots. Duplication remaps canonical reference IDs and continuation shot IDs. |
@@ -23,6 +23,8 @@ This upgrade extends the connected `/studio` application, its existing API and M
 | Existing projects and drafts | Read-time defaults, one pre-upgrade SQLite backup, stable IDs, legacy nested omissions preserved, user-only policy, revision conflicts | Tests include restart/legacy look preservation and backup closure on Windows. Structured drafts survive polling and page remounts in browser session storage when available; rebase is explicit. |
 
 ## Course material coverage
+
+The [visual cinematography library](CINEMATOGRAPHY.md) provides 26 generated photographic studies across camera/lens/framing/lighting, eight procedural movement demonstrations, grouped comparison and explicit revision-checked application to a selected shot or shared defaults. Shot overrides remain effective; saved templates reuse a successful look. Original-course principle citations are distinct from the studio-authored examples.
 
 The accessible source is the supplied `AI_Video_Course_Review_and_Workflow.md` review/playbook. The library distinguishes adapted playbook principles from studio-authored practical examples. It supplies source/section/provenance/use/risk/apply data to both the UI and MCP. Entry counts are returned by `knowledge_catalog`, rather than treated as the original course's catalogue counts.
 

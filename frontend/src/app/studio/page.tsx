@@ -25,7 +25,6 @@ import { ProjectActions } from "./project-actions";
 import { GeneratorExport } from "./generator-export";
 import {
   CreativeWorkspace,
-  TechniqueLibrary,
   Checks,
 } from "./creative-workspace";
 import { ProductionWorkspace } from "./production-workspace";
@@ -38,6 +37,8 @@ import {
   type SavedTemplate,
 } from "./template-workspace";
 import { RecipeWorkspace } from "./recipe-workspace";
+import { CinematographyLibrary } from "./cinematography-library";
+import "./cinematography.css";
 import "./recipes.css";
 import type { Project, Job, Action, Catalog } from "./creative-types";
 import "./creative.css";
@@ -86,7 +87,7 @@ const nav = [
   { id: "story", label: "Story & timing", icon: Film },
   { id: "bible", label: "Production bible", icon: Layers },
   { id: "shots", label: "Shots & direction", icon: Clapperboard },
-  { id: "knowledge", label: "Techniques & guides", icon: Sparkles },
+  { id: "knowledge", label: "Camera & visual library", icon: Sparkles },
   { id: "workflow", label: "Workflow & approvals", icon: ShieldCheck },
   { id: "takes", label: "Takes & quality", icon: ShieldCheck },
   { id: "production", label: "Production settings", icon: Settings2 },
@@ -318,7 +319,7 @@ export default function StudioPage() {
             <button
               key={n.id}
               className={`fs-nav ${view === n.id ? "active" : ""}`}
-              disabled={!project && n.id !== "connections"}
+              disabled={!project && !["connections", "knowledge"].includes(n.id)}
               onClick={() => {
                 setMobileMenu(false);
                 setView(n.id);
@@ -374,7 +375,7 @@ export default function StudioPage() {
               onSelect={selectProject} onChanged={() => refresh(project?.id)} />
           )}
 
-          {((!project && !["connections", "queue"].includes(view)) || view === "templates") && (
+          {((!project && !["connections", "queue", "knowledge"].includes(view)) || view === "templates") && (
             <section className="fs-library">
               <div className="fs-eyebrow">TEMPLATE LIBRARY</div>
               <h1>Your reusable setups.</h1>
@@ -949,6 +950,7 @@ export default function StudioPage() {
               catalog={catalog}
               busy={busy}
               inbox={caps?.inbox || ""}
+              onOpenLibrary={()=>setView("knowledge")}
               save={(fn) => act(fn, "Shot direction saved")}
             />
           )}
@@ -962,7 +964,7 @@ export default function StudioPage() {
               save={(fn) => act(fn, "Production plan saved")}
             />
           )}
-          {view === "knowledge" && <TechniqueLibrary catalog={catalog} />}
+          {view === "knowledge" && <CinematographyLibrary catalog={catalog} project={project} busy={busy} save={(fn)=>act(fn,"Creative direction applied")} />}
           {project && view === "takes" && (
             <TakesWorkspace
               key={project.id}

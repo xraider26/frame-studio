@@ -1,8 +1,20 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Framing and generated comparison assets are shown without recropping. */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HelpCircle, X } from "lucide-react";
 import type { Technique } from "./creative-types";
+import { MotionPreview } from "./motion-preview";
+
+export function TechniqueMedia({ entry, compact = false }: { entry: Technique; compact?: boolean }) {
+  const sample = entry.visual.sample;
+  if (entry.visual.motion && !compact) return <MotionPreview variant={entry.visual.motion.id || entry.visual.variant} name={entry.name} />;
+  if (sample) return <figure className="cl-sample">
+    <img src={sample.image} alt={`${entry.name}: ${sample.caption}`} loading={compact ? "lazy" : "eager"} />
+    {!compact && <figcaption><strong>Generated comparison still</strong><span>{sample.caption}</span></figcaption>}
+  </figure>;
+  return <TechniqueVisual kind={entry.category} variant={entry.visual.variant} />;
+}
 
 /** Consistent illustrative scene: visual intent, never a certified camera simulation. */
 export function TechniqueVisual({
@@ -321,10 +333,7 @@ export function VisualHelp({
           <X size={17} />
         </button>
       </div>
-      <TechniqueVisual
-        kind={category}
-        variant={entry?.visual.variant || category}
-      />
+      {entry ? <TechniqueMedia entry={entry} /> : <TechniqueVisual kind={category} variant={category} />}
       {value && !exact && !chosen && (
         <small>
           Custom direction: {value}. The illustration below is a category
