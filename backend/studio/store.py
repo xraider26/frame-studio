@@ -43,6 +43,7 @@ class Store:
         with self.connect() as conn:
             conn.execute('CREATE TABLE IF NOT EXISTS studio_projects (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
             conn.execute('CREATE TABLE IF NOT EXISTS studio_templates (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+            conn.execute('CREATE TABLE IF NOT EXISTS studio_agent_contracts (project_id TEXT NOT NULL, actor TEXT NOT NULL, contract_version TEXT NOT NULL, acknowledged_at TEXT NOT NULL, PRIMARY KEY(project_id,actor))')
             conn.execute('CREATE TABLE IF NOT EXISTS studio_batches (id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
             conn.execute('CREATE TABLE IF NOT EXISTS studio_tasks (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, request_key TEXT UNIQUE NOT NULL, status TEXT NOT NULL, expires_at TEXT NOT NULL, payload TEXT NOT NULL)')
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS studio_active_task ON studio_tasks(project_id) WHERE status='active'")

@@ -77,6 +77,14 @@ def model_guidance(profile, model, kind):
         documented = True
         source = 'https://help.runwayml.com/hc/en-us/articles/35694045317139-Gen-4-Image-Prompting-Guide'
         instructions = 'Describe the subject, scene, composition, light and aesthetic with positive visual language. Put avoidance requirements in separate notes. Bind actual image references explicitly and verify available controls.'
+    elif kind == 'image' and profile == 'flux_image' and normalized in {'flux.1', 'flux.2'}:
+        documented = True
+        source = 'https://help.bfl.ai/articles/7734566352-does-flux-2-support-negative-prompting' if normalized == 'flux.2' else 'https://github.com/black-forest-labs/skills/blob/master/skills/flux-image-best-practices/rules/core-principles.md'
+        instructions = 'Lead with the subject and describe pose, composition, lighting and material appearance in natural language. Use positive requirements instead of a native negative field; inspect separate avoidance notes and translate only requirements consistent with the creator\'s style. Verify endpoint-specific controls.'
+    elif kind == 'image' and profile == 'midjourney_image' and normalized in {'v7', 'v6.1', 'midjourney v7', 'midjourney v6.1'}:
+        documented = True
+        source = 'https://docs.midjourney.com/hc/en-us/articles/32859204029709-Parameter-List'
+        instructions = 'Describe the desired subject and visual treatment, then place supported parameters at the end. This compiler emits aspect ratio only. Verify the chosen version before adding reference, exclusion, weighting or stylisation controls.'
     else:
         instructions = 'Verify this exact model\'s current official prompting guide and capabilities before generation. Use the selected profile/custom template as a starting point; do not invent model-specific parameters or native syntax.'
     return {'model': model, 'profile': profile, 'status': 'documented' if documented else 'custom_unverified',

@@ -65,7 +65,7 @@ async function waitForHealth(url, { instanceId, child, timeoutMs = 60000 } = {})
     }
     await delay(150);
   }
-  throw new Error(`Service startup timed out at ${url}: ${lastError?.message || 'no response'}. Check the desktop log and restart Frame Studio.`);
+  throw new Error(`Service startup timed out at ${url}: ${lastError?.message || 'no response'}. Check the desktop log and restart Orchestra.`);
 }
 
 async function cleanupChildren(children) {

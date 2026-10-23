@@ -16,12 +16,14 @@ VIDEO_PROFILES = [
 IMAGE_PROFILES = [
     {'id': 'general_image', 'name': 'General image generator', 'hint': 'Subject, composition, lens, light, palette and continuity.'},
     {'id': 'runway_image', 'name': 'Runway · image', 'hint': 'Visual descriptions and positive phrasing; exclusions remain separate notes.', 'source': 'https://help.runwayml.com/hc/en-us/articles/35694045317139-Gen-4-Image-Prompting-Guide'},
+    {'id': 'flux_image', 'name': 'FLUX · image', 'hint': 'Natural visual descriptions. Avoidance requirements stay in separate notes; no native negative field is emitted.', 'source': 'https://help.bfl.ai/articles/7734566352-does-flux-2-support-negative-prompting'},
+    {'id': 'midjourney_image', 'name': 'Midjourney · image', 'hint': 'Visual description followed by the selected aspect-ratio parameter. Verify version-specific controls separately.', 'source': 'https://docs.midjourney.com/hc/en-us/articles/32859204029709-Parameter-List'},
     {'id': 'custom', 'name': 'Custom image generator', 'hint': 'Set a reusable image prompt template.'},
 ]
 for _profile in VIDEO_PROFILES:
     _profile['suggested_models'] = {'flow_veo': ['Veo 3.1', 'Veo 3'], 'runway_i2v': ['Gen-4.5', 'Gen-4', 'Gen-4 Turbo'], 'runway_t2v': ['Gen-4.5']}.get(_profile['id'], [])
 for _profile in IMAGE_PROFILES:
-    _profile['suggested_models'] = {'runway_image': ['Gen-4 Image']}.get(_profile['id'], [])
+    _profile['suggested_models'] = {'runway_image': ['Gen-4 Image'], 'flux_image': ['FLUX.2', 'FLUX.1'], 'midjourney_image': ['V7', 'V6.1']}.get(_profile['id'], [])
 FIELDS = {'subject', 'motion', 'camera', 'lighting', 'style', 'palette', 'framing', 'lens', 'continuity', 'narration', 'sound', 'aspect_ratio', 'duration', 'environment', 'mood', 'opening', 'ending', 'dialogue', 'composition', 'body_look', 'state_before', 'state_after', 'references'}
 
 
@@ -69,19 +71,19 @@ def prompt_for(project, shot, kind):
     elif kind == 'image':
         template = visual
     elif profile == 'runway_i2v':
-        template = '{motion}. Camera movement: {camera}. {continuity}'
+        template = 'Camera movement: {camera}. {motion}. {continuity}'
     elif profile == 'runway_t2v':
-        template = visual + '. {motion}. Camera movement: {camera}'
+        template = 'Camera movement: {camera}. ' + visual + '. {motion}'
     else:
-        template = visual + '. Action: {motion}. Camera: {camera}. Sound: {sound}. Dialogue: {dialogue}. Narration: {narration}'
+        template = 'Camera movement: {camera}. ' + visual + '. Action: {motion}. Sound: {sound}. Dialogue: {dialogue}. Narration: {narration}'
     # Empty optional fields should not leave unreadable punctuation-only sentences.
     rendered = '. '.join(part.strip(' ;') for part in template.format_map(values).split('. ') if part.strip(' ;.'))
     # Appearance comes from the reference in I2V; retain the full brief in metadata.
-    # Other modes include the requested purpose so output intent is not just a UI label.
-    if profile != 'runway_i2v' and intake.get('purpose'):
-        rendered = join('Intended use: ' + intake['purpose'], rendered)
+    # Intended use stays in separate notes so the visual subject leads the prompt.
+    if kind == 'image' and profile == 'midjourney_image':
+        rendered = rendered.rstrip(' .') + ' --ar ' + settings['aspect_ratio']
     return {'generator_profile': profile, 'model': model, 'model_guidance': guidance,
             'creative_intent': intake, 'prompt': rendered.strip(), 'effective_direction': d, 'recipe_contract': recipe_context(project, shot),
-            'negative_prompt': settings.get('negative_prompt', '') if profile not in ['runway_i2v', 'runway_t2v', 'runway_image'] else '',
-            'separate_notes': {'sound': sound, 'narration': shot['narration'], 'avoid': settings.get('negative_prompt', ''), 'reference_map': d['references'], 'acceptance_criteria': list(dict.fromkeys(recipe_criteria(project, shot, kind) + d['quality']['criteria'])), 'generation_mode': d['generation_mode']},
+            'negative_prompt': settings.get('negative_prompt', '') if profile not in ['runway_i2v', 'runway_t2v', 'runway_image', 'flux_image', 'midjourney_image'] else '',
+            'separate_notes': {'purpose': intake.get('purpose', ''), 'sound': sound, 'narration': shot['narration'], 'avoid': settings.get('negative_prompt', ''), 'reference_map': d['references'], 'acceptance_criteria': list(dict.fromkeys(recipe_criteria(project, shot, kind) + d['quality']['criteria'])), 'generation_mode': d['generation_mode']},
             'duration_seconds': shot['duration_seconds'], 'aspect_ratio': settings['aspect_ratio']}

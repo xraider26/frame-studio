@@ -1,6 +1,6 @@
 # Security and private reports
 
-Frame Studio is an early local desktop beta. The current beta is the focus for security fixes; there is no formal support SLA or security certification.
+Orchestra is an early local desktop beta. The current beta is the focus for security fixes; there is no formal support SLA or security certification.
 
 Do not publish tokens, API keys, private project databases, personal media or sensitive logs in an issue. If the repository offers **Security → Report a vulnerability**, use that private GitHub channel. If it is unavailable, open a minimal issue requesting a private reporting channel without exploit details or secrets, and wait for a maintainer response before sharing sensitive material.
 

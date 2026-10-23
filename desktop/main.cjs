@@ -6,7 +6,12 @@ const { randomUUID } = require('node:crypto');
 const { spawn } = require('node:child_process');
 const { buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal } = require('./runtime.cjs');
 
-app.setName('Frame Studio');
+app.setName('Orchestra');
+// Keep installed users' projects, credentials, Electron state and instance lock.
+// The visible product name must never select a fresh Orchestra data folder.
+const legacyUserData = path.join(app.getPath('appData'), 'Frame Studio');
+fs.mkdirSync(legacyUserData, { recursive: true });
+app.setPath('userData', legacyUserData);
 
 let window;
 let log;
@@ -35,7 +40,7 @@ function fail(error) {
   failed = true;
   writeLog(error.stack || String(error));
   writeSmoke({ ok: false, error: error.message, dataDir, logPath, instance_id: instanceId });
-  if (!smoke) dialog.showErrorBox('Frame Studio could not start', `${error.message}\n\nLogs: ${logPath || app.getPath('logs')}\n\nClose Frame Studio and try again. If the problem continues, include this log when requesting help.`);
+  if (!smoke) dialog.showErrorBox('Orchestra could not start', `${error.message}\n\nLogs: ${logPath || app.getPath('logs')}\n\nClose Orchestra and try again. If the problem continues, include this log when requesting help.`);
   app.quit();
 }
 
@@ -56,12 +61,12 @@ function startChild(name, spec) {
 function makeMenu(resources) {
   const mcp = { mcpServers: { 'frame-studio': { command: path.join(resources, 'backend', 'FrameStudioService.exe'), args: ['mcp', '--data-dir', dataDir] } } };
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { label: 'Frame Studio', submenu: [
+    { label: 'Orchestra', submenu: [
       { label: 'Copy MCP configuration', click: () => clipboard.writeText(JSON.stringify(mcp, null, 2)) },
       { label: 'Open data folder', click: () => { void shell.openPath(dataDir); } },
       { label: 'Open desktop log', click: () => { void shell.openPath(logPath); } },
       { type: 'separator' },
-      { label: 'About Frame Studio', click: () => { void dialog.showMessageBox(window, { type: 'info', title: 'Frame Studio', message: `Frame Studio ${app.getVersion()}`, detail: 'Create short videos locally. Your projects and credentials stay in your data folder.' }); } },
+      { label: 'About Orchestra', click: () => { void dialog.showMessageBox(window, { type: 'info', title: 'Orchestra', message: `Orchestra ${app.getVersion()}`, detail: 'Create short videos locally. Your projects and credentials stay in your data folder.' }); } },
       { role: 'quit' },
     ] },
     { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
@@ -85,9 +90,9 @@ async function start() {
   log.on('error', (error) => { console.error('Desktop log error:', error.message); });
   instanceId = randomUUID();
   runtimeFile = path.join(dataDir, 'desktop-runtime.json');
-  writeLog(`Frame Studio ${app.getVersion()} starting; instance ${instanceId}`);
+  writeLog(`Orchestra ${app.getVersion()} starting; instance ${instanceId}`);
   const loadingFile = path.join(__dirname, 'loading.html');
-  window = new BrowserWindow({ width: 1440, height: 960, minWidth: 1024, minHeight: 720, show: false, backgroundColor: '#0c1017', title: 'Frame Studio', webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false } });
+  window = new BrowserWindow({ width: 1440, height: 960, minWidth: 1024, minHeight: 720, show: false, backgroundColor: '#0c1017', title: 'Orchestra', webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, allowRunningInsecureContent: false } });
   window.once('ready-to-show', () => { if (!smoke) window?.show(); });
   window.on('closed', () => { window = null; });
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -107,7 +112,7 @@ async function start() {
   await window.loadFile(loadingFile);
   if (stopping) return;
   for (const relative of ['backend/FrameStudioService.exe', 'web/server.js', 'bin/ffmpeg.exe', 'bin/ffprobe.exe']) {
-    if (!fs.existsSync(path.join(resources, relative))) throw new Error(`A required bundled file is missing: ${relative}. Reinstall Frame Studio from the Windows installer.`);
+    if (!fs.existsSync(path.join(resources, relative))) throw new Error(`A required bundled file is missing: ${relative}. Reinstall Orchestra from the Windows installer.`);
   }
   const backendPort = await getFreePort();
   let frontendPort = await getFreePort();
@@ -153,7 +158,7 @@ if (!app.requestSingleInstanceLock()) {
       try {
         if (runtimeFile && fs.existsSync(runtimeFile) && JSON.parse(fs.readFileSync(runtimeFile, 'utf8')).instance_id === instanceId) fs.rmSync(runtimeFile);
       } catch (error) { writeLog(`Runtime file cleanup: ${error.message}`); }
-      writeLog('Frame Studio stopped.');
+      writeLog('Orchestra stopped.');
       if (log) await new Promise((resolve) => log.end(resolve));
       app.exit(failed ? 1 : 0);
     })().catch((error) => { console.error(error); app.exit(1); });

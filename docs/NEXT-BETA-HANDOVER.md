@@ -1,6 +1,10 @@
-# Frame Studio — image projects and creator-led production
+# Orchestra — image projects and creator-led production
 
 Date: 23 October 2026. Development branch: `feature/image-projects-creative-intake`.
+
+The product is now **Orchestra**, formerly Frame Studio. The interface, desktop shell, icon and future installer name are updated; installation identity, existing storage and MCP configuration keys remain stable. The GitHub repository path is unchanged.
+
+Additional next-beta work: mandatory per-project MCP workflow contracts with persisted actor acknowledgements, revision/workflow enforcement and policy/model invalidation; the [reviewed shared prompting guide](PROMPTING-GUIDE.md), five editable style setups and FLUX/Midjourney profiles. See [agent bootstrap and compatibility](MCP.md#strict-agent-contract-next-beta-source). Acknowledgements do not prove inspection or guarantee a model's behavior outside the app.
 
 ## Goal and release boundary
 
@@ -41,7 +45,7 @@ Keep the existing FastAPI/SQLite/local-media backend, stdio MCP bridge, Next.js 
 
 ## Verification checklist
 
-Implementation is present on this branch. Verification: 139 backend tests, 49 interface tests and 10 desktop tests; production build with Next.js 16.4.2. Production-dependency audit reports zero known vulnerabilities. The framework was patched after the original build reported an advisory. Actual browser rendering and a new packaged-installer smoke run remain outstanding: automatic approval review rejected launching the UI server as “blocked by policy.” Component tests do not substitute for those checks.
+Implementation is present on this branch. Verification: 152 backend tests, 50 interface tests and 12 desktop tests; production build with Next.js 16.4.2. Production-dependency audit reports zero known vulnerabilities. The framework was patched after the original build reported an advisory. Actual browser rendering and a new packaged-installer smoke run remain outstanding: automatic approval review rejected launching the UI server as “blocked by policy.” Component tests do not substitute for those checks.
 
 - [x] Test project/API creation and image batch payloads with the same choices/defaults.
 - [x] Test new approvals off, explicit gates and preservation of saved policy.
@@ -52,6 +56,8 @@ Implementation is present on this branch. Verification: 139 backend tests, 49 in
 - [x] Test external take import, explicit selection/inspection, prior-take preservation and unknown-cost correction without fabricated jobs.
 - [x] Retain media validation/path/size checks and test image-project video rejection.
 - [x] Run backend, frontend and desktop suites and production frontend build.
+- [x] Test persisted actor-specific rule acknowledgements, policy/model invalidation, integer revision enforcement, actual-next-step preparation and safe return of previously claimed outputs.
+- [x] Test Orchestra desktop naming while preserving existing data, credentials, overrides and installation identity; keep service/MCP compatibility identifiers unchanged.
 - [ ] Inspect the real rendered image/video creation and attachment flows on desktop and mobile.
 - [ ] Before shipping another installer, bump the beta version, package the tested commit and run the installed-app/MCP/media/persistence smoke checks. Keep the earlier beta artifact intact.
 

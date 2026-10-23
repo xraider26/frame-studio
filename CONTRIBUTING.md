@@ -1,6 +1,6 @@
-# Contributing to Frame Studio
+# Contributing to Orchestra
 
-Frame Studio is an early beta. Small reproducible bug reports, installation feedback and real workflow observations are useful. Describe the creator's task and expected result before proposing a large implementation change.
+Orchestra is an early beta. Small reproducible bug reports, installation feedback and real workflow observations are useful. Describe the creator's task and expected result before proposing a large implementation change.
 
 The project-wide license has not been selected yet. Do not assume public repository visibility grants a reuse license; licensing should be settled before substantial outside code contributions. Bundled third-party components retain their own notices.
 

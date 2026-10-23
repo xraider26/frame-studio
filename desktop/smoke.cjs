@@ -2,7 +2,7 @@
 const fs=require('node:fs');const path=require('node:path');const assert=require('node:assert/strict');const {spawn,spawnSync}=require('node:child_process');const {setTimeout:delay}=require('node:timers/promises');
 const root=path.resolve(__dirname,'..');
 async function main(){
- const executable=path.resolve(process.argv[2]||path.join(__dirname,'dist','win-unpacked','Frame Studio.exe'));
+ const executable=path.resolve(process.argv[2]||path.join(__dirname,'dist','win-unpacked','Orchestra.exe'));
  const working=fs.mkdtempSync(path.join(root,'.superpowers','Frame desktop smoke '));
  const data=process.argv[3]?path.resolve(process.argv[3]):path.join(working,'Creator data'),reportFile=path.join(working,'report.json');
  const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>['SYSTEMROOT','WINDIR','TEMP','TMP','APPDATA','LOCALAPPDATA','USERPROFILE','COMSPEC','HOMEDRIVE','HOMEPATH'].includes(k.toUpperCase())));

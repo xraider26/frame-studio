@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Flow Companion Studio — Director's Dashboard",
-  description: "Local companion studio for Google Flow, ComfyUI, and FFmpeg",
+  title: "Orchestra — Creative Production Studio",
+  description: "Local image and video production with creative direction, MCP agents and configurable reviews",
 };
 
 export default function RootLayout({

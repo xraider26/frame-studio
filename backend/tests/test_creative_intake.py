@@ -74,7 +74,7 @@ class CreativeIntakeTests(unittest.TestCase):
             self.assertEqual(result['model'], 'Gen-4 Image')
             self.assertEqual(result['model_guidance']['status'], 'documented')
             self.assertIn('Watercolour illustration', result['prompt'])
-            self.assertIn('book cover', result['prompt'])
+            self.assertIn('book cover', result['separate_notes']['purpose'])
             self.assertNotIn('Cinematic realism', result['prompt'])
 
     def test_motion_profile_uses_appearance_reference_not_static_redescription(self):

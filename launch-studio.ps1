@@ -17,6 +17,6 @@ if (-not $BackendOnly) {
         Start-Process -FilePath $studioNode -ArgumentList @($studioNext, $studioMode, '--hostname', '127.0.0.1', '--port', '3000') -WorkingDirectory (Join-Path $studioRoot 'frontend') -WindowStyle Hidden -RedirectStandardOutput (Join-Path $studioRoot 'studio-frontend.log') -RedirectStandardError (Join-Path $studioRoot 'studio-frontend-error.log')
     }
 }
-Write-Host 'Frame Studio: http://127.0.0.1:3000/studio'
+Write-Host 'Orchestra: http://127.0.0.1:3000/studio'
 Write-Host 'MCP command: backend/.venv/Scripts/python.exe backend/studio_mcp.py'
 Write-Host 'Local files, database and connection credentials: studio_data (keep private).'

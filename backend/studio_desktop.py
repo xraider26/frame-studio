@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 from studio.paths import data_root
 
 
-UNAVAILABLE = 'backend_unavailable: Open Frame Studio and retry the MCP connection.'
+UNAVAILABLE = 'backend_unavailable: Open Orchestra and retry the MCP connection.'
 
 
 def load_desktop_runtime(root):
@@ -48,7 +48,7 @@ def verify_desktop_runtime(runtime):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Frame Studio desktop service')
+    parser = argparse.ArgumentParser(description='Orchestra desktop service')
     commands = parser.add_subparsers(dest='command', required=True)
     serve = commands.add_parser('serve', help='Run the local desktop API')
     serve.add_argument('--host', default='127.0.0.1', choices=['127.0.0.1', 'localhost', '::1'])

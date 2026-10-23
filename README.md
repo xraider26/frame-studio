@@ -1,4 +1,6 @@
-# Frame Studio
+# Orchestra
+
+Formerly Frame Studio. The next-beta source is renamed Orchestra; existing projects, MCP identifiers and application-data paths remain compatible. The earlier Windows release keeps its historical Frame Studio name and filename.
 
 **An idea-to-production workspace for creators and their AI agents.**
 
@@ -10,13 +12,13 @@ Next-beta development adds image-only projects, creator intake, model selection 
 
 > **Early Windows x64 beta.** The installer is unsigned and has been tested on one Windows 11 machine, including installation into a different folder. Generation tools/accounts are supplied by you. The goal is repeatable, high-quality production; consistent artistic results still need real production trials.
 
-![Frame Studio's visual cinematography library comparing two camera looks](docs/images/cinematography-library.jpg)
+![Orchestra's visual cinematography library comparing two camera looks](docs/images/cinematography-library.jpg)
 
-*Actual studio interface. The photographic studies are generated teaching examples, not camera test footage or guarantees of model output.*
+*Earlier Frame Studio beta interface; Orchestra retains the workspace layout. The photographic studies are generated teaching examples, not camera test footage or guarantees of model output.*
 
-## What is Frame Studio?
+## What is Orchestra?
 
-Frame Studio is a production workflow and creative-direction tool for people making AI-assisted videos. Work in the interface, connect an MCP-capable agent, or export a generator-specific handoff for another tool.
+Orchestra is a production workflow and creative-direction tool for people making AI-assisted videos. Work in the interface, connect an MCP-capable agent, or export a generator-specific handoff for another tool.
 
 The studio organizes the work from brief to final review. Your agent writes and executes through its available tools; Frame provides project state, instructions, references, the next action and approval requirements. Returned media becomes inspectable takes linked to the original brief.
 
@@ -40,7 +42,7 @@ Choose **AI film, UGC, short drama, advertisement, explainer, podcast, 2D animat
 
 Save workflows, creative settings and optional shot plans as your own templates. Basic and Professional views reveal different amounts of detail while using the same underlying standards.
 
-![Frame Studio's recipe library with three AI-film examples and production standards](docs/images/template-library.jpg)
+![Orchestra's recipe library with three AI-film examples and production standards](docs/images/template-library.jpg)
 
 *Recipes provide editable production structure. These illustrative stills are not validated finished-video templates.*
 
@@ -86,7 +88,7 @@ Configuration formats are provided for Codex, Cursor, Claude Code/Desktop and An
 
 1. Open [the Windows beta release](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1).
 2. Download `Frame-Studio-Setup-0.2.0.exe` and run setup. A SHA256 file is provided alongside it.
-3. Launch **Frame Studio** from its shortcut.
+3. Launch **Orchestra** from its shortcut.
 4. Open **Connections & MCP**, choose your client and copy the generated configuration if you want agent control.
 
 The installer bundles Node.js, Python and FFmpeg/FFprobe. You do not need to clone the repository or install those runtimes separately. Paths are discovered on each machine. Keep the app open during agent use.
@@ -129,6 +131,7 @@ The older companion prototype at `/` and port 8000 is preserved separately. Its 
 - [First project walkthrough and FAQ](docs/GETTING-STARTED.md)
 - [Windows setup and troubleshooting](docs/WINDOWS.md)
 - [MCP workflow and API adapter contract](docs/MCP.md)
+- [Reviewed prompting guide and editable style setups](docs/PROMPTING-GUIDE.md)
 - [Visual cinematography](docs/CINEMATOGRAPHY.md)
 - [Recipes and final-video assessments](docs/COURSE-RECIPES.md)
 - [Feature/source coverage](docs/CREATIVE-COVERAGE.md)
@@ -139,4 +142,4 @@ Include the app version, expected/actual behavior and a minimal reproduction. Re
 
 ### Project and third-party status
 
-This project is in early beta. No project-wide open-source license has been selected in this repository yet; public source visibility alone does not grant a reuse license. Bundled components retain their own licenses and notices; see [software notices](desktop/THIRD-PARTY-NOTICES.md). Frame Studio is independent; third-party product names describe compatibility or workflow targets, not endorsement.
+This project is in early beta. No project-wide open-source license has been selected in this repository yet; public source visibility alone does not grant a reuse license. Bundled components retain their own licenses and notices; see [software notices](desktop/THIRD-PARTY-NOTICES.md). Orchestra is independent; third-party product names describe compatibility or workflow targets, not endorsement.

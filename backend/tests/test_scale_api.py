@@ -30,6 +30,8 @@ class ScaleApiTests(unittest.TestCase):
         task=self.call('claim_queue_task',{'request_id':'worker-task','batch_id':batch['id']}).json()
         self.assertEqual(task['actor'],'agent:worker')
         self.assertEqual(self.call('renew_queue_task',{'task_id':task['id']}).status_code,200)
+        contract=self.call('get_workflow_contract',{'project_id':task['project_id']}).json()
+        self.assertEqual(self.call('acknowledge_workflow_contract',{'project_id':task['project_id'],'contract_version':contract['contract_version'],'expected_revision':contract['revision']}).status_code,200)
         result=self.call('complete_step',{'project_id':task['project_id'],'step':'brief','output':{'text':'A complete actual brief'},'expected_revision':task['project_revision']})
         self.assertEqual(result.status_code,200,result.text)
         self.assertEqual(self.call('finish_queue_task',{'task_id':task['id'],'status':'done','note':'Prepared actual brief'}).status_code,200)

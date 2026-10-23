@@ -21,6 +21,7 @@ from .dispatch import Dispatch
 from .identity import Identity
 from .recipes import seed_recipe, recipe_context, retime_seeded_shots
 from .recipe_trials import RecipeTrials
+from .agent_rules import AgentRules
 
 
 def uid():
@@ -41,7 +42,7 @@ def clean_text(value, limit=12000):
     return value.strip()
 
 
-class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, ProductionTools, Store):
+class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, ProductionTools, Store):
     def __init__(self, db_path, media_root, inbox):
         super().__init__(db_path)
         self.media_root, self.inbox = Path(media_root).resolve(), Path(inbox).resolve()
@@ -296,6 +297,10 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             raise StudioError('missing_output', 'Provide the actual step document or editing notes.')
         def update(p):
             steps = active_steps(p)
+            if actor != 'user':
+                action = self._next(p)
+                if action['action'] != 'prepare_step' or action['step'] != step:
+                    raise StudioError('step_blocked', 'Follow current next_action: ' + action['action'] + '. ' + action['message'] + ' Refresh get_project before continuing.', 409)
             if step not in steps:
                 raise StudioError('invalid_step', 'This output type does not use that workflow step.')
             if any(p['steps'][s]['status'] not in ['approved', 'auto_proceeded'] for s in steps[:steps.index(step)]):
@@ -451,9 +456,16 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             identity['input_version'] = shot['input_versions'].get(kind, 0)
         return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
 
-    def claim_next(self, project_id, actor, request_id):
+    def claim_next(self, project_id, actor, request_id, expected_revision=None):
         if not clean_text(request_id, 200):
             raise StudioError('invalid_request', 'Provide a unique request_id, reused only for retries of this same handoff.')
+        if expected_revision is not None:
+            p = self.get(project_id)
+            retried = next((j for j in p['jobs'] if j.get('request_id') == request_id), None)
+            if retried:
+                if retried['actor'] != actor:
+                    raise StudioError('job_owner', 'This request belongs to another executor. Read get_job; do not start duplicate paid work.', 403)
+                return {'job': copy.deepcopy(retried), 'handoff': copy.deepcopy(retried['handoff']), 'already_claimed': True}
         def update(p):
             block = self._dispatch_block(p)
             if block:
@@ -498,7 +510,7 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             p['jobs'].append(job)
             event(p, 'generation_handoff', actor, f"{shot['title']}: {action['kind']} handoff created")
             return {'job': copy.deepcopy(job), 'handoff': copy.deepcopy(handoff), 'already_claimed': False}
-        return self.mutate(project_id, None, update)
+        return self.mutate(project_id, expected_revision, update)
 
     def find_job(self, job_id):
         for p in self.all():

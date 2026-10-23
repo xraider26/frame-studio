@@ -255,7 +255,7 @@ export default function StudioPage() {
     <div className="fs-app">
       <header className="fs-top">
         <a href="/studio" className="fs-brand">
-          <span className="fs-mark">▰</span> frame <small>STUDIO</small>
+          <span className="fs-mark">◌</span> orchestra <small>STUDIO</small>
         </a>
         <span className="fs-connection">
           <i />
@@ -1221,12 +1221,18 @@ function Connections({
             onFocus={(e) => e.target.select()}
           />
           <p className="fs-hint">
-            {caps?.mcp_launch?.desktop ? "Keep Frame Studio open while your agent uses MCP." : "Setup instructions: docs/MCP.md in the project folder."}
+            {caps?.mcp_launch?.desktop ? "Keep Orchestra open while your agent uses MCP." : "Setup instructions: docs/MCP.md in the project folder."}
             Client configurations are provided, not silently installed.
           </p>
           <h3>Try this in your agent</h3>
+          <p className="fs-hint">
+            Agents must acknowledge the current workflow contract before editing.
+            Orchestra checks revisions, permitted workflow steps and your review
+            policy on the server. Reconnect your MCP client after upgrading to
+            load the new tools.
+          </p>
           <blockquote>
-            “Use Frame Studio to create a short drama. Prepare the brief and
+            “Use Orchestra to create a short drama. Read and acknowledge its current workflow contract, then prepare the brief and
             script, follow the project’s approval policy, then get the next
             generation handoff. Return each real output before continuing.”
           </blockquote>
