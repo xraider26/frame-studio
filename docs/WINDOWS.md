@@ -20,6 +20,8 @@ Keep Orchestra open while using MCP. Its bundled `FrameStudioService.exe mcp --d
 
 ## Build from source
 
+Current source packages **Orchestra 0.2.1-beta.1** as `Orchestra-Setup-0.2.1-beta.1.exe` plus its SHA256 file. This version advances the installed 0.2.0 application version; the historical `v0.2.0-beta.1` release/tag and files remain unchanged. A local build does not publish a GitHub release. Current capabilities include image projects/templates, five-stage navigation, model-aware image requirements, Qwen guidance and mapped direct ComfyUI execution. See [ComfyUI setup](COMFYUI.md) and [browser findings](qa/2026-10-24/browser-checks.md) for current limits.
+
 Build requirements: Windows x64, Node.js >=22.12, Python 3.12, `uv`, and FFmpeg/FFprobe on the build machine. Install the source application's backend/frontend dependencies first. Runtime dependencies are separate from build-only tools.
 
 ```powershell

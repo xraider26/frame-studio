@@ -1,5 +1,7 @@
 # Orchestra: agent-controlled workflow
 
+Image generation/editing requirements and direct ComfyUI workflow execution are documented in [ComfyUI and image prompting](COMFYUI.md). Agents use the existing owned `claim_generation` → `run_provider` → `get_job` flow; connections and workflow validation/export are human UI controls. Read compiler warnings and `remote_prompt_id` before retrying interrupted ComfyUI work.
+
 ## Strict agent contract (next-beta source)
 
 Reconnect the client after upgrading so it loads the Orchestra server instructions and new tools. Existing `frame_studio`/`frame-studio` MCP keys, the legacy service identifier and local data paths remain compatible; they do not need renaming in client settings.

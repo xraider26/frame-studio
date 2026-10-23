@@ -21,6 +21,7 @@ from .exports import export_editor
 from .recipes import recipe_catalog
 from .sequences import sequence_catalog
 from .course_rules import course_coverage
+from .comfy_export import export_comfy
 from .paths import data_root as default_data_root, mcp_launch_configuration
 
 def credential(root, filename):
@@ -101,7 +102,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         actor = 'user' if human else 'agent:' + body.actor[:94]
         if op == 'update_production' and isinstance(a.get('production'), dict) and any(k in a['production'] for k in ['resources', 'require_recorded_checks', 'recipe']) and not human:
             raise StudioError('human_only', 'Resource and quality policy belong to the user. Agents may report evidence and actual job costs.', 403)
-        if op in ['apply_sequence', 'set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template', 'update_batch', 'set_project_dispatch', 'sync_batch_identity', 'endorse_recipe', 'activate_recipe', 'record_recipe_trial'] and not human:
+        if op in ['validate_connection', 'export_comfy_handoff', 'apply_sequence', 'set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template', 'update_batch', 'set_project_dispatch', 'sync_batch_identity', 'endorse_recipe', 'activate_recipe', 'record_recipe_trial'] and not human:
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'apply_project_template' and not human and isinstance(a.get('sections'), list) and 'workflow' in a['sections']:
             raise StudioError('human_only', 'Applying workflow approval/quality policy belongs to the user.', 403)
@@ -128,7 +129,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
             return {'server': 'Orchestra', 'schema_version': 2, 'rules_version': RULES_VERSION, 'agent_contract_required': True, 'agent_bootstrap': ['studio_capabilities', 'get_project', 'get_workflow_contract', 'acknowledge_workflow_contract', 'next_action'], 'transport': 'stdio bridge',
                     'mcp_launch': mcp_launch_configuration(root),
                     'creative_schema': creative_schema(), 'knowledge_coverage': knowledge_catalog()['coverage'],
-                    'execution_modes': ['agent_handoff', 'json_job_api'], 'flow_account': 'not_connected',
+                    'execution_modes': ['agent_handoff', 'json_job_api', 'comfyui'], 'flow_account': 'not_connected',
                     'connections': providers.public(), 'inbox': str(studio.inbox),
                     'video_profiles': VIDEO_PROFILES, 'image_profiles': IMAGE_PROFILES,
                     'output_types': ['image', 'video'], 'steps_by_output_type': {'image': ['brief', 'script', 'visual_direction', 'final_review'], 'video': STEPS},
@@ -201,6 +202,8 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'set_policy': return studio.set_policy(a['project_id'], a['policy'], a['expected_revision'])
         if op == 'review': return studio.review(a['project_id'], a['step'], a['approve'], a.get('note', ''), a['expected_revision'])
         if op == 'save_connection': return providers.save(a)
+        if op == 'validate_connection': return await providers.validate_connection(a['connection_id'])
+        if op == 'export_comfy_handoff': return export_comfy(studio, providers, a['project_id'], a['connection_id'])
         if op == 'run_provider': return providers.submit(a['job_id'], a['connection_id'])
         raise StudioError('unknown_operation', 'Unknown Orchestra operation. Read studio_capabilities for supported tools, then get_workflow_contract and next_action for the project.')
 

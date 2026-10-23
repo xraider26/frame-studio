@@ -47,6 +47,8 @@ Keep the existing FastAPI/SQLite/local-media backend, stdio MCP bridge, Next.js 
 
 ## Verification checklist
 
+24 October update: image prompting and mapped direct ComfyUI execution are implemented; see [setup and limits](COMFYUI.md). Fresh release-preparation checks passed **187 backend, 66 interface and 13 desktop tests**. The desktop source version is **0.2.1-beta.1**. A new installer build and packaged smoke verification are being performed separately; do not equate source tests with a tested installer. The earlier beta tag/assets remain unchanged.
+
 Implementation is present on this branch. Fresh verification: **165 backend tests, 63 interface tests and 12 desktop tests**; production build with Next.js 16.4.2. The prior production-dependency audit reported zero known vulnerabilities; dependency versions are unchanged in this update. Actual browser rendering and a new packaged-installer smoke run remain outstanding: automatic approval review rejected launching the UI server as “blocked by policy.” Component tests do not substitute for those checks.
 
 - [x] Test project/API creation and image batch payloads with the same choices/defaults.

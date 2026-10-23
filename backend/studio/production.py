@@ -41,6 +41,7 @@ class ProductionTools:
         prepared = prompt_for(p, shot, kind)
         value = {'model': prepared.get('model'), 'generator_profile': prepared.get('generator_profile'), 'model_guidance': prepared.get('model_guidance'), 'creative_intent': prepared.get('creative_intent'), 'prompt': prepared['prompt'], 'negative': prepared['negative_prompt'], 'aspect': prepared['aspect_ratio'],
                  'references': [{k: a.get(k) for k in ['id', 'slot', 'version', 'binding_role']} for a in references_for(p, shot, kind)]}
+        if kind == 'image': value['image_requirements'] = prepared.get('image_requirements')
         if kind == 'video':
             value.update(duration=shot['duration_seconds'], sound=prepared['separate_notes']['sound'], mode=shot['direction']['generation_mode'])
         return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()

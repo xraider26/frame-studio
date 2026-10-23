@@ -42,6 +42,11 @@ def preflight(project, shot_id=None, kind=None):
         if shot_id and shot['id'] != shot_id:
             continue
         d = effective_direction(project, shot)
+        if image_only and d['image']['mode'] == 'edit':
+            if not any(r['role'] in ['character','location','prop','style','start_frame'] for r in d['references']) or not references_for(project, shot, 'image'):
+                issue('image_edit_reference', 'error', shot, 'direction.references', 'Bind a source image before requesting image editing.')
+            if not d['image']['instructions'].strip():
+                issue('image_edit_instructions', 'error', shot, 'direction.image.instructions', 'Describe the requested edit before generation.')
         action, sound = d['action'], d['sound']
         audio_source = d['editorial']['audio_source_shot_id']
         if not image_only and audio_source and not any(s['id'] == audio_source for s in shots):

@@ -48,6 +48,7 @@ def export_project(studio, project):
                   f'Target duration: {s["video"]["duration_seconds"]}s; aspect: {s["video"]["aspect_ratio"]}. Confirm support in your selected model.',
                   f'Start frame: {s["start_frame"] or "Generate/return the keyframe first"}',
                   'Separate audio / avoidance notes: ' + json.dumps(s['video']['separate_notes'], ensure_ascii=False), '']
+        lines += ['Image requirements: ' + json.dumps(s['image'].get('image_requirements'), ensure_ascii=False), 'Image warnings: ' + json.dumps(s['image'].get('warnings', []), ensure_ascii=False), 'Image avoidance notes: ' + s['image']['separate_notes']['avoid'], '']
     text = '\n'.join(lines)
     folder = studio.media_root / p['id'] / 'exports'
     folder.mkdir(parents=True, exist_ok=True)
@@ -147,7 +148,7 @@ def export_images(studio, p):
                 'approval_policy': p['approval_policy'], 'production': p['production'], 'shots': shots, 'references': [{'asset_id': key, 'file': value} for key, value in references.items()],
                 'image_generator': p['settings']['image_generator'],
                 'next_action_at_export': studio._next(p), 'preflight': preflight(p)}
-    text = '\n'.join([f'# {p["name"]}', '', *[f'{s["order"]}. {s["title"]}\n{s["image"]["prompt"]}\nSelected image: {s["selected_image"] or "None"}' for s in shots]])
+    text = '\n'.join([f'# {p["name"]}', '', *[f'{s["order"]}. {s["title"]}\n{s["image"]["prompt"]}\nImage requirements: {json.dumps(s["image"].get("image_requirements"), ensure_ascii=False)}\nWarnings: {json.dumps(s["image"].get("warnings", []), ensure_ascii=False)}\nAvoidance notes: {s["image"]["separate_notes"]["avoid"]}\nSelected image: {s["selected_image"] or "None"}' for s in shots]])
     folder = studio.media_root / p['id'] / 'exports'
     folder.mkdir(parents=True, exist_ok=True)
     name = uuid.uuid4().hex + '.zip'

@@ -500,6 +500,7 @@ class Studio(Sequences, AgentRules, Batching, Dispatch, Identity, SavedTemplates
                        'prompt': prepared['prompt'], 'generator_profile': prepared['generator_profile'],
                        'model': prepared.get('model'), 'model_guidance': copy.deepcopy(prepared.get('model_guidance')), 'creative_intent': copy.deepcopy(prepared.get('creative_intent')),
                        'negative_prompt': prepared['negative_prompt'], 'separate_notes': prepared['separate_notes'],
+                       'warnings': prepared.get('warnings', []), 'image_requirements': prepared.get('image_requirements'),
                        'execution_mode': p['settings']['generation_mode'],
                        'creative_settings': copy.deepcopy(p['settings']), 'narration': shot['narration'],
                        'effective_direction': prepared['effective_direction'], 'production': copy.deepcopy(p['production']),

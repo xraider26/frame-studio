@@ -65,7 +65,15 @@ def model_guidance(profile, model, kind):
     normalized = model.casefold().replace('_', '-').strip()
     source = None
     documented = False
-    if kind == 'video' and profile == 'flow_veo' and normalized in {'veo 3', 'veo 3.1', 'veo-3', 'veo-3.1'}:
+    if kind == 'image' and profile == 'qwen_image' and normalized in {'qwen-image-2.1', 'qwen-image-2.1-turbo'}:
+        documented = True
+        source = 'https://github.com/QwenLM/Qwen-Image-2.1'
+        instructions = 'Use detailed natural language for subject, spatial relationships, visual treatment and exact visible text. For editing, identify reference roles, requested changes and what must remain unchanged. Version 2.1 supports generation/editing, up to ten reference images and RGBA with a compatible workflow. Preserve the selected checkpoint schedule; Turbo differs from the base model. Verify installed workflow controls.'
+    elif kind == 'video' and profile == 'minimax_h3' and normalized in {'minimax h3', 'minimax-h3'}:
+        documented = True
+        source = 'https://docs.comfy.org/tutorials/video/minimax/minimax-h3-native'
+        instructions = 'Describe the overall scene then shots, motion, camera, dialogue, sound effects and music in one coherent block. Choose T2V/I2V/R2V explicitly in the workflow; map first/last frames and reference roles. Preserve model-specific frame, resolution and sampling settings; validate them against the installed node schema.'
+    elif kind == 'video' and profile == 'flow_veo' and normalized in {'veo 3', 'veo 3.1', 'veo-3', 'veo-3.1'}:
         documented = True
         source = 'https://deepmind.google/models/veo/prompt-guide/'
         instructions = 'Use a coherent scene with subject, setting, action, framing and camera movement. Describe motivated sound and dialogue separately within the scene. Verify actual duration, references and audio controls in the selected model.'
@@ -88,4 +96,4 @@ def model_guidance(profile, model, kind):
     else:
         instructions = 'Verify this exact model\'s current official prompting guide and capabilities before generation. Use the selected profile/custom template as a starting point; do not invent model-specific parameters or native syntax.'
     return {'model': model, 'profile': profile, 'status': 'documented' if documented else 'custom_unverified',
-            'instructions': instructions, 'source': source, 'checked_at': '2026-10-23' if documented else None}
+            'instructions': instructions, 'source': source, 'checked_at': ('2026-10-24' if profile in ['qwen_image', 'minimax_h3'] else '2026-10-23') if documented else None}

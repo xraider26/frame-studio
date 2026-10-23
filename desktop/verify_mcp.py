@@ -25,7 +25,8 @@ async def verify():
             if content is None:
                 content = json.loads(next(c.text for c in result.content if c.type == 'text'))
             content = content.get('result', content)
-            assert len(content['recipes']) == 9
+            assert len(content['recipes']) == 16
+            assert sum(r.get('output_type') == 'image' for r in content['recipes']) == 7
             print(json.dumps({'stdio': 'passed', 'tools': len(names), 'recipes': len(content['recipes'])}))
 
 

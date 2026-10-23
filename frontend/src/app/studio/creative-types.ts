@@ -21,7 +21,9 @@ export type TakeReview = {
   at: string;
   inspected: string[];
 };
+export type ImageRequirements = {mode:"generate"|"edit";instructions:string;preserve:string;exact_text:string[];layout:string;background:string};
 export type Direction = {
+  image?: ImageRequirements;
   editorial?: {coverage_role:string;purpose:string;transition_in:string;audio_source_shot_id:string;audio_continuity:string};
   recipe_role?: string;
   decision_reason?: string;
@@ -179,6 +181,7 @@ export type Action = {
   shot_id?: string;
 };
 export type Job = {
+  remote_prompt_id?: string;
   id: string;
   status: string;
   kind: string;

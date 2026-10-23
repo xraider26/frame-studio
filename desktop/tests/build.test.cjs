@@ -5,6 +5,11 @@ const os=require('node:os');
 const path=require('node:path');
 const {isPrivate,copyTree,resetBuildDirectory,assertResources}=require('../build.cjs');
 
+test('installer verification uses the Orchestra artifact name for beta versions',()=>{
+ const {installerPath}=require('../build.cjs');
+ assert.equal(path.basename(installerPath('0.2.0-beta.2')),'Orchestra-Setup-0.2.0-beta.2.exe');
+});
+
 test('packaging excludes project data and credentials without excluding public source metadata',()=>{
  for(const name of ['studio_data/workflow.db','.env.local','backend/agent.token','media/a.mp4','course_sources/original.pdf','connections.json'])assert.equal(isPrivate(name),true,name);
  for(const name of ['docs/sources/verified-course-lessons.json','node_modules/token/index.js','cinematography/50mm.png'])assert.equal(isPrivate(name),false,name);

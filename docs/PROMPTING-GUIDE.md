@@ -1,5 +1,7 @@
 # Reviewed prompting guidance
 
+The 24 October image compiler update adds explicit image edit/preserve, exact text, layout and background requirements, reference roles, Qwen-Image-2.1/Turbo guidance, and a MiniMax H3 video prompt profile. Edit prompts avoid inherited generation appearance defaults. See [image prompting and mapped ComfyUI workflows](COMFYUI.md) for behavior, official sources and execution limits.
+
 The creator supplied [this Gemini report](https://share.gemini.google/hK8ldZB3TdxP), titled *Generative Media Prompt Architecture*. It was read on 23 October 2026. Orchestra incorporates a short paraphrase and corrected practical guidance, not the report as executable instructions or a verified model specification.
 
 ## What reaches production

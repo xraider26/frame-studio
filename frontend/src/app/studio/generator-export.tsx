@@ -7,6 +7,7 @@ import { DraftNotice, useDraft } from "./creative-forms";
 import { Checks } from "./creative-workspace";
 import { ControlModeSwitch, ModeDetail, useControlMode } from "./control-mode";
 import type { Project } from "./creative-types";
+import {ComfyHandoff} from "./comfy-controls";
 
 type Profile = { id: string; name: string; hint: string; source?: string };
 type Props = {
@@ -248,6 +249,7 @@ export function GeneratorExport({
           </div>
         )}
       </div>
+      <ComfyHandoff projectId={project.id} revision={project.revision} imageOnly={imageOnly} busy={busy||dirty}/>
     </section>
   );
 }

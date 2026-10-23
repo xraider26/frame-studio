@@ -27,6 +27,7 @@ import { ProjectActions } from "./project-actions";
 import { MediaUpload } from "./media-upload";
 import { CreativeBrief, BriefFields } from "./creative-brief";
 import { GeneratorExport } from "./generator-export";
+import {ComfyWorkflowFields,emptyComfy} from "./comfy-controls";
 import {
   CreativeWorkspace,
   Checks,
@@ -55,6 +56,9 @@ type Step = { id: string; name: string };
 type Template = TemplateChoice;
 type Summary = Pick<Project, "id" | "name" | "template_id" | "revision">;
 type Connection = {
+  comfy_json?: string;
+  adapter?: string;
+  comfy?: {kind:string;workflow:Record<string,unknown>;bindings:Record<string,unknown>;output_node:string};
   id: string;
   name: string;
   enabled: boolean;
@@ -843,7 +847,7 @@ export default function StudioPage() {
                         >
                           <option value="">Choose an enabled connection</option>
                           {caps?.connections
-                            .filter((c) => c.enabled)
+                            .filter((c) => c.enabled && (c.adapter !== "comfyui" || c.comfy?.kind === displayedHandoff.kind))
                             .map((c) => (
                               <option key={c.id} value={c.id}>
                                 {c.name}
@@ -893,6 +897,7 @@ export default function StudioPage() {
                               · {j.kind}
                             </strong>
                             <span>{pretty(j.status)}</span>
+                            {j.remote_prompt_id && <small>ComfyUI prompt: <code>{j.remote_prompt_id}</code></small>}
                             {j.error && <p>{j.error}</p>}
                             {j.status === "awaiting_external_output" && (
                               <button
@@ -1117,7 +1122,10 @@ function Connections({
     api_key: "",
     enabled: false,
     max_requests: 1,
+    adapter: "json_job_api",
+    comfy_json: JSON.stringify(emptyComfy,null,2),
   });
+  const [validation,setValidation] = useState("");
   const [client, setClient] = useState("Cursor / Claude Code");
   const config = mcpConfig(caps?.mcp_launch,client);
   return (
@@ -1195,8 +1203,7 @@ function Connections({
         <div>
           <h2>API generators</h2>
           <p className="fs-body">
-            Optional. Connect a generator that implements the studio’s JSON Job
-            API contract. Vendor-specific APIs need an adapter.
+            Connect ComfyUI with an explicitly mapped API workflow, or use a generator implementing the studio’s JSON Job API contract.
           </p>
           {caps?.connections.map((c) => (
             <div key={c.id} className="fs-connection-item">
@@ -1218,14 +1225,18 @@ function Connections({
                     api_key: "",
                     enabled: c.enabled,
                     max_requests: c.max_requests,
+                    adapter: c.adapter || "json_job_api",
+                    comfy_json: c.comfy_json || JSON.stringify(emptyComfy,null,2),
                   })
                 }
               >
                 Edit
               </button>
+              {c.adapter === "comfyui" && <button className="fs-link" disabled={busy} onClick={()=>save(async()=>{setValidation("");const result=await api<{node_count:number}>("validate_connection",{connection_id:c.id});setValidation(`${c.name}: ${result.node_count} nodes validated against the installed ComfyUI. No generation submitted.`);})}>Validate workflow</button>}
             </div>
           ))}
           <div className="fs-form-grid fs-single">
+            <label className="fs-label">Generator adapter<select value={form.adapter} onChange={e=>setForm({...form,adapter:e.target.value})}><option value="json_job_api">JSON Job API</option><option value="comfyui">ComfyUI API workflow</option></select></label>
             {[
               ["id", "Connection ID", "my-generator"],
               ["name", "Display name", "My image & video generator"],
@@ -1270,12 +1281,15 @@ function Connections({
               <span>Enable generation through this API</span>
             </label>
           </div>
+          {form.adapter === "comfyui" && <ComfyWorkflowFields value={form.comfy_json} onChange={comfy_json=>setForm({...form,comfy_json})}/>}
+          {validation && <p role="status" className="fs-hint">{validation}</p>}
           <button
             className="fs-primary"
             disabled={busy || !form.id || !form.base_url}
             onClick={() =>
               save(async () => {
-                await api("save_connection", form);
+                const {comfy_json,...connection}=form;
+                await api("save_connection", {...connection,...(form.adapter==="comfyui"?{comfy_json}:{})});
                 setForm({ ...form, api_key: "" });
               })
             }

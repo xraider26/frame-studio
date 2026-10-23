@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import {ImagePromptFields,emptyImageRequirements} from "./image-prompt-fields";
 import {
   Plus,
   ArrowUp,
@@ -124,7 +125,7 @@ export function CreativeWorkspace({
     [tab, setTab] = useState("Story");
   const [storedPreview, setPreview] = useState<{
     source_revision: number;
-    image: { prompt: string };
+    image: { prompt: string; warnings?:string[] };
     video: { prompt: string };
     preflight: Preflight;
   } | null>(null);
@@ -397,6 +398,7 @@ export function CreativeWorkspace({
                   onChange={(narration) => edit({ narration })}
                 />
                 </>}
+                <ImagePromptFields value={d.image || emptyImageRequirements()} onChange={image=>dir({image})}/>
               </>
             )}
             {tab === "Camera" && (
@@ -1071,6 +1073,7 @@ export function CreativeWorkspace({
                   value={preview.image.prompt}
                   onChange={() => {}}
                 />
+                {preview.image.warnings?.map((warning,i)=><p className="fs-hint" role="status" key={i}>{warning}</p>)}
                 {!imageOnly && <Field
                   label="Compiled video prompt"
                   readOnly

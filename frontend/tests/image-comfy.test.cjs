@@ -1,0 +1,42 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const {spawnSync}=require('node:child_process');
+const out=path.resolve(__dirname,'../.studio-test/image-comfy');
+const built=spawnSync(process.execPath,[require.resolve('typescript/bin/tsc'),'src/app/studio/image-prompt-fields.tsx','src/app/studio/comfy-controls.tsx','--outDir',out,'--jsx','react-jsx','--module','commonjs','--target','ES2022','--esModuleInterop','--skipLibCheck'],{cwd:path.resolve(__dirname,'..'),encoding:'utf8'});
+assert.equal(built.status,0,built.stdout+built.stderr);
+const {JSDOM}=require('jsdom');
+const dom=new JSDOM('<!doctype html><div id="root"></div>',{url:'http://localhost'});
+Object.assign(global,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,Node:dom.window.Node,IS_REACT_ACT_ENVIRONMENT:true});
+Object.defineProperty(global,'navigator',{value:dom.window.navigator,configurable:true});
+const React=require('react');
+const {createRoot}=require('react-dom/client');
+const {ImagePromptFields}=require(path.join(out,'image-prompt-fields.js'));
+test('image controls preserve exact typography and expose edit/preserve requirements',async()=>{
+ const root=createRoot(document.getElementById('root'));
+ let value={mode:'edit',instructions:'Change sky',preserve:'Keep boat',exact_text:['Sail 2.1'],layout:'Top third',background:'Transparent'};
+ const mount=()=>root.render(React.createElement(ImagePromptFields,{value,onChange:v=>{value=v;mount();}}));
+ await React.act(mount);
+ assert.equal(document.querySelector('select').value,'edit');
+ const text=document.querySelector('textarea[aria-label="Exact visible text (one item per line)"]');
+ await React.act(()=>{Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set.call(text,'Sail 2.1\nこんにちは');text.dispatchEvent(new window.Event('input',{bubbles:true}));});
+ assert.deepEqual(value.exact_text,['Sail 2.1','こんにちは']);
+ assert.equal(value.preserve,'Keep boat');
+ await React.act(()=>root.unmount());
+});
+test('Comfy workflow configuration exposes API import and preserves user JSON',async()=>{
+ const {ComfyWorkflowFields}=require(path.join(out,'comfy-controls.js'));
+ const root=createRoot(document.getElementById('root'));
+ const value=JSON.stringify({kind:'video',workflow:{'9':{class_type:'MiniMaxH3',inputs:{steps:20}}},bindings:{positive:{node:'9',input:'prompt'}},output_node:'12'});
+ await React.act(()=>root.render(React.createElement(ComfyWorkflowFields,{value,onChange:()=>{}})));
+ assert.equal(document.querySelector('textarea').value,value);
+ assert.ok(document.querySelector('input[type="file"]'));
+ assert.match(document.body.textContent,/API/);
+ await React.act(()=>root.unmount());
+});
+test('workflow import preserves uint64 seeds as raw JSON until Python parses them',()=>{
+ const {wrapComfyWorkflow}=require(path.join(out,'comfy-controls.js'));
+ const raw='{"22":{"class_type":"Sampler","inputs":{"seed":18446744073709551615,"steps":8}}}';
+ assert.ok(wrapComfyWorkflow(raw,'video').includes('18446744073709551615'));
+ assert.equal(JSON.parse(wrapComfyWorkflow(raw,'video')).kind,'video');
+});

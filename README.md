@@ -12,6 +12,8 @@ Next-beta development adds image-only projects, creator intake, model selection 
 
 The next-beta workspace also separates **Image / Video templates**, adds seven image formats and seven editable video sequence patterns, and organizes tools into **Brief → Plan → Create → Review → Export**. See [templates and navigation](docs/TEMPLATES-AND-SEQUENCES.md).
 
+Source version **0.2.1-beta.1** also adds explicit image editing/text/layout requirements, Qwen-Image 2.1 guidance and direct execution of mapped ComfyUI image/video workflows. [ComfyUI setup and limits](docs/COMFYUI.md). Local installers use the Orchestra name; the earlier downloadable release above remains unchanged.
+
 > **Early Windows x64 beta.** The installer is unsigned and has been tested on one Windows 11 machine, including installation into a different folder. Generation tools/accounts are supplied by you. The goal is repeatable, high-quality production; consistent artistic results still need real production trials.
 
 ![Orchestra's visual cinematography library comparing two camera looks](docs/images/cinematography-library.jpg)

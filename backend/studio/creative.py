@@ -106,7 +106,17 @@ class Editorial(Record):
     audio_continuity: Text = ''
 
 
+class ImageRequirements(Record):
+    mode: Literal['generate', 'edit'] = 'generate'
+    instructions: Text = ''
+    preserve: Text = ''
+    exact_text: list[Short] = Field(default_factory=list, max_length=30)
+    layout: Text = ''
+    background: Text = ''
+
+
 class Direction(Record):
+    image: ImageRequirements = Field(default_factory=ImageRequirements)
     editorial: Editorial = Field(default_factory=Editorial)
     recipe_role: Short = ''
     decision_reason: Text = ''
