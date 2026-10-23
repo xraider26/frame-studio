@@ -22,6 +22,7 @@ export type TakeReview = {
   inspected: string[];
 };
 export type Direction = {
+  editorial?: {coverage_role:string;purpose:string;transition_in:string;audio_source_shot_id:string;audio_continuity:string};
   recipe_role?: string;
   decision_reason?: string;
   scene_id: string;
@@ -123,6 +124,7 @@ export type Production = {
   recipe?: {id:string; version:number};
   brief: Record<string, string>;
   story: {
+    sequence_id?: string;
     hooks: string[];
     selected_hook: string;
     framework: string;

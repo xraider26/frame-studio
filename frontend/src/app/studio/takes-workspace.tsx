@@ -218,7 +218,10 @@ export function TakesWorkspace({
   const [shotId, setShotId] = useState(
     project.next_action.shot_id || project.shots[0]?.id || "",
   );
-  const takes = project.assets.filter((a) => a.shot_id === shotId && !a.role);
+  const currentShotIds = new Set(project.shots.map((s) => s.id));
+  const earlierTakes = project.assets.filter((a) => a.shot_id && !currentShotIds.has(a.shot_id) && !a.role);
+  const earlierPlan = shotId === "__earlier_plan__" || !currentShotIds.has(shotId);
+  const takes = earlierPlan ? earlierTakes : project.assets.filter((a) => a.shot_id === shotId && !a.role);
   const [selected, setSelected] = useState(""),
     [compare, setCompare] = useState(""),
     [reason, setReason] = useState(""),
@@ -243,7 +246,7 @@ export function TakesWorkspace({
       <label className="fs-label">
         Shot
         <select
-          value={shotId}
+          value={earlierPlan ? "__earlier_plan__" : shotId}
           onChange={(e) => {
             setShotId(e.target.value);
             setSelected("");
@@ -256,6 +259,7 @@ export function TakesWorkspace({
               {s.title}
             </option>
           ))}
+          {earlierTakes.length > 0 && <option value="__earlier_plan__">Earlier plan media ({earlierTakes.length})</option>}
         </select>
       </label>
       <div className="cv-take-list">
@@ -288,7 +292,7 @@ export function TakesWorkspace({
             <div>
               <div className="cv-section-heading">
                 <span>INSPECTING · {asset.id.slice(0, 8)}</span>
-                <button
+                {!earlierPlan && <button
                   className="fs-link"
                   disabled={busy}
                   onClick={() =>
@@ -302,7 +306,7 @@ export function TakesWorkspace({
                   }
                 >
                   Select this take
-                </button>
+                </button>}
               </div>
               <Media asset={asset} />
             </div>
@@ -327,15 +331,16 @@ export function TakesWorkspace({
             </div>
           </div>
           <p className="fs-path">{asset.path}</p>
+          {earlierPlan && <p className="fs-body">This take belongs to a replaced shot plan. <a href={asset.url} download>Download original</a> to reuse it through Import media on a current shot.</p>}
           <ImportCostReport key={`cost-${asset.id}`} project={project} asset={asset} busy={busy} save={save}/>
-          <Inspection
+          {!earlierPlan && <Inspection
             key={asset.id}
             project={project}
             asset={asset}
             busy={busy}
             save={save}
-          />
-          <div className="cv-section">
+          />}
+          {!earlierPlan && <div className="cv-section">
             <h2>Targeted revision</h2>
             <Field
               label="What needs to change?"
@@ -438,7 +443,7 @@ export function TakesWorkspace({
                 )}
               </>
             )}
-          </div>
+          </div>}
         </>
       )}
       <div className="cv-section">

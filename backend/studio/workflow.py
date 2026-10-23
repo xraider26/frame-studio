@@ -22,6 +22,7 @@ from .identity import Identity
 from .recipes import seed_recipe, recipe_context, retime_seeded_shots
 from .recipe_trials import RecipeTrials
 from .agent_rules import AgentRules
+from .sequences import Sequences, sequence_context
 
 
 def uid():
@@ -42,7 +43,7 @@ def clean_text(value, limit=12000):
     return value.strip()
 
 
-class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, ProductionTools, Store):
+class Studio(Sequences, AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, ProductionTools, Store):
     def __init__(self, db_path, media_root, inbox):
         super().__init__(db_path)
         self.media_root, self.inbox = Path(media_root).resolve(), Path(inbox).resolve()
@@ -61,12 +62,17 @@ class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTri
             raise StudioError('invalid_output_type', 'Choose image or video output.')
         if settings is not None:
             settings = self._validate_settings(settings)
+        if template_id == 'custom' and output_type == 'image':
+            template_id = 'image-custom'
         saved = self.get_saved_template(template_id) if isinstance(template_id, str) and template_id.startswith('saved-') else None
         if saved:
             template_id = saved['base_template_id']
         template = next((t for t in TEMPLATES if t['id'] == template_id), None)
         if not template or not clean_text(name, 150):
             raise StudioError('invalid_input', 'Choose a valid template and project name.')
+        kind = saved.get('output_type', 'video') if saved else template['output_type']
+        if kind != output_type:
+            raise StudioError('template_output_mismatch', 'Choose a template matching the project output type: ' + output_type + '.')
         p = {'id': uid(), 'name': name.strip(), 'template_id': template_id, 'revision': 1, 'schema_version': 2,
              'created_at': now(), 'request_id': request_id, 'epoch': 1, 'output_type': output_type, 'creative_intake_required': True,
              'settings': dict(copy.deepcopy(DEFAULT_SETTINGS), aspect_ratio=template['aspect']), 'documents': {},
@@ -117,8 +123,9 @@ class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTri
 
     def duplicate_project(self, project_id, name, actor):
         original = self.get(project_id)
-        p = self.create_project(name or original['name'] + ' (copy)', original['template_id'], actor=actor, output_type=original.get('output_type', 'video'))
+        p = self.create_project(name or original['name'] + ' (copy)', ('image-custom' if original.get('output_type') == 'image' and not original['template_id'].startswith('image-') else original['template_id']), actor=actor, output_type=original.get('output_type', 'video'))
         def update(clone):
+            clone['template_id'] = original['template_id']
             clone['settings'] = copy.deepcopy(original['settings'])
             clone['production'] = copy.deepcopy(original['production'])
             clone['documents'] = {k: copy.deepcopy(v) for k, v in original['documents'].items() if k in ['brief', 'script']}
@@ -139,6 +146,7 @@ class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTri
                 entity['asset_ids'] = [asset_ids.get(key, key) for key in entity['asset_ids']]
             for shot in clone['shots']:
                 shot['direction']['action']['continuity_from'] = shot_ids.get(shot['direction']['action']['continuity_from'], '')
+                shot['direction']['editorial']['audio_source_shot_id'] = shot_ids.get(shot['direction']['editorial']['audio_source_shot_id'], '')
                 for ref in shot['direction']['references']:
                     ref['asset_id'] = asset_ids.get(ref['asset_id'], ref['asset_id'])
             for step in ['brief', 'script']:
@@ -156,6 +164,7 @@ class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTri
         p['creative_intake'] = creative_intake(p)
         p['active_steps'] = list(active_steps(p))
         p['recipe_context'] = recipe_context(p)
+        p['sequence_context'] = sequence_context(p)
         p['next_action'] = self._next(p)
         p['preflight'] = preflight(p)
         for asset in p['assets']:
@@ -334,8 +343,8 @@ class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTri
                     raise StudioError('invalid_settings', 'Duration must be 1–3600 seconds.')
             else:
                 clean_text(v, 3000)
-        if 'aspect_ratio' in settings and settings['aspect_ratio'] not in ['16:9', '9:16', '1:1']:
-            raise StudioError('invalid_settings', 'Choose 16:9, 9:16 or 1:1.')
+        if 'aspect_ratio' in settings and settings['aspect_ratio'] not in ['16:9', '9:16', '1:1', '4:5', '2:3']:
+            raise StudioError('invalid_settings', 'Choose 16:9, 9:16, 1:1, 4:5 or 2:3; verify support in the selected model.')
         for field, profiles in [('video_generator', VIDEO_PROFILES), ('image_generator', IMAGE_PROFILES)]:
             if field in settings and settings[field] not in [v['id'] for v in profiles]:
                 raise StudioError('invalid_generator', 'Choose a supported generator profile or Custom.')
@@ -622,6 +631,6 @@ class Studio(AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTri
                           'video': next((a for a in p['assets'] if a['id'] == s['video_asset']), None)})
             cursor += duration
         return {'schema_version': 2, 'project_id': p['id'], 'project_name': p['name'], 'settings': p['settings'], 'source_revision': p['revision'],
-                'production': p['production'], 'preflight': preflight(p), 'shots': shots, 'edit_duration_seconds': cursor,
-                'instructions': 'Assemble these takes in your preferred editor. Return the final MP4 for final review.',
+                'production': p['production'], 'sequence_context': sequence_context(p), 'preflight': preflight(p), 'shots': shots, 'edit_duration_seconds': cursor,
+                'instructions': 'Assemble these takes in your preferred editor. J-cuts and L-cuts are deliberate editor notes: preserve specified source speech, room tone and audio continuity under cutaways. Check actual source audio and ranges; no internal audio edit has been rendered. Return the final MP4 for final review.',
                 'ready': all(p['steps'][s]['status'] in ['approved', 'auto_proceeded'] for s in STEPS[:5])}

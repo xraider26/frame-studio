@@ -16,6 +16,7 @@ MANDATORY_RULES = [
     'Claim generation before new workflow media work, use authorized tools and return actual files to the exact job. Reuse request_id only for the same request; already_claimed forbids duplicate paid work.',
     'Inspect actual media before recording quality evidence. Never fabricate files, inspections, approvals, model capabilities, costs or success claims.',
     'Report actual costs with evidence. Unknown costs stay unknown. Resolve resource/preflight blockers before spending; no silent paid retries.',
+    'Read sequence_catalog for coverage patterns. direction.editorial and story.sequence_id describe planning and external editing; J/L cuts preserve intended source audio and do not create rendered media. Applying a sequence belongs to the human.',
     'A contract acknowledgement records receipt of rules; it is not evidence of inspection, human approval or completed work.',
 ]
 MODEL_FIELDS = ['image_generator', 'image_model', 'video_generator', 'video_model', 'generation_mode', 'custom_image_template', 'custom_video_template']

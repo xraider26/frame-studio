@@ -10,6 +10,8 @@ Install the [Windows beta](https://github.com/xraider26/frame-studio/releases/ta
 
 Choose **New project**, give it a name and select a content recipe. Explore **Template library** first if you want to compare formats and their example images. Start with one short project before creating a large production batch.
 
+In next-beta source, open **Templates → Image or Video → Built-in or Saved**. Project tools follow **Brief → Plan → Create → Review → Export**; the current-task banner opens the next required tool. Video sequence patterns are under **Plan → Sequences**. See [templates and sequence planning](TEMPLATES-AND-SEQUENCES.md) for replacement safeguards and retained media.
+
 ## 2. Describe the result you want
 
 Record the audience, intended emotion, runtime, aspect ratio and viewer promise. Decide what the opening sets up and what the ending pays off. Include factual sources for claims when relevant.

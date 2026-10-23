@@ -38,7 +38,7 @@ def summary(t):
     data = t['snapshot']
     base = next(v for v in TEMPLATES if v['id'] == t['base_template_id'])
     return {k: t[k] for k in ['id', 'name', 'description', 'revision', 'created_at', 'sections', 'base_template_id']} | {
-        'saved': True, 'evidence_count': len(t.get('evidence', [])),
+        'saved': True, 'output_type': t.get('output_type', 'video'), 'evidence_count': len(t.get('evidence', [])),
         'evidence_levels': sorted({e['level'] for e in t.get('evidence', []) if e.get('snapshot_hash') == t.get('snapshot_hash')}), 'aspect': data.get('settings', {}).get('settings', {}).get('aspect_ratio', base['aspect']),
         'structure': [s['title'] for s in data.get('story', {}).get('shots', [])] or base['structure'],
         'reference_note': 'Reattach reference files. Results, approvals, spending and observed model capabilities are not copied.'}
@@ -58,6 +58,7 @@ def recipe_snapshot(p, sections, settings_shot_id=''):
                 defaults[key] = copy.deepcopy(look[key])
             defaults['quality']['criteria'] = copy.deepcopy(look['quality']['criteria'])
         defaults['action']['continuity_from'] = ''
+        defaults.setdefault('editorial', Direction().model_dump()['editorial'])['audio_source_shot_id'] = ''
         snapshot['settings'] = {'settings': copy.deepcopy(p['settings']), 'defaults': defaults, 'format_rules': copy.deepcopy(p['production']['format_rules']), 'recipe': copy.deepcopy(p['production'].get('recipe', {}))}
     if 'workflow' in sections:
         snapshot['workflow'] = {'approval_policy': copy.deepcopy(p['approval_policy']), 'require_recorded_checks': p['production']['require_recorded_checks']}
@@ -81,14 +82,21 @@ class SavedTemplates(RecipeEvidence):
             row = conn.execute('SELECT payload FROM studio_templates WHERE id=?', (template_id,)).fetchone()
         if not row:
             raise StudioError('template_not_found', 'Saved template no longer exists. Refresh the template library.', 404)
-        t = json.loads(row[0])
+        t = self._template_kind(json.loads(row[0]))
         if expected_revision is not None and t['revision'] != expected_revision:
             raise StudioError('template_revision_conflict', 'Template changed. Refresh before retrying.', 409)
         return t
 
+    def _template_kind(self, t):
+        if 'output_type' not in t:
+            with self.connect() as conn:
+                row = conn.execute('SELECT payload FROM studio_projects WHERE id=?', (t.get('source_project_id', ''),)).fetchone()
+            t['output_type'] = json.loads(row[0]).get('output_type', 'video') if row else 'video'
+        return t
+
     def list_saved_templates(self):
         with self.connect() as conn:
-            return [summary(json.loads(r[0])) for r in conn.execute('SELECT payload FROM studio_templates ORDER BY rowid DESC')]
+            return [summary(self._template_kind(json.loads(r[0]))) for r in conn.execute('SELECT payload FROM studio_templates ORDER BY rowid DESC')]
 
     def save_project_template(self, project_id, name, description, sections, expected_revision, settings_shot_id=''):
         sections = selected_sections(sections)
@@ -104,7 +112,7 @@ class SavedTemplates(RecipeEvidence):
             snapshot = recipe_snapshot(p, sections, settings_shot_id)
             t = {'id': 'saved-' + uuid.uuid4().hex, 'schema_version': 1, 'name': name, 'description': description, 'revision': 1,
                  'created_at': datetime.now(timezone.utc).isoformat(), 'base_template_id': p['template_id'], 'sections': sections, 'snapshot': snapshot,
-                 'source_project_id': p['id'], 'source_project_revision': p['revision'],
+                 'output_type': p.get('output_type', 'video'), 'source_project_id': p['id'], 'source_project_revision': p['revision'],
                  'settings_shot_id': settings_shot_id if 'settings' in sections else '', 'snapshot_hash': snapshot_hash(snapshot)}
             conn.execute('INSERT INTO studio_templates VALUES (?,?)', (t['id'], json.dumps(t)))
         return summary(t)
@@ -126,6 +134,8 @@ class SavedTemplates(RecipeEvidence):
         return {'deleted': True, 'template_id': template_id}
 
     def _restore_template(self, p, t, sections):
+        if t.get('output_type', 'video') != p.get('output_type', 'video') and any(s in sections for s in ['story', 'workflow']):
+            raise StudioError('template_output_mismatch', 'Story and workflow templates must match the project output type. Transfer settings only or choose a matching template.')
         snapshot = t['snapshot']
         ids = {}
         if 'settings' in sections:
@@ -149,6 +159,8 @@ class SavedTemplates(RecipeEvidence):
                 shot['id'] = ids[shot['id']]
                 action = shot['direction']['action']
                 action['continuity_from'] = ids.get(action['continuity_from'], '')
+                editorial = shot['direction'].setdefault('editorial', Direction().model_dump()['editorial'])
+                editorial['audio_source_shot_id'] = ids.get(editorial['audio_source_shot_id'], '')
                 shot.update(image_asset=None, video_asset=None)
             p['shots'] = shots
             p['production'].update(data)
@@ -163,6 +175,9 @@ class SavedTemplates(RecipeEvidence):
                 action['visible_entities'] = visible
                 if action['continuity_from'] not in ids.values():
                     action['continuity_from'] = ''
+                editorial = defaults.setdefault('editorial', Direction().model_dump()['editorial'])
+                if editorial['audio_source_shot_id'] not in ids.values():
+                    editorial['audio_source_shot_id'] = ''
                 if defaults['sound']['speaker_id'] not in entities:
                     defaults['sound']['speaker_id'] = ''
                 assets = {a['id']: a for a in p['assets']}

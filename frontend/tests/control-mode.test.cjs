@@ -173,3 +173,5 @@ test('image directing removes motion, narration and timing inputs', async () => 
   for(const text of ['Motion / base prompt','Narration','Generation duration (seconds)']) assert.ok(![...document.querySelectorAll('label')].some(l=>l.textContent.trim()===text),text);
   assert.ok(field('Visual concept'));
 });
+
+test('portrait and poster image ratios remain selected and can be saved', async()=>{window.localStorage.clear();window.sessionStorage.clear();let sent;global.fetch=async(_u,o)=>{sent=JSON.parse(o.body);return{ok:true,json:async()=>project}};await mount(CreativeWorkspace,props({...project,output_type:'image',settings:{...project.settings,aspect_ratio:'4:5'}}));const ratio=field('Aspect ratio');assert.equal(ratio.value,'4:5');assert.ok([...ratio.options].some(o=>o.value==='2:3'));await React.act(()=>{Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype,'value').set.call(ratio,'2:3');ratio.dispatchEvent(new window.Event('change',{bubbles:true}));});await click('Apply creative settings');assert.equal(sent.arguments.settings.aspect_ratio,'2:3');});

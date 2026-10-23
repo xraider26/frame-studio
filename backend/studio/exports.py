@@ -9,6 +9,7 @@ from .generators import prompt_for
 from .preflight import preflight, references_for
 from .knowledge import knowledge_catalog
 from .recipes import recipe_context
+from .sequences import sequence_context
 
 
 def export_project(studio, project):
@@ -24,7 +25,7 @@ def export_project(studio, project):
                 included[asset['id']] = (file, 'references/' + asset['id'] + file.suffix)
     active = studio._next(p)
     manifest = {'schema_version': 2, 'package_type': 'studio_generation_handoff', 'project_id': p['id'], 'project_name': p['name'],
-                'source_revision': p['revision'], 'execution_mode': 'external_agent', 'recipe_contract': recipe_context(p),
+                'source_revision': p['revision'], 'execution_mode': 'external_agent', 'recipe_contract': recipe_context(p), 'sequence_context': sequence_context(p),
                 'video_generator': p['settings']['video_generator'], 'image_generator': p['settings']['image_generator'],
                 'creative_settings': p['settings'], 'documents': p['documents'], 'approval_policy': p['approval_policy'],
                 'production': p['production'], 'preflight': preflight(p), 'source_coverage': knowledge_catalog()['coverage'],
@@ -94,12 +95,13 @@ def export_editor(studio, project_id):
         rows.append([index, shot['id'], shot['direction']['scene_id'], shot['title'], relative,
                      shot['timeline_in'], shot['timeline_out'], shot['source_in'], shot['source_out'],
                      shot['narration'], d['sound']['dialogue'], d['sound']['speaker_id'], d['sound']['captions'],
-                     d['sound']['ambience'], d['sound']['foley'], d['sound']['music'], d['action']['transition']])
+                     d['sound']['ambience'], d['sound']['foley'], d['sound']['music'], d['action']['transition'],
+                     d['editorial']['coverage_role'], d['editorial']['purpose'], d['editorial']['transition_in'], d['editorial']['audio_source_shot_id'], d['editorial']['audio_continuity']])
     manifest['warnings'] = warnings
     manifest['ready'] = manifest['ready'] and not warnings and not manifest['preflight']['errors']
     stream = io.StringIO(newline='')
     writer = csv.writer(stream)
-    writer.writerow(['order', 'shot_id', 'scene_id', 'title', 'file', 'timeline_in', 'timeline_out', 'source_in', 'source_out', 'narration', 'dialogue', 'speaker', 'captions', 'ambience', 'foley', 'music', 'transition'])
+    writer.writerow(['order', 'shot_id', 'scene_id', 'title', 'file', 'timeline_in', 'timeline_out', 'source_in', 'source_out', 'narration', 'dialogue', 'speaker', 'captions', 'ambience', 'foley', 'music', 'transition', 'coverage_role', 'coverage_purpose', 'transition_in', 'audio_source_shot_id', 'audio_continuity'])
     writer.writerows(rows)
     name = uuid.uuid4().hex + '.zip'
     folder = studio.media_root / project_id / 'exports'

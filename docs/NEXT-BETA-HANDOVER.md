@@ -1,10 +1,12 @@
 # Orchestra — image projects and creator-led production
 
-Date: 23 October 2026. Development branch: `feature/image-projects-creative-intake`.
+Date: 24 October 2026. Development branch: `feature/image-projects-creative-intake`.
 
 The product is now **Orchestra**, formerly Frame Studio. The interface, desktop shell, icon and future installer name are updated; installation identity, existing storage and MCP configuration keys remain stable. The GitHub repository path is unchanged.
 
 Additional next-beta work: mandatory per-project MCP workflow contracts with persisted actor acknowledgements, revision/workflow enforcement and policy/model invalidation; the [reviewed shared prompting guide](PROMPTING-GUIDE.md), five editable style setups and FLUX/Midjourney profiles. See [agent bootstrap and compatibility](MCP.md#strict-agent-contract-next-beta-source). Acknowledgements do not prove inspection or guarantee a model's behavior outside the app.
+
+The latest source adds seven image formats, typed Image/Video and Built-in/Saved template filters, seven previewable video sequence patterns and five-stage project navigation. Sequence coverage/audio intent reaches handoffs; applying a plan is human-only and safely retains previous media. Retained takes are accessible under Earlier plan media. Story-only template restoration clears obsolete default audio links. See [templates and sequences](TEMPLATES-AND-SEQUENCES.md).
 
 ## Goal and release boundary
 
@@ -45,7 +47,7 @@ Keep the existing FastAPI/SQLite/local-media backend, stdio MCP bridge, Next.js 
 
 ## Verification checklist
 
-Implementation is present on this branch. Verification: 152 backend tests, 50 interface tests and 12 desktop tests; production build with Next.js 16.4.2. Production-dependency audit reports zero known vulnerabilities. The framework was patched after the original build reported an advisory. Actual browser rendering and a new packaged-installer smoke run remain outstanding: automatic approval review rejected launching the UI server as “blocked by policy.” Component tests do not substitute for those checks.
+Implementation is present on this branch. Fresh verification: **165 backend tests, 63 interface tests and 12 desktop tests**; production build with Next.js 16.4.2. The prior production-dependency audit reported zero known vulnerabilities; dependency versions are unchanged in this update. Actual browser rendering and a new packaged-installer smoke run remain outstanding: automatic approval review rejected launching the UI server as “blocked by policy.” Component tests do not substitute for those checks.
 
 - [x] Test project/API creation and image batch payloads with the same choices/defaults.
 - [x] Test new approvals off, explicit gates and preservation of saved policy.

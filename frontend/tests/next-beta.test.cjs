@@ -10,6 +10,7 @@ const build = spawnSync(
     require.resolve("typescript/bin/tsc"),
     "src/app/studio/creative-brief.tsx",
     "src/app/studio/media-upload.tsx",
+    "src/app/studio/takes-workspace.tsx",
     "--outDir",
     out,
     "--jsx",
@@ -17,7 +18,7 @@ const build = spawnSync(
     "--module",
     "commonjs",
     "--target",
-    "ES2022",
+    "ES2023",
     "--esModuleInterop",
     "--skipLibCheck",
   ],
@@ -40,6 +41,7 @@ Object.defineProperty(global, "navigator", {
 const React = require("react");
 const { createRoot } = require("react-dom/client");
 const { CreativeBrief } = require(path.join(out, "creative-brief.js"));
+const { TakesWorkspace } = require(path.join(out, "takes-workspace.js"));
 const { MediaUpload, ImportCostReport } = require(
   path.join(out, "media-upload.js"),
 );
@@ -72,6 +74,19 @@ async function mount(Component, props = {}) {
 test.afterEach(async () => {
   if (root) await React.act(() => root.unmount());
   root = null;
+});
+
+test("takes from earlier plans remain viewable without selecting them for a removed shot", async () => {
+  await mount(TakesWorkspace, {project: {...project, next_action: {}, jobs: [], assets: [
+    {id: "old-take", kind: "image", shot_id: "removed-shot", stale: true, name: "Earlier portrait", url: "/old.png", path: "old.png"}
+  ]}});
+  const option=[...document.querySelectorAll("option")].find(o=>o.textContent.includes("Earlier plan media"));
+  assert.ok(option, "retained media selector");
+  const selector=option.parentElement;
+  await React.act(()=>{selector.value=option.value;selector.dispatchEvent(new window.Event("change",{bubbles:true}));});
+  assert.equal(document.querySelector('img[alt="Earlier portrait"]').getAttribute("src"),"/old.png");
+  assert.ok(![...document.querySelectorAll("button")].some(b=>b.textContent.includes("Select this take")));
+  assert.ok(document.querySelector('a[href="/old.png"]'), "download remains available");
 });
 async function click(text) {
   const b = [...document.querySelectorAll("button")].find(

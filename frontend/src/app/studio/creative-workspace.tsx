@@ -1124,7 +1124,7 @@ export function CreativeWorkspace({
                 defaults.edit((s) => ({ ...s, aspect_ratio: e.target.value }))
               }
             >
-              {["16:9", "9:16", "1:1"].map((v) => (
+              {(imageOnly ? ["16:9", "9:16", "1:1", "4:5", "2:3"] : ["16:9", "9:16", "1:1"]).map((v) => (
                 <option key={v}>{v}</option>
               ))}
             </select>

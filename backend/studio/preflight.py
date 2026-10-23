@@ -43,6 +43,9 @@ def preflight(project, shot_id=None, kind=None):
             continue
         d = effective_direction(project, shot)
         action, sound = d['action'], d['sound']
+        audio_source = d['editorial']['audio_source_shot_id']
+        if not image_only and audio_source and not any(s['id'] == audio_source for s in shots):
+            issue('editorial_source', 'error', shot, 'direction.editorial.audio_source_shot_id', 'Choose an audio source shot in this current plan, or clear the source and explain the external audio instruction.')
         if selection.get('id') and (not d.get('story_purpose') or not d.get('decision_reason')):
             issue('recipe_decision', 'warning', shot, 'direction.decision_reason', 'Explain the shot purpose and how camera/light choices serve it; recipe defaults are suggestions.')
         duration = shot['duration_seconds']

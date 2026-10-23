@@ -118,6 +118,12 @@ async def recipe_catalog() -> dict:
 
 
 @mcp.tool()
+async def sequence_catalog() -> dict:
+    """Read editorial coverage patterns. Propose coverage using update_shots and direction.editorial; human application is UI-only. J/L cuts are external editor notes, never authorization to generate or fake media."""
+    return await command('sequence_catalog')
+
+
+@mcp.tool()
 async def list_templates() -> list[dict]:
     """List built-in formats and user-saved templates, with IDs and included sections."""
     return await command('list_templates')

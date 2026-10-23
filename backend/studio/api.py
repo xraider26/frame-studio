@@ -19,6 +19,7 @@ from .knowledge import knowledge_catalog
 from .creative import creative_schema
 from .exports import export_editor
 from .recipes import recipe_catalog
+from .sequences import sequence_catalog
 from .course_rules import course_coverage
 from .paths import data_root as default_data_root, mcp_launch_configuration
 
@@ -100,7 +101,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         actor = 'user' if human else 'agent:' + body.actor[:94]
         if op == 'update_production' and isinstance(a.get('production'), dict) and any(k in a['production'] for k in ['resources', 'require_recorded_checks', 'recipe']) and not human:
             raise StudioError('human_only', 'Resource and quality policy belong to the user. Agents may report evidence and actual job costs.', 403)
-        if op in ['set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template', 'update_batch', 'set_project_dispatch', 'sync_batch_identity', 'endorse_recipe', 'activate_recipe', 'record_recipe_trial'] and not human:
+        if op in ['apply_sequence', 'set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template', 'update_batch', 'set_project_dispatch', 'sync_batch_identity', 'endorse_recipe', 'activate_recipe', 'record_recipe_trial'] and not human:
             raise StudioError('human_only', 'This control belongs to the user in the studio UI.', 403)
         if op == 'apply_project_template' and not human and isinstance(a.get('sections'), list) and 'workflow' in a['sections']:
             raise StudioError('human_only', 'Applying workflow approval/quality policy belongs to the user.', 403)
@@ -147,6 +148,9 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'recipe_catalog':
             validation = studio.recipe_validation_summary()
             return {'recipes': [{**r, 'validation': validation.get(r['id'], {'reviewed_outputs': 0, 'passed_outputs': 0, 'ideas': 0, 'models': []})} for r in recipe_catalog()], 'coverage': course_coverage()}
+        if op == 'sequence_catalog': return sequence_catalog()
+        if op == 'preview_sequence': return studio.preview_sequence(a['project_id'], a['sequence_id'])
+        if op == 'apply_sequence': return studio.apply_sequence(a['project_id'], a['sequence_id'], a['expected_revision'], a.get('confirm_replace', False), actor)
         if op == 'recipe_trials': return studio.recipe_trials(a['project_id'])
         if op == 'record_recipe_trial': return studio.record_recipe_trial(a['project_id'], a['assessment'], a['expected_revision'], actor)
         if op == 'activate_recipe': return studio.activate_recipe(a['project_id'], a['expected_revision'], actor)

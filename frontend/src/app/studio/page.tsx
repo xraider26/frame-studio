@@ -35,12 +35,12 @@ import { ProductionWorkspace } from "./production-workspace";
 import { QueueWorkspace } from "./queue-workspace";
 import { TakesWorkspace } from "./takes-workspace";
 import { EditorWorkspace } from "./editor-workspace";
-import {
-  TemplateWorkspace,
-  type TemplateChoice,
-  type SavedTemplate,
-} from "./template-workspace";
-import { RecipeWorkspace } from "./recipe-workspace";
+import type { TemplateChoice } from "./template-workspace";
+import { TemplateHub } from "./template-hub";
+import { SequenceWorkspace } from "./sequence-workspace";
+import { StepDocument } from "./step-document";
+import { ImageDelivery } from "./image-delivery";
+import { nextActionTarget, projectStages, stageForView, stageTabs, templateForOutput, templatesForOutput, type NavigationTarget } from "./studio-navigation";
 import { CinematographyLibrary } from "./cinematography-library";
 import "./cinematography.css";
 import "./recipes.css";
@@ -48,6 +48,8 @@ import type { Project, Job, Action, Catalog } from "./creative-types";
 import "./creative.css";
 import "./control-mode.css";
 import "./queue.css";
+import "./template-hub.css";
+import "./studio-navigation.css";
 
 type Step = { id: string; name: string };
 type Template = TemplateChoice;
@@ -123,8 +125,6 @@ export default function StudioPage() {
   const [generators,setGenerators]=useState({image_generator:"",image_model:"",video_generator:"",video_model:""});
   const [brief,setBrief]=useState<Record<string,string>>({});
   const [selectedStep, setSelectedStep] = useState("brief");
-  const [document, setDocument] = useState("");
-  const [documentRevision, setDocumentRevision] = useState(0);
   const [documentDirty, setDocumentDirty] = useState(false);
   const [note, setNote] = useState("");
   const [handoff, setHandoff] = useState<Record<string, unknown> | null>(null);
@@ -153,11 +153,8 @@ export default function StudioPage() {
   }, [refresh, project?.id, busy]);
 
   useEffect(() => {
-    if (project && !documentDirty) {
-      setDocument(project.documents[selectedStep]?.text || "");
-      setDocumentRevision(project.revision);
-    }
-  }, [project, selectedStep, documentDirty]);
+    if (caps) setTemplate(current => templateForOutput(caps.templates, outputType, current));
+  }, [caps, outputType]);
 
   async function act(fn: () => Promise<unknown>, message = "Saved") {
     setBusy(true);
@@ -178,6 +175,8 @@ export default function StudioPage() {
     setError("");
     setHandoff(null);
     setReturnPath("");
+    setDocumentDirty(false);
+    setNote("");
     setView("home");
     try {
       setProject(await api<Project>("get_project", { project_id: id }));
@@ -207,13 +206,23 @@ export default function StudioPage() {
       setBusy(false);
     }
   }
-  function openStep(step: string) {
+  function openStep(step: string, review = false) {
     setSelectedStep(step);
-    setDocument(project?.documents[step]?.text || "");
-    setDocumentRevision(project?.revision || 0);
     setDocumentDirty(false);
-    setView("workflow");
+    setView(review ? "review" : "workflow");
+    setMobileMenu(false);
     setNote("");
+  }
+  function navigate(target: NavigationTarget) {
+    if (target.step) openStep(target.step, target.view === "review");
+    else if (target.view === "review") openStep(next?.step || selectedStep, true);
+    else { setView(target.view); setMobileMenu(false); }
+  }
+  function startFromTemplate(id: string, kind?: "image" | "video") {
+    const choice = caps?.templates.find(t => t.id === id);
+    setOutputType(kind || choice?.output_type || "video");
+    setTemplate(id);
+    setCreating(true);
   }
   async function claim() {
     if (!project) return;
@@ -236,6 +245,10 @@ export default function StudioPage() {
   const imageOnly=project?.output_type === "image";
   const visibleSteps=caps?.steps.filter(s=>!imageOnly || !["pilot","production","editor_handoff"].includes(s.id)).map(s=>({...s,name:imageOnly&&s.id==="script"?"Visual concept":s.name}));
   const next = project?.next_action;
+  const stage = stageForView(view, selectedStep);
+  const tabs = stage ? stageTabs(stage, imageOnly) : [];
+  const selectedTab = tabs.find(t=>t.view===view && (!t.step || t.step===selectedStep));
+  const viewLabel = selectedTab?.label || ({queue:"Projects",templates:"Templates",connections:"Connections",production:"Project settings"}[view]) || nav.find(n=>n.id===view)?.label || "Studio";
   const completed = project
     ? Object.values(project.steps).filter((s) => closed(s.status)).length
     : 0;
@@ -316,41 +329,37 @@ export default function StudioPage() {
           />
           <button
             className={`fs-nav ${view === "queue" ? "active" : ""}`}
-            onClick={() => { setView("queue"); setMobileMenu(false); }}
+            aria-current={view === "queue" ? "page" : undefined}
+            onClick={() => navigate({view:"queue"})}
           >
-            <Layers size={16} /> Production queue
+            <Folder size={16} /> Projects
           </button>
           <button
             className={`fs-nav ${view === "templates" ? "active" : ""}`}
-            onClick={() => setView("templates")}
+            aria-current={view === "templates" ? "page" : undefined}
+            onClick={() => navigate({view:"templates"})}
           >
-            <Film size={16} /> Template library
+            <Layers size={16} /> Templates
           </button>
           <div className="fs-eyebrow fs-nav-heading">THIS PROJECT</div>
-          {nav.filter(n=>!imageOnly||n.id!=="handoff").map((n) => (
+          <nav className="fs-project-stages" aria-label="Project stages">
+          {projectStages.map((n,i) => (
             <button
               key={n.id}
-              className={`fs-nav ${view === n.id ? "active" : ""}`}
-              disabled={!project && !["connections", "knowledge"].includes(n.id)}
-              onClick={() => {
-                setMobileMenu(false);
-                setView(n.id);
-                if (n.id === "workflow") openStep(next?.step || "brief");
-              }}
+              className={`fs-nav fs-stage-link ${stage === n.id ? "active" : ""}`}
+              aria-current={stage === n.id ? "step" : undefined}
+              disabled={!project}
+              onClick={() => navigate({view:n.id === "export" && imageOnly ? "delivery" : n.view})}
             >
-              <n.icon size={16} />
-              {imageOnly&&n.id==="story"?"Visual concept":n.label}
+              <span className="fs-stage-number">{String(i+1).padStart(2,"0")}</span>
+              {n.label}
+              {stage === n.id && <ChevronRight size={14} />}
             </button>
           ))}
+          </nav>
           <div className="fs-sidebar-bottom">
-            <div className="fs-eyebrow">YOUR AGENT. YOUR WORKFLOW.</div>
-            <p>
-              Plan here. Generate with connected tools. Edit in your own
-              software.
-            </p>
-            <a href="/">
-              Companion dashboard <ArrowRight size={12} />
-            </a>
+            <button className={`fs-nav ${view === "connections" ? "active" : ""}`} aria-current={view === "connections" ? "page" : undefined} onClick={()=>navigate({view:"connections"})}><Link2 size={16}/> Connections</button>
+            <button className={`fs-nav ${view === "production" ? "active" : ""}`} aria-current={view === "production" ? "page" : undefined} disabled={!project} onClick={()=>navigate({view:"production"})}><Settings2 size={16}/> Settings</button>
           </div>
         </aside>
         <main className="fs-main">
@@ -369,9 +378,9 @@ export default function StudioPage() {
             </div>
           )}
           <div className="fs-breadcrumb">
-            Workspace <ChevronRight size={12} />
-            {project?.name || "Start a project"} <ChevronRight size={12} />
-            {view === "queue" ? "Production queue" : nav.find((n) => n.id === view)?.label || "Template library"}
+            <span>Studio</span> <ChevronRight size={12} />
+            {stage && <><span>{project?.name}</span><ChevronRight size={12}/><span>{projectStages.find(s=>s.id===stage)?.label}</span><ChevronRight size={12}/></>}
+            <span aria-current="page">{viewLabel}</span>
             <button
               aria-label="Refresh studio"
               onClick={() =>
@@ -382,6 +391,16 @@ export default function StudioPage() {
             </button>
           </div>
 
+          {project && stage && <>
+            <div className="fs-task-context">
+              <div><span className="fs-eyebrow">{imageOnly ? "IMAGE PROJECT" : "VIDEO PROJECT"} · {project.name}</span><p>{next?.message || "Project complete"}</p></div>
+              <button className="fs-primary" onClick={()=>navigate(nextActionTarget(next,project.output_type))}>Continue <ArrowRight size={15}/></button>
+            </div>
+            <nav className="fs-subnav" aria-label={`${projectStages.find(s=>s.id===stage)?.label} tools`}>
+              {tabs.map(t=><button key={t.view+":"+(t.step||"")} className={selectedTab===t?"active":""} aria-current={selectedTab===t?"page":undefined} onClick={()=>navigate(t)}>{t.label}</button>)}
+            </nav>
+          </>}
+
           {view === "queue" && (
             <QueueWorkspace profiles={caps || undefined} templates={caps?.templates || []} projects={projects}
               onSelect={selectProject} onChanged={() => refresh(project?.id)} />
@@ -389,23 +408,12 @@ export default function StudioPage() {
 
           {((!project && !["connections", "queue", "knowledge"].includes(view)) || view === "templates") && (
             <section className="fs-library">
-              <div className="fs-eyebrow">TEMPLATE LIBRARY</div>
-              <h1>Your reusable setups.</h1>
-              <p className="fs-lead">
-                Choose a production recipe, inspect its examples, or reuse your own setup.
-              </p>
-              <RecipeWorkspace project={project} busy={busy} save={(fn)=>act(fn,"Recipe updated")} onNew={(id)=>{setTemplate(id);setCreating(true);}} />
-              <TemplateWorkspace
+              <TemplateHub
                 project={project}
-                templates={(caps?.templates || []).filter(
-                  (t): t is SavedTemplate => !!t.saved,
-                )}
+                choices={caps?.templates || []}
                 busy={busy}
                 save={(fn) => act(fn, "Template saved")}
-                onNew={(id) => {
-                  setTemplate(id);
-                  setCreating(true);
-                }}
+                onNew={startFromTemplate}
               />
               {!caps && (
                 <button
@@ -440,7 +448,7 @@ export default function StudioPage() {
                     className="fs-button"
                     onClick={() => setView("templates")}
                   >
-                    Save as template
+                    Open templates
                   </button>
                   <span className="fs-badge">
                     {next?.action === "await_approval"
@@ -450,27 +458,6 @@ export default function StudioPage() {
                 </div>
               </div>
               <CreativeBrief key={project.id} project={project} busy={busy} save={fn=>act(fn,"Creative brief saved")}/>
-              <div className="fs-next">
-                <div>
-                  <div className="fs-eyebrow">YOUR NEXT STEP</div>
-                  <h2>{next?.message}</h2>
-                  <p>
-                    {next?.action === "await_approval"
-                      ? "Review the current revision before your agent continues."
-                      : "The same saved step is available to your agent through MCP."}
-                  </p>
-                </div>
-                <button
-                  className="fs-primary"
-                  onClick={() => openStep(next?.step || "final_review")}
-                >
-                  {next?.action === "await_approval"
-                    ? "Review step"
-                    : "Open workflow"}{" "}
-                  <ArrowRight size={15} />
-                </button>
-              </div>
-              {imageOnly && <MediaUpload project={project} busy={busy} save={fn=>act(fn,"Media imported")}/>}
               <div className="fs-home-columns">
                 <div>
                   <div className="fs-eyebrow">
@@ -556,28 +543,25 @@ export default function StudioPage() {
             </section>
           )}
 
-          {project && view === "workflow" && (
+          {project && ["workflow", "review"].includes(view) && (
             <section>
               <div className="fs-heading">
                 <div>
                   <div className="fs-eyebrow">
                     WORKFLOW / REVISION {project.revision}
                   </div>
-                  <h1>You choose where it pauses.</h1>
-                  <p className="fs-lead">
-                    Tick a step to require your approval. Unticked steps proceed
-                    when their required outputs are ready.
-                  </p>
+                  <h1>{view === "review" ? "Workflow & approvals" : visibleSteps?.find(s=>s.id===selectedStep)?.name || "Step document"}</h1>
+                  <p className="fs-lead">{view === "review" ? "Review saved documents and media. Set where the workflow needs your approval." : "Prepare the saved document for this project step."}</p>
                 </div>
               </div>
-              <div className="fs-workflow">
-                <div className="fs-stage-nav">
+              <div className={`fs-workflow ${view === "workflow" ? "fs-document-workflow" : ""}`}>
+                {view === "review" && <div className="fs-stage-nav">
                   {visibleSteps?.map((s, i) => (
                     <div
                       key={s.id}
                       className={`fs-stage-row ${selectedStep === s.id ? "selected" : ""}`}
                     >
-                      <button onClick={() => openStep(s.id)}>
+                      <button aria-current={selectedStep === s.id ? "step" : undefined} onClick={() => openStep(s.id, view === "review")}>
                         <span>{String(i + 1).padStart(2, "0")}</span>
                         <div>
                           <strong>{s.name}</strong>
@@ -606,7 +590,7 @@ export default function StudioPage() {
                       </label>
                     </div>
                   ))}
-                </div>
+                </div>}
                 <div className="fs-stage-content">
                   <div className="fs-eyebrow">
                     {caps?.steps
@@ -616,52 +600,9 @@ export default function StudioPage() {
                   <h2>
                     {pretty(project.steps[selectedStep]?.status || "draft")}
                   </h2>
-                  {["brief", "script", "editor_handoff"].includes(
-                    selectedStep,
-                  ) && (
-                    <>
-                      <label className="fs-label" htmlFor="step-document">
-                        {selectedStep === "editor_handoff"
-                          ? "Editing notes & handoff"
-                          : "Step document"}
-                      </label>
-                      <textarea
-                        id="step-document"
-                        rows={10}
-                        value={document}
-                        onChange={(e) => {
-                          setDocument(e.target.value);
-                          setDocumentDirty(true);
-                        }}
-                        placeholder={
-                          selectedStep === "brief"
-                            ? "Who is this for? What should they feel or do? What is the story?"
-                            : selectedStep === "script"
-                              ? "Write the actual script, dialogue and story beats…"
-                              : "Record editing notes and the handoff to your preferred editor…"
-                        }
-                      />
-                      <button
-                        className="fs-primary"
-                        disabled={busy || !document.trim()}
-                        onClick={() =>
-                          act(
-                            () =>
-                              api("complete_step", {
-                                project_id: project.id,
-                                expected_revision: documentRevision,
-                                step: selectedStep,
-                                output: { text: document },
-                              }).then(() => {
-                                setDocumentDirty(false);
-                              }),
-                            "Step prepared",
-                          )
-                        }
-                      >
-                        Save & complete step <ArrowRight size={14} />
-                      </button>
-                    </>
+                  {(["brief", "script", "editor_handoff"].includes(selectedStep) || (imageOnly && selectedStep === "final_review")) && (
+                    <StepDocument key={project.id+":"+selectedStep} project={project} step={selectedStep} busy={busy}
+                      save={fn=>act(fn,"Step prepared")} onState={setDocumentDirty} />
                   )}
                   {["visual_direction", "pilot", "production"].includes(
                     selectedStep,
@@ -703,7 +644,8 @@ export default function StudioPage() {
                       </div>
                     </>
                   )}
-                  {selectedStep === "final_review" && (
+                  {selectedStep === "final_review" && imageOnly && <div className="fs-image-final-review"><p className="fs-body">Review the selected images and their recorded quality checks before completing this project.</p><div className="fs-media-strip">{project.assets.filter(a=>!a.stale && a.kind==="image" && project.shots.some(s=>s.image_asset===a.id)).map(a=><img key={a.id} src={a.url} alt="Selected image for final review"/>)}</div><button className="fs-button" onClick={()=>navigate({view:"takes"})}>Inspect selected images</button></div>}
+                  {selectedStep === "final_review" && !imageOnly && (
                     <>
                       <p className="fs-body">
                         Import the actual MP4 you assembled in your own editor.
@@ -762,7 +704,7 @@ export default function StudioPage() {
                                     step: selectedStep,
                                     approve: true,
                                     note,
-                                    expected_revision: documentRevision,
+                                    expected_revision: project.revision,
                                   }),
                                 "Approved. Your agent can continue.",
                               )
@@ -781,7 +723,7 @@ export default function StudioPage() {
                                     step: selectedStep,
                                     approve: false,
                                     note,
-                                    expected_revision: documentRevision,
+                                    expected_revision: project.revision,
                                   }),
                                 "Changes requested",
                               )
@@ -828,8 +770,25 @@ export default function StudioPage() {
                       </button>
                     </>
                   )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {project && view === "generator" && caps && (
+            <GeneratorExport
+              key={project.id}
+              project={project}
+              videoProfiles={caps.video_profiles}
+              imageProfiles={caps.image_profiles}
+              busy={busy}
+              save={(fn) => act(fn, "Generator choices saved")}
+            />
+          )}
+          {project && ["generator", "import"].includes(view) && <section className="fs-generation-workspace">
+            {view === "import" && <><div className="fs-eyebrow">RETURN OUTPUT</div><h1>Import generated media</h1><p className="fs-lead">Return a claimed handoff, or attach an existing image or video to its shot.</p><MediaUpload project={project} busy={busy} save={fn=>act(fn,"Media imported")}/></>}
                   {next?.action === "generate" &&
-                    next.step === selectedStep && (
+                     (
                       <div className="fs-generation">
                         <button
                           className="fs-primary"
@@ -952,10 +911,9 @@ export default function StudioPage() {
                         ))}
                     </div>
                   )}
-                </div>
-              </div>
-            </section>
-          )}
+          </section>}
+          {project && view === "sequences" && !imageOnly && <SequenceWorkspace key={project.id} project={project} busy={busy} save={fn=>act(fn,"Sequence applied")}/>}
+          {project && view === "delivery" && <ImageDelivery project={project}/>}
 
           {project && view === "shots" && (
             <CreativeWorkspace
@@ -985,16 +943,6 @@ export default function StudioPage() {
               project={project}
               busy={busy}
               save={(fn) => act(fn, "Production evidence saved")}
-            />
-          )}
-          {project && view === "generator" && caps && (
-            <GeneratorExport
-              key={project.id}
-              project={project}
-              videoProfiles={caps.video_profiles}
-              imageProfiles={caps.image_profiles}
-              busy={busy}
-              save={(fn) => act(fn, "Generator choices saved")}
             />
           )}
           {project && view === "handoff" && (
@@ -1058,14 +1006,14 @@ export default function StudioPage() {
               value={template}
               onChange={(e) => setTemplate(e.target.value)}
             >
-              {caps?.templates.map((t) => (
+              {templatesForOutput(caps?.templates || [],outputType).map((t) => (
                 <option value={t.id} key={t.id}>
                   {t.saved ? "Saved · " : ""}
                   {t.name}
                 </option>
               ))}
             </select>
-            <label className="fs-label">Output type<select value={outputType} onChange={e=>setOutputType(e.target.value as "image"|"video")}><option value="image">Image</option><option value="video">Video</option></select></label>
+            <label className="fs-label">Output type<select value={outputType} onChange={e=>{const kind=e.target.value as "image"|"video";setOutputType(kind);setTemplate(templateForOutput(caps?.templates||[],kind,template));}}><option value="image">Image</option><option value="video">Video</option></select></label>
             {["image",...(outputType==="video"?["video"]:[])].map(kind=><div key={kind}><label className="fs-label">{kind==="image"?"Image":"Video"} generator profile<select value={generators[`${kind}_generator` as keyof typeof generators]} onChange={e=>setGenerators({...generators,[`${kind}_generator`]:e.target.value})}><option value="">Choose a profile</option>{(kind==="image"?caps?.image_profiles:caps?.video_profiles)?.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label className="fs-label">{kind==="image"?"Image":"Video"} model name<input value={generators[`${kind}_model` as keyof typeof generators]} onChange={e=>setGenerators({...generators,[`${kind}_model`]:e.target.value})}/></label></div>)}
             <details><summary>Creative brief · answer now or after creating</summary><BriefFields answers={brief} onChange={setBrief}/></details>
             <p className="fs-hint">
@@ -1075,7 +1023,7 @@ export default function StudioPage() {
             </p>
             <button
               className="fs-primary"
-              disabled={busy || !name.trim() || !generators.image_generator || !generators.image_model.trim() || (outputType==="video" && (!generators.video_generator || !generators.video_model.trim()))}
+              disabled={busy || !template || !name.trim() || !generators.image_generator || !generators.image_model.trim() || (outputType==="video" && (!generators.video_generator || !generators.video_model.trim()))}
               onClick={create}
             >
               {busy ? (
@@ -1180,6 +1128,7 @@ function Connections({
         Connect once. Your agent reads the next step, takes a generation
         handoff, and returns the real output.
       </p>
+      <details className="fs-legacy-tools"><summary>Advanced companion tools</summary><p className="fs-hint"><a href="/">Open legacy companion dashboard</a></p></details>
       <div className="fs-connection-flow">
         <span>Agent request</span>
         <ArrowRight size={14} />

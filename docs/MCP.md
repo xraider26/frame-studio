@@ -148,3 +148,7 @@ MCP: `list_templates` includes built-in and saved IDs, `get_saved_template` read
 ## Batch production and queue workers
 
 See `docs/PRODUCTION-SCALE.md` for the full workflow and limits. MCP tools: `create_batch`, `production_queue`, `get_batch`, `claim_queue_task`, `renew_queue_task`, `finish_queue_task`, and `recipe_metrics`. `create_batch` queues actual independent planning projects from an idea; it does not invent completed scripts/media. Claim work with a unique stable request ID, refresh the project, execute its real next action, and renew a 15-minute lease during long work. Finish after meaningful recorded progress or block with a real reason. User approval waits must be respected. Queue policy, pause/priority, identity sync and recipe endorsements are human controls in the UI. Batch caps also govern direct generation/provider starts.
+
+## Sequence planning (next-beta source)
+
+`sequence_catalog` lists seven creator/filmmaker patterns; `preview_sequence` accepts `project_id` and `sequence_id` and returns allocation, source revision and replacement warnings without changing the project. `apply_sequence` is human-only. Read the preview and help the creator choose a pattern in **Plan → Sequences**, then refresh project state before continuing. Coverage/audio intent is included in handoffs; editing techniques are instructions for external software. See [templates and sequences](TEMPLATES-AND-SEQUENCES.md).
