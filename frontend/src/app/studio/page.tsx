@@ -1,4 +1,5 @@
 "use client";
+import {generatorSettings} from "./generator-settings";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -23,6 +24,8 @@ import "./studio.css";
 import { studioApi as api } from "./client";
 import { mcpConfig, type McpLaunch } from "./mcp-config";
 import { ProjectActions } from "./project-actions";
+import { MediaUpload } from "./media-upload";
+import { CreativeBrief, BriefFields } from "./creative-brief";
 import { GeneratorExport } from "./generator-export";
 import {
   CreativeWorkspace,
@@ -116,6 +119,9 @@ export default function StudioPage() {
   const [creating, setCreating] = useState(false);
   const [template, setTemplate] = useState("ai-film");
   const [name, setName] = useState("");
+  const [outputType,setOutputType]=useState<"image"|"video">("video");
+  const [generators,setGenerators]=useState({image_generator:"",image_model:"",video_generator:"",video_model:""});
+  const [brief,setBrief]=useState<Record<string,string>>({});
   const [selectedStep, setSelectedStep] = useState("brief");
   const [document, setDocument] = useState("");
   const [documentRevision, setDocumentRevision] = useState(0);
@@ -186,6 +192,8 @@ export default function StudioPage() {
       const p = await api<Project>("create_project", {
         name,
         template_id: template,
+        output_type: outputType,
+        settings: {...generatorSettings(outputType,generators),creative_intake:brief},
         request_id: crypto.randomUUID(),
       });
       await refresh(p.id);
@@ -225,6 +233,8 @@ export default function StudioPage() {
       setHandoff(res.handoff);
     }, "Generation handoff ready. Return a real output to continue.");
   }
+  const imageOnly=project?.output_type === "image";
+  const visibleSteps=caps?.steps.filter(s=>!imageOnly || !["pilot","production","editor_handoff"].includes(s.id)).map(s=>({...s,name:imageOnly&&s.id==="script"?"Visual concept":s.name}));
   const next = project?.next_action;
   const completed = project
     ? Object.values(project.steps).filter((s) => closed(s.status)).length
@@ -317,7 +327,7 @@ export default function StudioPage() {
             <Film size={16} /> Template library
           </button>
           <div className="fs-eyebrow fs-nav-heading">THIS PROJECT</div>
-          {nav.map((n) => (
+          {nav.filter(n=>!imageOnly||n.id!=="handoff").map((n) => (
             <button
               key={n.id}
               className={`fs-nav ${view === n.id ? "active" : ""}`}
@@ -329,7 +339,7 @@ export default function StudioPage() {
               }}
             >
               <n.icon size={16} />
-              {n.label}
+              {imageOnly&&n.id==="story"?"Visual concept":n.label}
             </button>
           ))}
           <div className="fs-sidebar-bottom">
@@ -373,7 +383,7 @@ export default function StudioPage() {
           </div>
 
           {view === "queue" && (
-            <QueueWorkspace templates={caps?.templates || []} projects={projects}
+            <QueueWorkspace profiles={caps || undefined} templates={caps?.templates || []} projects={projects}
               onSelect={selectProject} onChanged={() => refresh(project?.id)} />
           )}
 
@@ -420,7 +430,7 @@ export default function StudioPage() {
                   </div>
                   <h1>{project.name}</h1>
                   <p className="fs-subtitle">
-                    {project.settings.platform} ·{" "}
+                    {imageOnly ? "Image project" : project.settings.platform} ·{" "}
                     {project.settings.duration_seconds}s target ·{" "}
                     {project.settings.aspect_ratio}
                   </p>
@@ -439,6 +449,7 @@ export default function StudioPage() {
                   </span>
                 </div>
               </div>
+              <CreativeBrief key={project.id} project={project} busy={busy} save={fn=>act(fn,"Creative brief saved")}/>
               <div className="fs-next">
                 <div>
                   <div className="fs-eyebrow">YOUR NEXT STEP</div>
@@ -459,13 +470,14 @@ export default function StudioPage() {
                   <ArrowRight size={15} />
                 </button>
               </div>
+              {imageOnly && <MediaUpload project={project} busy={busy} save={fn=>act(fn,"Media imported")}/>}
               <div className="fs-home-columns">
                 <div>
                   <div className="fs-eyebrow">
-                    {completed} OF {caps?.steps.length || 7} STEPS COMPLETE
+                    {completed} OF {visibleSteps?.length || 7} STEPS COMPLETE
                   </div>
                   <div className="fs-step-list">
-                    {caps?.steps.map((s, i) => (
+                    {visibleSteps?.map((s, i) => (
                       <button
                         className={`fs-step ${next?.step === s.id ? "current" : ""}`}
                         key={s.id}
@@ -560,7 +572,7 @@ export default function StudioPage() {
               </div>
               <div className="fs-workflow">
                 <div className="fs-stage-nav">
-                  {caps?.steps.map((s, i) => (
+                  {visibleSteps?.map((s, i) => (
                     <div
                       key={s.id}
                       className={`fs-stage-row ${selectedStep === s.id ? "selected" : ""}`}
@@ -1053,6 +1065,9 @@ export default function StudioPage() {
                 </option>
               ))}
             </select>
+            <label className="fs-label">Output type<select value={outputType} onChange={e=>setOutputType(e.target.value as "image"|"video")}><option value="image">Image</option><option value="video">Video</option></select></label>
+            {["image",...(outputType==="video"?["video"]:[])].map(kind=><div key={kind}><label className="fs-label">{kind==="image"?"Image":"Video"} generator profile<select value={generators[`${kind}_generator` as keyof typeof generators]} onChange={e=>setGenerators({...generators,[`${kind}_generator`]:e.target.value})}><option value="">Choose a profile</option>{(kind==="image"?caps?.image_profiles:caps?.video_profiles)?.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label className="fs-label">{kind==="image"?"Image":"Video"} model name<input value={generators[`${kind}_model` as keyof typeof generators]} onChange={e=>setGenerators({...generators,[`${kind}_model`]:e.target.value})}/></label></div>)}
+            <details><summary>Creative brief · answer now or after creating</summary><BriefFields answers={brief} onChange={setBrief}/></details>
             <p className="fs-hint">
               {caps?.templates
                 .find((t) => t.id === template)
@@ -1060,7 +1075,7 @@ export default function StudioPage() {
             </p>
             <button
               className="fs-primary"
-              disabled={busy || !name.trim()}
+              disabled={busy || !name.trim() || !generators.image_generator || !generators.image_model.trim() || (outputType==="video" && (!generators.video_generator || !generators.video_model.trim()))}
               onClick={create}
             >
               {busy ? (

@@ -39,7 +39,7 @@ def quality_passed(p, shot, kind):
 class ProductionTools:
     def _input_signature(self, p, shot, kind):
         prepared = prompt_for(p, shot, kind)
-        value = {'prompt': prepared['prompt'], 'negative': prepared['negative_prompt'], 'aspect': prepared['aspect_ratio'],
+        value = {'model': prepared.get('model'), 'generator_profile': prepared.get('generator_profile'), 'model_guidance': prepared.get('model_guidance'), 'creative_intent': prepared.get('creative_intent'), 'prompt': prepared['prompt'], 'negative': prepared['negative_prompt'], 'aspect': prepared['aspect_ratio'],
                  'references': [{k: a.get(k) for k in ['id', 'slot', 'version', 'binding_role']} for a in references_for(p, shot, kind)]}
         if kind == 'video':
             value.update(duration=shot['duration_seconds'], sound=prepared['separate_notes']['sound'], mode=shot['direction']['generation_mode'])
@@ -101,6 +101,32 @@ class ProductionTools:
                 if not prior or self._input_signature(before, prior, kind) != self._input_signature(after, shot, kind):
                     affected.setdefault(shot['id'], set()).add(kind)
         return affected
+
+    def import_external_take(self, project_id, expected_revision, shot_id, output_path, kind, actor, metadata=None):
+        if type(expected_revision) is not int:
+            raise StudioError('invalid_revision', 'Provide the current integer project revision.')
+        if kind not in ['image', 'video']:
+            raise StudioError('invalid_take', 'Choose image or video media.')
+        if metadata is not None and (not isinstance(metadata, dict) or set(metadata) - {'generator', 'prompt'} or any(not isinstance(v, str) or len(v) > 12000 for v in metadata.values())):
+            raise StudioError('invalid_take', 'Optional metadata contains generator and prompt text only.')
+        source, media = checked_file(output_path, [self.inbox, self.media_root], kind)
+        def update(p):
+            if kind == 'video' and p.get('output_type') == 'image':
+                raise StudioError('invalid_output_type', 'Image projects accept image takes.')
+            shot = next((s for s in p['shots'] if s['id'] == shot_id), None)
+            if not shot:
+                raise StudioError('not_found', 'Shot not found.', 404)
+            key = uuid.uuid4().hex
+            dest = self.media_root / project_id / (key + media['suffix'])
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, dest)
+            p['assets'].append({'id': key, 'shot_id': shot_id, 'kind': kind, 'stale': False, 'version': 1,
+                'input_signature': self._input_signature(p, shot, kind), 'created_at': datetime.now(timezone.utc).isoformat(),
+                'path': str(dest), 'url': f'/api/studio/media/{project_id}/{dest.name}', **media,
+                'provenance': {'type': 'externally_created', 'actor': actor, **(metadata or {})},
+                'cost': {'planned': None, 'actual': None, 'unit': p['production']['resources']['unit'], 'evidence': ''}})
+            audit(p, actor, 'External actual media imported as an unselected take: ' + key)
+        return self.mutate(project_id, expected_revision, update)
 
     def record_take_review(self, project_id, asset_id, review, expected_revision, actor):
         if not isinstance(review, dict) or not isinstance(review.get('criteria', {}), dict) or any(type(v) is not bool for v in review.get('criteria', {}).values()):
@@ -241,6 +267,23 @@ class ProductionTools:
                 job.setdefault('cost_history', []).append(copy.deepcopy(entry))
                 cost.update(entry)
                 audit(p, actor, f'Reported cost for {job_id}: {actual} {cost["unit"]}')
+        return self.mutate(project_id, expected_revision, update)
+
+    def record_import_cost(self, project_id, asset_id, actual, evidence, expected_revision, actor):
+        if type(expected_revision) is not int:
+            raise StudioError('invalid_revision', 'Provide the current integer project revision.')
+        if type(actual) not in [float, int] or not math.isfinite(actual) or not 0 <= actual <= 1_000_000_000 or not isinstance(evidence, str) or not evidence.strip():
+            raise StudioError('invalid_cost', 'Report a finite nonnegative cost with actual provider/executor evidence.')
+        def update(p):
+            asset = next((a for a in p['assets'] if a['id'] == asset_id and a.get('provenance', {}).get('type') == 'externally_created'), None)
+            if not asset:
+                raise StudioError('not_found', 'Externally created take not found.', 404)
+            cost = asset['cost']
+            entry = {'actual': actual, 'evidence': evidence[:8000], 'actor': actor, 'at': datetime.now(timezone.utc).isoformat()}
+            if cost.get('actual') != actual or cost.get('evidence') != evidence:
+                asset.setdefault('cost_history', []).append(copy.deepcopy(entry))
+                cost.update(entry)
+                audit(p, actor, f'Reported external take cost for {asset_id}: {actual} {cost["unit"]}')
         return self.mutate(project_id, expected_revision, update)
 
     def production_metrics(self, project_id):

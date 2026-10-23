@@ -57,6 +57,7 @@ function ExampleViewer({example, onClose}: {example: Example; onClose:()=>void})
 }
 
 export function RecipeWorkspace({project,busy,save,onNew}: {project:Project|null;busy:boolean;save:Save;onNew:(id:string)=>void}) {
+  const detailTabs = project?.output_type==="image" ? ["Standards","Workflow","Course rules"] : ["Standards","Workflow","Course rules","Video trials"];
   const [catalogue,setCatalogue]=useState<Catalogue|null>(null);
   const [error,setError]=useState("");
   const [selected,setSelected]=useState(project?.template_id || "ai-film");

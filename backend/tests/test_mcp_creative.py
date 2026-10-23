@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS
 import asyncio
 import json
 import os
@@ -33,7 +34,7 @@ class McpCreativeTests(unittest.TestCase):
                     return json.loads(next(c.text for c in result.content if c.type=='text'))
                 schema=await call('creative_schema');self.assertEqual(schema['schema_version'],2)
                 catalog=await call('knowledge_catalog',{'category':'lighting'});self.assertTrue(catalog['entries'])
-                p=await call('create_project',{'name':'SDK fixture','template_id':'ai-film','request_id':'sdk'})
+                p=await call('create_project',{'name':'SDK fixture','template_id':'ai-film','request_id':'sdk','settings':CREATOR_SETTINGS})
                 blocked=await client.call_tool('update_production',{'project_id':p['id'],'production':{'require_recorded_checks':False},'expected_revision':p['revision']})
                 self.assertTrue(blocked.isError)
                 # Human side of the same database; the MCP client cannot perform this operation.
@@ -44,7 +45,7 @@ class McpCreativeTests(unittest.TestCase):
                 snapshot=await call('get_saved_template',{'template_id':saved['id']})
                 self.assertEqual(snapshot['sections'],['settings'])
                 p=await call('apply_project_template',{'project_id':p['id'],'template_id':saved['id'],'sections':['settings'],'expected_revision':p['revision'],'template_revision':saved['revision']})
-                p=human.set_policy(p['id'],{'brief':False,'script':False},p['revision'])
+                p=human.set_policy(p['id'],{'brief':False,'script':False,'visual_direction':True},p['revision'])
                 for step in ['brief','script']:
                     p=await call('complete_step',{'project_id':p['id'],'step':step,'output':{'text':'Actual '+step+' fixture'},'expected_revision':p['revision']})
                 p=await call('update_shots',{'project_id':p['id'],'shots':[{'title':'Window','image_prompt':'Traveler beside window','motion_prompt':'Turns toward light','direction':{'camera':{'lens':'85mm'},'lighting':{'world_source':'North wall window'}}}],'expected_revision':p['revision']})
@@ -62,7 +63,9 @@ class McpCreativeTests(unittest.TestCase):
                     self.assertEqual(manifest['shots'][0]['direction']['camera']['lens'],'85mm')
                     self.assertIn('source_coverage',manifest)
                 self.assertEqual((await call('next_action',{'project_id':p['id']}))['action'],'await_approval')
-                batch=await call('create_batch',{'name':'SDK batch','idea':'One observatory mystery','request_id':'sdk-batch','count':1,'kind':'episodes','template_id':'ai-film'})
+                batch=await call('create_batch',{'name':'SDK batch','idea':'One observatory mystery','request_id':'sdk-batch','count':1,'kind':'episodes','template_id':'ai-film','settings':CREATOR_SETTINGS})
+                bp=human.get(batch['project_ids'][0])
+                human.set_policy(bp['id'],{'brief':True},bp['revision'])
                 queue=await call('production_queue',{'batch_id':batch['id']})
                 self.assertEqual(len(queue['items']),1)
                 task=await call('claim_queue_task',{'request_id':'sdk-work','batch_id':batch['id']})

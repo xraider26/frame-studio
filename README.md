@@ -6,6 +6,8 @@ Plan the story, choose the visual direction, generate through your own tools, an
 
 [Download the Windows beta](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1) · [First project](docs/GETTING-STARTED.md) · [Agent / MCP guide](docs/MCP.md) · [Windows setup](docs/WINDOWS.md)
 
+Next-beta development adds image-only projects, creator intake, model selection and direct media uploads. See the [implementation handover](docs/NEXT-BETA-HANDOVER.md). These changes are separate from the existing 0.2.0 installer. The repository and its downloads currently require GitHub access.
+
 > **Early Windows x64 beta.** The installer is unsigned and has been tested on one Windows 11 machine, including installation into a different folder. Generation tools/accounts are supplied by you. The goal is repeatable, high-quality production; consistent artistic results still need real production trials.
 
 ![Frame Studio's visual cinematography library comparing two camera looks](docs/images/cinematography-library.jpg)

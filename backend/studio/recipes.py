@@ -167,6 +167,19 @@ def recipe_context(p, shot=None):
               'stage_instructions': r['stages'], 'settings_scope': {'video_profile': p['settings']['video_generator'],
               'image_profile': p['settings']['image_generator'], 'capabilities': p['production']['capabilities']},
               'guidance': 'These are directing and inspection requirements, not proof the generator obeyed them. Keep human policy and budget limits.'}
+    if p.get('output_type', 'video') == 'image':
+        stages = {
+            'brief': ['Ask for the intended image, purpose, audience and art style; preserve the creator\'s answers.', 'Confirm the image generator/model, aspect ratio, references and any text/brand constraints.'],
+            'script': ['Prepare the visual concept: subject, setting, emotional intent, composition and the details that must remain accurate.'],
+            'visual_direction': ['Prepare actual identity/style/product references and explain perspective, depth, lighting, palette and materials for the intended image.', *['Inspect: ' + value for value in r['image_checks']]],
+            'final_review': ['Inspect each selected actual image at intended viewing size, record required quality checks and export the chosen originals.'],
+        }
+        result.update(output_type='image', stages=stages, stage_instructions=stages,
+                      settings_scope={'image_profile': p['settings']['image_generator'], 'image_model': p['settings'].get('image_model', ''), 'capabilities': p['production']['capabilities']},
+                      planning=['Define the intended still image, visual treatment, required references and acceptance criteria.'],
+                      video_checks=[])
+    else:
+        result['settings_scope'].update(image_model=p['settings'].get('image_model', ''), video_model=p['settings'].get('video_model', ''))
     if shot:
         role_id = shot['direction'].get('recipe_role', '')
         result['shot_role'] = next((v for v in r['roles'] if v['id'] == role_id), None)

@@ -58,7 +58,7 @@ async def list_projects() -> list[dict]:
 
 
 @mcp.tool()
-async def create_batch(name: str, idea: str, request_id: str, kind: str = 'variations', template_id: str = 'custom', count: int = 5, briefs: list[str] | None = None, identity_source_project_id: str | None = None, source_revision: int | None = None) -> dict:
+async def create_batch(name: str, idea: str, request_id: str, kind: str = 'variations', template_id: str = 'custom', count: int = 5, briefs: list[str] | None = None, identity_source_project_id: str | None = None, source_revision: int | None = None, output_type: str = 'video', settings: dict[str, Any] | None = None) -> dict:
     """Create 1–100 independent episodes/variations/campaign items from an idea and built-in/saved template. Idempotent request_id. Optional per-item briefs and actual canonical identity source. This queues real work, never generates scripts/media itself. Spending/retry/approval policy remains user-controlled."""
     return await command('create_batch', locals())
 
@@ -100,7 +100,7 @@ async def recipe_metrics(template_id: str) -> dict:
 
 
 @mcp.tool()
-async def create_project(name: str, template_id: str = 'custom', request_id: str = '') -> dict:
+async def create_project(name: str, template_id: str = 'custom', request_id: str = '', output_type: str = 'video', settings: dict[str, Any] | None = None) -> dict:
     """Create from a built-in or saved template ID (list_templates). Saved settings/story are reused; workflow/QC policy stays at new-project defaults for agent creation. Use a stable unique request_id for retries."""
     return await command('create_project', locals())
 
@@ -137,7 +137,7 @@ async def apply_project_template(project_id: str, template_id: str, sections: li
 
 @mcp.tool()
 async def duplicate_project(project_id: str, name: str) -> dict:
-    """Create an independent copy of the plan, settings and references. Jobs, generated takes and approvals start fresh with review enabled. Original project is unchanged."""
+    """Create an independent copy of the plan, settings and references. Jobs, generated takes and approvals start fresh with approvals disabled. Original project is unchanged."""
     return await command('duplicate_project', locals())
 
 
@@ -145,8 +145,11 @@ async def duplicate_project(project_id: str, name: str) -> dict:
 async def export_generation_package(project_id: str) -> dict:
     """Build a real portable ZIP for a Flow agent or other generator without API access: manifest.json, generator-specific prompts.md and local reference images. Not native Flow/Runway project format. Share the file with the user's chosen agent; it must check the current review policy before executing."""
     result = await command('export_handoff', locals())
-    return {'path': result['path'], 'download_url': result['download_url'], 'source_revision': result['manifest']['source_revision'],
-            'video_generator': result['manifest']['video_generator'], 'files': ['manifest.json', 'prompts.md', 'README.txt', 'references/ (when available)']}
+    manifest = result['manifest']
+    return {'path': result['path'], 'download_url': result['download_url'], 'source_revision': manifest['source_revision'],
+            'output_type': manifest.get('output_type', 'video'), 'image_generator': manifest['image_generator'],
+            **({'video_generator': manifest['video_generator']} if 'video_generator' in manifest else {}),
+            'files': ['manifest.json', 'prompts.md', 'README.txt', 'references/ (when available)'] + (['images/ (selected outputs when available)'] if manifest.get('output_type') == 'image' else [])}
 
 
 @mcp.tool()
@@ -240,6 +243,12 @@ async def record_job_cost(project_id: str, job_id: str, actual: float, evidence:
 
 
 @mcp.tool()
+async def record_import_cost(project_id: str, asset_id: str, actual: float, evidence: str, expected_revision: int) -> dict:
+    """Report actual cost of an imported external take with receipt/executor evidence. Unknown imports block hard budgets until settled; zero requires actual evidence. Keeps correction history without inventing jobs."""
+    return await command('record_import_cost', locals())
+
+
+@mcp.tool()
 async def production_metrics(project_id: str) -> dict:
     """Read known reserved/spent costs, unknown jobs, attempts, selected clips, reported defects and completed job time. No external analytics connection is implied."""
     return await command('production_metrics', locals())
@@ -247,7 +256,7 @@ async def production_metrics(project_id: str) -> dict:
 
 @mcp.tool()
 async def complete_step(project_id: str, step: str, output: dict[str, Any], expected_revision: int) -> dict:
-    """Return a real brief, script or editor_handoff document as {text: ...}. Media stages complete only through returned files; final_review requires an imported final MP4. Human-required steps wait in the studio."""
+    """Return a real brief, script or editor_handoff document as {text: ...}. Media stages complete only through returned files; video final_review requires an imported final MP4; image final_review uses the actual selected current images. Human-required steps wait in the studio."""
     return await command('complete_step', locals())
 
 
@@ -276,9 +285,15 @@ async def cancel_job(job_id: str) -> dict:
 
 
 @mcp.tool()
-async def import_reference(project_id: str, path: str, name: str, expected_revision: int, kind: str = 'image') -> dict:
-    """Import a real image (kind=image) or MP4 motion source (kind=video) from the allowed inbox. Changing references invalidates dependent work."""
+async def import_reference(project_id: str, path: str, name: str, expected_revision: int, kind: str = 'image', entity_id: str | None = None) -> dict:
+    """Import a real image (kind=image) or MP4 motion source (kind=video) from the allowed inbox. Changing references invalidates dependent work. Optional entity_id atomically attaches to a bible entity and increments its version; canonical batch identity must be edited in its source and synchronized."""
     return await command('import_reference', locals())
+
+
+@mcp.tool()
+async def import_external_take(project_id: str, expected_revision: int, shot_id: str, output_path: str, kind: str, metadata: dict[str, Any] | None = None) -> dict:
+    """Import actual externally created media without a claimed workflow job. Preserves prior takes, records unknown cost and provenance, and leaves this take unselected. Inspect it and explicitly select_take afterward. Optional metadata: generator and prompt text."""
+    return await command('import_external_take', locals())
 
 
 @mcp.tool()

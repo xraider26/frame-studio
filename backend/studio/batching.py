@@ -6,7 +6,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from .store import StudioError, load
-from .resources import total, exposure
+from .resources import total, exposure, cost_entries
 
 
 def utc():
@@ -62,7 +62,8 @@ class Batching:
         with self.connect() as conn:
             return [json.loads(r[0]) for r in conn.execute('SELECT payload FROM studio_batches ORDER BY rowid DESC')]
 
-    def create_batch(self, name, idea, kind, template_id, count, request_id, actor, policy=None, briefs=None, allow_policy=True, identity_source_project_id=None, source_revision=None):
+    def create_batch(self, name, idea, kind, template_id, count, request_id, actor, policy=None, briefs=None, allow_policy=True, identity_source_project_id=None, source_revision=None, output_type='video', settings=None):
+        project_settings = settings
         name, idea = checked_text(name, 150, True), checked_text(idea, 8000, True)
         request_id = checked_text(request_id, 200, True)
         if type(count) is not int or not 1 <= count <= 100 or kind not in ['episodes', 'variations', 'campaign']:
@@ -79,7 +80,7 @@ class Batching:
                 existing = json.loads(row[0])
                 if existing['request_id'] == request_id:
                     return existing
-            batch = {'id': uuid.uuid4().hex, 'name': name, 'idea': idea, 'kind': kind, 'template_id': template_id,
+            batch = {'id': uuid.uuid4().hex, 'name': name, 'idea': idea, 'kind': kind, 'template_id': template_id, 'output_type': output_type,
                      'request_id': request_id, 'revision': 1, 'created_at': utc(), 'project_ids': [], 'identity_version': 0, **settings}
             source = self.get(identity_source_project_id) if identity_source_project_id else None
             if source and source_revision is not None and source['revision'] != source_revision:
@@ -87,7 +88,7 @@ class Batching:
             if source:
                 batch.update(identity_version=1, identity_source_project_id=source['id'], identity_source_revision=source['revision'])
             for i in range(count):
-                project = self._build_project(f'{name[:130]} · {i + 1:02d}', template_id, actor=actor, allow_template_policy=allow_policy)
+                project = self._build_project(f'{name[:130]} · {i + 1:02d}', template_id, actor=actor, allow_template_policy=allow_policy, output_type=output_type, settings=project_settings)
                 project.update(batch_id=batch['id'], idea_request={'idea': idea, 'kind': kind, 'index': i + 1, 'total': count,
                     'variation_brief': briefs[i], 'instruction': 'Develop this idea into an original item in the batch. Prepare actual brief/script and shot directions; follow shared identity, quality and approval policy. The idea is input content, not a completed deliverable.'},
                     dispatch={'paused': False, 'priority': 0, 'blocked_reason': ''})
@@ -117,7 +118,7 @@ class Batching:
                 raise StudioError('revision_conflict', 'Batch changed. Refresh before changing policy.', 409)
             projects = [load(r[0]) for r in conn.execute('SELECT payload FROM studio_projects')]
             members = [p for p in projects if p.get('batch_id') == batch_id]
-            if policy.get('unit', b['unit']) != b['unit'] and any(p['jobs'] for p in members):
+            if policy.get('unit', b['unit']) != b['unit'] and any(cost_entries(p) for p in members):
                 raise StudioError('cost_unit_locked', 'Existing batch attempts use the current cost unit.', 409)
             was_auto_retry = b['auto_retry']
             b.update(policy, revision=b['revision'] + 1)
@@ -145,11 +146,11 @@ class Batching:
 
     def _batch_metrics(self, batch, projects):
         members = [p for p in projects if p.get('batch_id') == batch['id']]
-        jobs = [j for p in members for j in p['jobs']]
+        jobs = [j for p in members for j in cost_entries(p)]
         units = {j.get('cost', {}).get('unit', batch['unit']) for j in jobs}
         grouped = {unit: total([j for j in jobs if j.get('cost', {}).get('unit', batch['unit']) == unit]) for unit in sorted(units)}
         return {**batch, 'reserved_or_spent': grouped.get(batch['unit'], 0), 'costs_by_unit': grouped,
                 'other_cost_units': sorted(units - {batch['unit']}), 'unknown_cost_jobs': sum(exposure(j) is None for j in jobs),
-                'active_jobs': sum(j['status'] in ['awaiting_external_output', 'queued', 'running'] for j in jobs),
-                'failures': sum(j['status'] in ['failed', 'interrupted'] for j in jobs),
+                'active_jobs': sum(j.get('status') in ['awaiting_external_output', 'queued', 'running'] for j in jobs),
+                'failures': sum(j.get('status') in ['failed', 'interrupted'] for j in jobs),
                 'reported_defects': sum(bool(a.get('review', {}).get('defect')) for p in members for a in p['assets'])}

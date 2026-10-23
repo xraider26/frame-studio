@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from .batching import utc, checked_text
 from .store import StudioError, load
-from .resources import total, exposure
+from .resources import total, exposure, cost_entries
 from .recipes import recipe_context
 
 ACTIVE = ['awaiting_external_output', 'queued', 'running']
@@ -35,7 +35,7 @@ class Dispatch:
         if batch['paused']:
             return 'This production batch is paused.'
         projects = [q if q['id'] != p['id'] else p for q in (projects if projects is not None else self.all()) if q.get('batch_id') == batch['id']]
-        occupied = {q['id'] for q in projects if any(j['status'] in ACTIVE for j in q['jobs'])}
+        occupied = {q['id'] for q in projects if any(j.get('status') in ACTIVE for j in q['jobs'])}
         if include_leases:
             active_ids = {q['id'] for q in projects if not q.get('deleted_at')}
             if lease_project_ids is None:
@@ -45,7 +45,7 @@ class Dispatch:
         if p['id'] not in occupied and len(occupied) >= batch['max_parallel']:
             return 'Batch parallel-project limit is in use. Wait for an active item to finish.'
         if kind and batch['budget_limit'] is not None:
-            jobs = [j for q in projects for j in q['jobs']]
+            jobs = [j for q in projects for j in cost_entries(q)]
             if any(q['production']['resources']['unit'] != batch['unit'] for q in projects) or any(j.get('cost', {}).get('unit', batch['unit']) != batch['unit'] for j in jobs):
                 return 'Batch budget needs one consistent cost unit.'
             price = p['production']['resources'][kind + '_cost']
@@ -59,7 +59,7 @@ class Dispatch:
     def _queue_item(self, p, leases, projects=None, batch=None):
         action = self._next(p)
         lease = leases.get(p['id'])
-        active_jobs = [j for j in p['jobs'] if j['status'] in ACTIVE]
+        active_jobs = [j for j in p['jobs'] if j.get('status') in ACTIVE]
         gate = self._dispatch_block(p, action.get('kind') if action['action'] == 'generate' else None, projects=projects, batch=batch, lease_project_ids=set(leases))
         actionable = action['action'] in ['prepare_step', 'prepare_shots', 'write_prompt', 'record_quality', 'resolve_preflight', 'generate']
         if p.get('dispatch', {}).get('paused') or (p.get('batch_id') and (batch or self.get_batch(p['batch_id']))['paused']):
@@ -70,6 +70,8 @@ class Dispatch:
             state, actionable = 'waiting_output', False
         elif action['action'] == 'complete':
             state, actionable = 'complete', False
+        elif action['action'] == 'ask_creator':
+            state, actionable = 'waiting_input', False
         elif action['action'] == 'await_approval':
             state, actionable = 'awaiting_approval', False
         elif gate:
@@ -80,12 +82,12 @@ class Dispatch:
             state = 'attention'
         else:
             state = 'ready'
-        return {'project_id': p['id'], 'project_name': p['name'], 'revision': p['revision'], 'batch_id': p.get('batch_id'),
+        return {'project_id': p['id'], 'project_name': p['name'], 'output_type': p.get('output_type', 'video'), 'revision': p['revision'], 'batch_id': p.get('batch_id'),
                 'dispatch_paused': p.get('dispatch', {}).get('paused', False),
                 'priority': p.get('dispatch', {}).get('priority', 0), 'state': state, 'actionable': actionable, 'next_action': action,
                 'message': gate or action['message'], 'lease': lease, 'active_jobs': len(active_jobs),
-                'reserved_or_spent': total(p['jobs']), 'unknown_cost_jobs': sum(exposure(j) is None for j in p['jobs']),
-                'unit': p['production']['resources']['unit'], 'failures': sum(j['status'] in ['failed', 'interrupted'] for j in p['jobs']),
+                'reserved_or_spent': total(cost_entries(p)), 'unknown_cost_jobs': sum(exposure(j) is None for j in cost_entries(p)),
+                'unit': p['production']['resources']['unit'], 'failures': sum(j.get('status') in ['failed', 'interrupted'] for j in p['jobs']),
                 'identity_version': p.get('shared_identity', {}).get('version', 0),
                 'quality_retries': sum(sum(s.get('quality_retries', {}).values()) for s in p['shots'])}
 

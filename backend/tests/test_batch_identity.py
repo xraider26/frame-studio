@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS, creator_ready
 import copy
 import tempfile
 import unittest
@@ -52,6 +53,7 @@ class BatchIdentityTests(unittest.TestCase):
         b=self.s.create_batch('Episode','Idea','episodes','ai-film',1,'change','user')
         b=self.s.sync_batch_identity(b['id'],self.source['id'],b['revision'],self.source['revision'])
         p=self.s.get(b['project_ids'][0]);old_file=p['assets'][0]['path']
+        p=creator_ready(self.s,p)
         for step in ['brief','script']:
             p=self.s.set_policy(p['id'],{step:False},p['revision'])
             p=self.s.complete_step(p['id'],step,{'text':'Actual document'},p['revision'],'agent')

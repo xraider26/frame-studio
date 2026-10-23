@@ -66,7 +66,7 @@ The studio does not supply a generation model through MCP, borrow client subscri
 
 ## Approval controls
 
-Every workflow step has an **Approval required** checkbox in Workflow & approvals. On means the studio waits for an explicit browser review. Off means valid outputs allow automatic progression, visibly recorded as `auto_proceeded`, never human approval. Agents cannot turn off review or approve through the MCP tools. Enabling review again reopens the current review and dependent steps. Changes to source material invalidate affected progression; old media and decisions remain in activity/history.
+Every workflow step has an **Approval required** checkbox in Workflow & approvals. In the next-beta source, new projects start with every approval off; existing projects preserve their policy. On means the studio waits for an explicit browser review. Off means valid outputs allow automatic progression, visibly recorded as `auto_proceeded`, never human approval. Agents cannot turn off review or approve through the MCP tools. Enabling review again reopens the current review and dependent steps. Changes to source material invalidate affected progression; old media and decisions remain in activity/history.
 
 The workflow is Brief → Script → Visual direction → Pilot → Production → Editor handoff → Final review. Visual direction requires one real image per shot; pilot requires the first shot's video; production requires videos for the remaining shots. The three shots in templates are editable starting points, not a generation/concurrency limit. The current shot list supports 1–200 planned shots. Agent handoffs are sequential next-action tasks; provider parallelism is not promised.
 
@@ -80,7 +80,7 @@ The ZIP contains portable `manifest.json`, `prompts.md`, `README.txt` and availa
 
 ## Duplicate, delete and restore
 
-The buttons under the project dropdown provide **Duplicate**, **Delete** and **Trash**. Duplicate copies the plan, documents, generator choices and reference images to new IDs. Generated takes, jobs and approval decisions start fresh, with approval enabled on each step. Delete is recoverable: the project goes to Trash and media stays on disk. Trash offers **Restore project**. The app does not expose permanent file deletion. Projects with an active API job must finish it before being moved to Trash.
+The buttons under the project dropdown provide **Duplicate**, **Delete** and **Trash**. Duplicate copies the plan, documents, generator choices and reference images to new IDs. Generated takes, jobs and approval decisions start fresh; next-beta duplicates start with approval off on each step. Delete is recoverable: the project goes to Trash and media stays on disk. Trash offers **Restore project**. The app does not expose permanent file deletion. Projects with an active API job must finish it before being moved to Trash.
 
 ## API-based generators
 

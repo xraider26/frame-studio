@@ -157,3 +157,19 @@ test('mode changes still work when preference storage rejects writes', async () 
     await React.act(() => root.unmount());
   }
 });
+
+test('image projects hide video setup and retain editable image model in Basic', async () => {
+  window.localStorage.clear(); window.sessionStorage.clear();
+  await mount(GeneratorExport, props({...generatorProject, output_type:'image', settings:{...generatorProject.settings,image_model:'Flux 2'}}));
+  assert.ok(![...document.querySelectorAll('label')].some(l=>l.textContent.includes('Video generator template')));
+  assert.equal(field('Image model name').value,'Flux 2');
+  await change(field('Image model name'),'Custom image model');
+  await click('Apply generator choices');
+});
+
+test('image directing removes motion, narration and timing inputs', async () => {
+  window.localStorage.clear(); window.sessionStorage.clear();
+  await mount(CreativeWorkspace, props({...project,output_type:'image'}));
+  for(const text of ['Motion / base prompt','Narration','Generation duration (seconds)']) assert.ok(![...document.querySelectorAll('label')].some(l=>l.textContent.trim()===text),text);
+  assert.ok(field('Visual concept'));
+});

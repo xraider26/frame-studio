@@ -267,7 +267,7 @@ def populated(value):
 def effective_direction(project, shot):
     s = project['settings']
     base = Direction(camera=Camera(lens=s['lens'], framing=s['framing'], move=s['camera_move']),
-                     lighting=Lighting(technique=s['lighting']), art=Art(style=s['style'], palette=s['palette']),
+                     lighting=Lighting(technique=s['lighting']), art=Art(style=(s.get('creative_intake') or {}).get('art_style') or s['style'], palette=s['palette']),
                      sound=Sound(ambience=s['sound'])).model_dump()
     base = merge(base, populated(project.get('production', {}).get('defaults', {})))
     result = merge(base, populated(shot.get('direction', {})))

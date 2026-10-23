@@ -9,6 +9,7 @@ from .creative import default_production, Direction, merge
 def load(value):
     project = json.loads(value)
     project['settings'] = dict(DEFAULT_SETTINGS, **project['settings'])
+    project.setdefault('output_type', 'video')
     project['schema_version'] = 2
     project.setdefault('dispatch', {'paused': False, 'priority': 0, 'blocked_reason': ''})
     defaults = default_production(project.get('template_id', 'custom'))

@@ -11,7 +11,7 @@ TEMPLATES = [
     {'id': 'claymation', 'name': 'Claymation', 'description': 'Tactile characters and deliberate motion.', 'structure': ['Introduce', 'Action', 'Reaction'], 'aspect': '16:9'},
     {'id': 'custom', 'name': 'Custom', 'description': 'Build your own format and shot structure.', 'structure': ['Opening', 'Development', 'Closing'], 'aspect': '16:9'},
 ]
-DEFAULT_SETTINGS = {'aspect_ratio': '16:9', 'platform': 'YouTube', 'duration_seconds': 30,
+DEFAULT_SETTINGS = {'image_model': '', 'video_model': '', 'creative_intake': {}, 'aspect_ratio': '16:9', 'platform': 'YouTube', 'duration_seconds': 30,
                     'audience': '', 'lens': '35mm', 'framing': 'Medium shot',
                     'camera_move': 'Slow dolly in', 'lighting': 'Soft directional light',
                     'palette': 'Warm amber', 'style': 'Cinematic realism', 'continuity': '',
@@ -19,3 +19,10 @@ DEFAULT_SETTINGS = {'aspect_ratio': '16:9', 'platform': 'YouTube', 'duration_sec
                     'generation_mode': 'external_agent', 'video_generator': 'flow_veo', 'image_generator': 'general_image',
                     'custom_video_template': '{subject}. {motion}. Camera: {camera}. {continuity}',
                     'custom_image_template': '{subject}. {framing}, {lens}. {lighting}. {style}. {continuity}'}
+
+
+IMAGE_STEPS = ['brief', 'script', 'visual_direction', 'final_review']
+
+
+def active_steps(project):
+    return IMAGE_STEPS if project.get('output_type', 'video') == 'image' else STEPS

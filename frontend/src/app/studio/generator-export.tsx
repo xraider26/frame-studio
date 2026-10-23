@@ -24,6 +24,7 @@ export function GeneratorExport({
   busy,
   save,
 }: Props) {
+  const imageOnly = project.output_type === "image";
   const [mode, setMode] = useControlMode("generator");
   const savedSettings = useMemo(
     () =>
@@ -32,6 +33,8 @@ export function GeneratorExport({
           "generation_mode",
           "video_generator",
           "image_generator",
+          "image_model",
+          "video_model",
           "custom_video_template",
           "custom_image_template",
         ].map((k) => [k, project.settings[k]]),
@@ -81,6 +84,7 @@ export function GeneratorExport({
               <option value="api">Connected API generator</option>
             </select>
           </label>
+          {!imageOnly && <>
           <label className="fs-label">
             Video generator template
             <select
@@ -94,6 +98,7 @@ export function GeneratorExport({
               ))}
             </select>
           </label>
+          <label className="fs-label">Video model name<input value={String(settings.video_model || "")} onChange={e=>change("video_model",e.target.value)}/></label></>}
           <label className="fs-label">
             Image generator template
             <select
@@ -107,10 +112,11 @@ export function GeneratorExport({
               ))}
             </select>
           </label>
+          <label className="fs-label">Image model name<input value={String(settings.image_model || "")} onChange={e=>change("image_model",e.target.value)}/></label>
         </div>
-        <p className="fs-body">{video?.hint}</p>
+        {!imageOnly && <p className="fs-body">{video?.hint}</p>}
         <p className="fs-hint">{image?.hint}</p>
-        {video?.source && (
+        {!imageOnly && video?.source && (
           <a
             className="fs-link"
             href={video.source}
@@ -121,7 +127,7 @@ export function GeneratorExport({
           </a>
         )}
         <ModeDetail mode={mode}>
-          {settings.video_generator === "custom" && (
+          {!imageOnly && settings.video_generator === "custom" && (
             <label className="fs-label">
               Custom video prompt template
               <textarea
@@ -160,6 +166,8 @@ export function GeneratorExport({
                 "generation_mode",
                 "video_generator",
                 "image_generator",
+          "image_model",
+          "video_model",
                 "custom_video_template",
                 "custom_image_template",
               ];

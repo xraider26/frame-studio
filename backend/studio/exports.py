@@ -13,6 +13,8 @@ from .recipes import recipe_context
 
 def export_project(studio, project):
     p = project
+    if p.get('output_type') == 'image':
+        return export_images(studio, p)
     included = {}
     used = {a['id'] for shot in p['shots'] for kind in ['image', 'video'] for a in references_for(p, shot, kind)}
     for asset in p['assets']:
@@ -110,3 +112,48 @@ def export_editor(studio, project_id):
         for file, relative in included:
             archive.write(file, relative)
     return {'manifest': manifest, 'path': str(path), 'download_url': f'/api/studio/export/{project_id}/{name}'}
+
+
+def export_images(studio, p):
+    """Portable still-image delivery with actual selected files and image prompts."""
+    included = []
+    references = {}
+    for shot in p['shots']:
+        for asset in references_for(p, shot, 'image'):
+            file = Path(asset['path']).resolve()
+            if file.is_relative_to(studio.media_root) and file.is_file():
+                references[asset['id']] = 'references/' + asset['id'] + file.suffix
+                if not any(relative == references[asset['id']] for _, relative in included):
+                    included.append((file, references[asset['id']]))
+    shots = []
+    for index, shot in enumerate(p['shots'], 1):
+        asset = next((a for a in p['assets'] if a['id'] == shot.get('image_asset') and a['kind'] == 'image' and not a.get('stale')), None)
+        relative = None
+        if asset:
+            file = Path(asset['path']).resolve()
+            if file.is_relative_to(studio.media_root) and file.is_file():
+                relative = f'images/{index:03d}_{asset["id"]}{file.suffix}'
+                included.append((file, relative))
+        shots.append({'shot_id': shot['id'], 'order': index, 'title': shot['title'], 'image': prompt_for(p, shot, 'image'),
+                      'selected_asset_id': asset['id'] if relative else None, 'selected_image': relative,
+                      'reference_files': [{'asset_id': a['id'], 'slot': a['slot'], 'file': references.get(a['id'])} for a in references_for(p, shot, 'image')],
+                      'expected_outputs': {'image': f'shot_{index:02d}_image.png'}})
+    from .intake import creative_intake
+    manifest = {'schema_version': 2, 'package_type': 'studio_image_delivery', 'output_type': 'image',
+                'project_id': p['id'], 'project_name': p['name'], 'source_revision': p['revision'],
+                'creative_settings': p['settings'], 'creative_intake': creative_intake(p), 'documents': p['documents'],
+                'approval_policy': p['approval_policy'], 'production': p['production'], 'shots': shots, 'references': [{'asset_id': key, 'file': value} for key, value in references.items()],
+                'image_generator': p['settings']['image_generator'],
+                'next_action_at_export': studio._next(p), 'preflight': preflight(p)}
+    text = '\n'.join([f'# {p["name"]}', '', *[f'{s["order"]}. {s["title"]}\n{s["image"]["prompt"]}\nSelected image: {s["selected_image"] or "None"}' for s in shots]])
+    folder = studio.media_root / p['id'] / 'exports'
+    folder.mkdir(parents=True, exist_ok=True)
+    name = uuid.uuid4().hex + '.zip'
+    path = folder / name
+    with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr('manifest.json', json.dumps(manifest, indent=2, ensure_ascii=False))
+        archive.writestr('prompts.md', text)
+        archive.writestr('README.txt', 'Portable image planning and delivery package. Read manifest.json and prompts.md; references/ contains actual available reference images and images/ contains actual selected outputs when present.\nBefore generation, connect to the studio and follow current next_action, approvals, quality requirements and budget policy. This package is a revision snapshot, not permission to bypass current gates.\nUse image_generator and the exact image model in creative_settings; verify the model capabilities. Return actual outputs through the current MCP job or import_external_take, then inspect and explicitly select imported takes.\n')
+        for file, relative in included:
+            archive.write(file, relative)
+    return {'manifest': manifest, 'markdown': text, 'path': str(path), 'download_url': f'/api/studio/export/{p["id"]}/{name}'}

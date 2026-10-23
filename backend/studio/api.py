@@ -1,5 +1,6 @@
 import os
 import secrets
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -107,9 +108,10 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
                     'execution_modes': ['agent_handoff', 'json_job_api'], 'flow_account': 'not_connected',
                     'connections': providers.public(), 'inbox': str(studio.inbox),
                     'video_profiles': VIDEO_PROFILES, 'image_profiles': IMAGE_PROFILES,
+                    'output_types': ['image', 'video'], 'steps_by_output_type': {'image': ['brief', 'script', 'visual_direction', 'final_review'], 'video': STEPS},
                     'steps': [{'id': s, 'name': l} for s, l in zip(STEPS, LABELS)], 'templates': TEMPLATES + studio.list_saved_templates()}
         if op == 'create_batch': return studio.create_batch(a['name'], a['idea'], a.get('kind', 'variations'), a.get('template_id', 'custom'), a.get('count', 5), a['request_id'], actor,
-            policy=a.get('policy'), briefs=a.get('briefs'), allow_policy=human, identity_source_project_id=a.get('identity_source_project_id'), source_revision=a.get('source_revision'))
+            policy=a.get('policy'), briefs=a.get('briefs'), allow_policy=human, identity_source_project_id=a.get('identity_source_project_id'), source_revision=a.get('source_revision'), output_type=a.get('output_type', 'video'), settings=a.get('settings'))
         if op == 'list_batches': return studio.list_batches()
         if op == 'get_batch': return studio.get_batch(a['batch_id'])
         if op == 'update_batch': return studio.update_batch(a['batch_id'], a['policy'], a['expected_revision'])
@@ -147,10 +149,11 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'extract_continuation': return studio.extract_continuation(a['project_id'], a['asset_id'], a['expected_revision'], actor)
         if op == 'repair_handoff': return studio.repair_handoff(a['project_id'], a['asset_id'], a['defect'], a.get('mask_asset_id', ''), a['expected_revision'], actor)
         if op == 'record_job_cost': return studio.record_job_cost(a['project_id'], a['job_id'], a['actual'], a['evidence'], a['expected_revision'], actor)
+        if op == 'record_import_cost': return studio.record_import_cost(a['project_id'], a['asset_id'], a['actual'], a['evidence'], a['expected_revision'], actor)
         if op == 'production_metrics': return studio.production_metrics(a['project_id'])
         if op == 'export_editor_package': return export_editor(studio, a['project_id'])
         if op == 'list_projects': return studio.list_projects()
-        if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor, allow_template_policy=human)
+        if op == 'create_project': return studio.create_project(a['name'], a.get('template_id', 'custom'), a.get('request_id'), actor, allow_template_policy=human, output_type=a.get('output_type', 'video'), settings=a.get('settings'))
         if op == 'duplicate_project': return studio.duplicate_project(a['project_id'], a.get('name'), actor)
         if op == 'delete_project': return studio.delete_project(a['project_id'], a['expected_revision'])
         if op == 'restore_project': return studio.restore_project(a['project_id'])
@@ -165,7 +168,8 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'return_generation': return studio.return_result(a['job_id'], a['output_path'], actor)
         if op == 'get_job': return studio.find_job(a['job_id'])[1]
         if op == 'cancel_job': return studio.cancel_job(a['job_id'], actor)
-        if op == 'import_reference': return studio.import_reference(a['project_id'], a['path'], a.get('name', 'Reference'), a['expected_revision'], actor, kind=a.get('kind', 'image'))
+        if op == 'import_reference': return studio.import_reference(a['project_id'], a['path'], a.get('name', 'Reference'), a['expected_revision'], actor, kind=a.get('kind', 'image'), entity_id=a.get('entity_id'))
+        if op == 'import_external_take': return studio.import_external_take(a['project_id'], a['expected_revision'], a['shot_id'], a['output_path'], a['kind'], actor, a.get('metadata'))
         if op == 'import_final': return studio.import_final(a['project_id'], a['path'], a['expected_revision'], actor)
         if op == 'editor_handoff': return studio.editor_handoff(a['project_id'])
         if op == 'set_policy': return studio.set_policy(a['project_id'], a['policy'], a['expected_revision'])
@@ -173,6 +177,43 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if op == 'save_connection': return providers.save(a)
         if op == 'run_provider': return providers.submit(a['job_id'], a['connection_id'])
         raise StudioError('unknown_operation', 'Unknown studio operation.')
+
+    @app.post('/studio/v1/upload')
+    async def upload(request: Request):
+        human = authorize(request)
+        actor = 'user' if human else 'agent:upload'
+        form = await request.form()
+        file = form.get('file')
+        if not file or not hasattr(file, 'read'):
+            raise StudioError('missing_upload', 'Choose a media file.')
+        try:
+            revision = int(form.get('expected_revision', ''))
+        except (ValueError, TypeError):
+            raise StudioError('invalid_revision', 'Provide the current project revision.')
+        project_id = str(form.get('project_id', ''))
+        role = str(form.get('role', 'reference'))
+        kind = str(form.get('kind', 'image'))
+        if role not in ['reference', 'take', 'final']:
+            raise StudioError('invalid_upload', 'Choose reference, take or final media.')
+        suffix = Path(str(getattr(file, 'filename', ''))).suffix.lower()
+        path = studio.inbox / (uuid.uuid4().hex + suffix)
+        try:
+            with path.open('wb') as stream:
+                size = 0
+                while chunk := await file.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > 512 * 1024 * 1024:
+                        raise StudioError('upload_too_large', 'Media upload must be at most 512 MB.', 413)
+                    stream.write(chunk)
+            if role == 'reference':
+                return studio.import_reference(project_id, str(path), str(form.get('name', getattr(file, 'filename', 'Reference'))), revision, actor, kind=kind, entity_id=form.get('entity_id') or None)
+            if role == 'take':
+                metadata = {key: str(form[key]) for key in ['generator', 'prompt'] if form.get(key)}
+                return studio.import_external_take(project_id, revision, str(form.get('shot_id', '')), str(path), kind, actor, metadata)
+            return studio.import_final(project_id, str(path), revision, actor)
+        finally:
+            path.unlink(missing_ok=True)
+            await file.close()
 
     @app.get('/studio/v1/export/{project_id}/{filename}')
     def download_export(project_id: str, filename: str, request: Request):

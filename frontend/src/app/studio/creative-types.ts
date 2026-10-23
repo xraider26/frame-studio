@@ -10,6 +10,8 @@ export type Asset = {
   shot_id?: string;
   review?: TakeReview;
   required_checks?: string[];
+  provenance?: {type?: string; generator?: string; prompt?: string};
+  cost?: {actual?: number | null; unit?: string; evidence?: string};
 };
 export type TakeReview = {
   criteria: Record<string, boolean>;
@@ -194,7 +196,9 @@ export type Project = {
   name: string;
   template_id: string;
   revision: number;
-  settings: Record<string, string | number>;
+  output_type?: "image" | "video";
+  creative_intake?: {status: "needs_input" | "ready"; questions: {id:string;prompt:string}[]; answers: Record<string,string>; suggested_setup?: Record<string,unknown>};
+  settings: {[key:string]: any; creative_intake?: Record<string, string>};
   approval_policy: Record<string, boolean>;
   steps: Record<string, { ready: boolean; status: string }>;
   documents: Record<string, { text: string; export_asset_id?: string }>;

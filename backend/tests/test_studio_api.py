@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS
 import base64
 import io
 import json
@@ -88,7 +89,7 @@ class ApiTests(unittest.TestCase):
         self.addCleanup(server.shutdown)
         with TestClient(self.app) as client:
             self.client = client
-            p = self.command('create_project', {'name': 'API connector fixture', 'template_id': 'ai-film'}).json()
+            p = self.command('create_project', {'name': 'API connector fixture', 'template_id': 'ai-film', 'settings': CREATOR_SETTINGS}).json()
             p = self.command('set_policy', {'project_id': p['id'], 'policy': {'brief': False, 'script': False, 'visual_direction': False}, 'expected_revision': p['revision']}, self.browser).json()
             p = self.command('update_production', {'project_id': p['id'], 'production': {'require_recorded_checks': False}, 'expected_revision': p['revision']}, self.browser).json()
             for step in ['brief', 'script']:

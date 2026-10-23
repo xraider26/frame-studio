@@ -1,4 +1,5 @@
 "use client";
+import {MediaUpload,ImportCostReport} from "./media-upload";
 import { useMemo, useState } from "react";
 import { studioApi as api } from "./client";
 import { DraftNotice, Field, useDraft } from "./creative-forms";
@@ -238,6 +239,7 @@ export function TakesWorkspace({
         Compare real outputs, name a defect and revise the affected shot.
         Previous files remain available.
       </p>
+      <MediaUpload project={project} busy={busy} save={save}/>
       <label className="fs-label">
         Shot
         <select
@@ -325,6 +327,7 @@ export function TakesWorkspace({
             </div>
           </div>
           <p className="fs-path">{asset.path}</p>
+          <ImportCostReport key={`cost-${asset.id}`} project={project} asset={asset} busy={busy} save={save}/>
           <Inspection
             key={asset.id}
             project={project}

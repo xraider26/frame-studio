@@ -1,4 +1,5 @@
 "use client";
+import {MediaUpload} from "./media-upload";
 import { useEffect, useState } from "react";
 import { studioApi as api } from "./client";
 import { DraftNotice, Field, useDraft } from "./creative-forms";
@@ -25,6 +26,8 @@ export function ProductionWorkspace({
   save: Save;
   catalog: Catalog | null;
 }) {
+  const [previewImage,setPreviewImage]=useState<{url:string;name:string}|null>(null);
+  const imageOnly=project.output_type==="image";
   const [mode, setMode] = useControlMode("production");
   const form = useDraft(
       project.production,
@@ -53,12 +56,13 @@ export function ProductionWorkspace({
     });
   }
   const title = {
-    story: "Story & timing",
+    story: imageOnly ? "Visual concept" : "Story & timing",
     bible: "Production bible",
     production: "Production settings",
   }[view];
   return (
     <section>
+      {previewImage && <div className="fs-modal-backdrop" onClick={()=>setPreviewImage(null)}><section className="fs-modal" role="dialog" aria-modal="true" aria-label={previewImage.name} onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape")setPreviewImage(null);}}><button autoFocus className="fs-button" onClick={()=>setPreviewImage(null)}>Close preview</button><img style={{width:"100%",maxHeight:"75vh",objectFit:"contain"}} src={previewImage.url} alt={previewImage.name}/></section></div>}
       <div className="fs-heading">
         <div>
           <div className="fs-eyebrow">
@@ -116,6 +120,7 @@ export function ProductionWorkspace({
               />
             ))}
           </div>
+          {!imageOnly && <>
           <div className="cv-section">
             <h2>Hooks & framework</h2>
             <p className="fs-body">
@@ -189,7 +194,7 @@ export function ProductionWorkspace({
                       "fact_or_dramatization",
                       "Fact / dramatisation / illustration",
                     ],
-                  ].map(([key, label]) => (
+                  ].filter(([key])=>!imageOnly || key!=="video_cost").map(([key, label]) => (
                     <Field
                       key={key}
                       label={`${label} ${i + 1}`}
@@ -317,12 +322,13 @@ export function ProductionWorkspace({
               Fit beat durations to target (speech stays unchanged)
             </button>
           </div>
+          </>}
         </>
       )}
       {view === "bible" && (
         <>
           <p className="fs-body">
-            Import files in Shots & direction → References, then bind them here.
+            Upload images directly to each entity, or attach existing references.
             Identity versions and file IDs are separate; changing a bible record
             does not rewrite a file.
           </p>
@@ -378,7 +384,7 @@ export function ProductionWorkspace({
                   ["layout", "Location layout"],
                   ["light_sources", "Physical light sources"],
                   ["materials", "Materials / style rules"],
-                ].map(([key, label]) => (
+                ].filter(([key])=>!imageOnly || key!=="video_cost").map(([key, label]) => (
                   <Field
                     key={key}
                     label={`${label} · ${e.name || i + 1}`}
@@ -388,6 +394,8 @@ export function ProductionWorkspace({
                   />
                 ))}
               </div>
+              <MediaUpload project={project} busy={busy} save={save} entityId={e.id} disabled={form.dirty || !project.production.bible.some(v=>v.id===e.id)}/>
+              <p className="fs-hint">Select images to attach; uncheck to detach. Files remain in the project.</p>
               <div className="cv-bible-assets">
                 {project.assets
                   .filter((a) => a.kind === "image")
@@ -404,7 +412,7 @@ export function ProductionWorkspace({
                           })
                         }
                       />
-                      <img src={a.url} alt={a.name || "Reference"} />
+                      <button type="button" className="cv-reference-preview" aria-label={`Preview ${a.name || "reference"}`} onClick={event=>{event.preventDefault();setPreviewImage({url:a.url,name:a.name||"Reference"});}}><img src={a.url} alt={a.name || "Reference"} /></button>
                       <span>{a.name || a.id.slice(0, 8)}</span>
                     </label>
                   ))}
@@ -441,6 +449,7 @@ export function ProductionWorkspace({
       {view === "production" && (
         <>
           <ProjectDirection
+            imageOnly={imageOnly}
             mode={mode}
             value={p.defaults}
             onChange={(defaults) => change({ defaults })}
@@ -457,7 +466,7 @@ export function ProductionWorkspace({
                 ["model", "Model / version"],
                 ["source", "Observation source / evidence"],
                 ["observed_at", "Observed date"],
-              ].map(([key, label]) => (
+              ].filter(([key])=>!imageOnly || key!=="video_cost").map(([key, label]) => (
                 <Field
                   key={key}
                   label={label}
@@ -484,7 +493,7 @@ export function ProductionWorkspace({
                   })
                 }
               />
-              <Field
+              {!imageOnly && <Field
                 label="Supported clip durations (comma separated)"
                 value={p.capabilities.durations.join(", ")}
                 onChange={(v) =>
@@ -498,7 +507,7 @@ export function ProductionWorkspace({
                     },
                   })
                 }
-              />
+              />}
               <Field
                 label="Supported aspect ratios (comma separated)"
                 value={p.capabilities.aspects.join(", ")}
@@ -543,7 +552,7 @@ export function ProductionWorkspace({
               />
               I checked these controls in the specified generator
             </label>
-            <label className="fs-label">
+            {!imageOnly && <label className="fs-label">
               Native audio support
               <select
                 value={
@@ -567,7 +576,7 @@ export function ProductionWorkspace({
                 <option value="true">Supported</option>
                 <option value="false">Unsupported</option>
               </select>
-            </label>
+            </label>}
           </div>
           <div className="cv-section">
             <h2>Quality requirements</h2>
@@ -609,7 +618,7 @@ export function ProductionWorkspace({
                 ],
                 ["image_cost", "Planned image cost"],
                 ["video_cost", "Planned video cost"],
-              ].map(([key, label]) => (
+              ].filter(([key])=>!imageOnly || key!=="video_cost").map(([key, label]) => (
                 <Field
                   key={key}
                   label={label}
@@ -663,7 +672,7 @@ export function ProductionWorkspace({
                       ["hypothesis", "Hypothesis"],
                       ["result", "Observed result"],
                       ["source_date", "Measurement source / date"],
-                    ].map(([key, label]) => (
+                    ].filter(([key])=>!imageOnly || key!=="video_cost").map(([key, label]) => (
                       <Field
                         key={key}
                         label={`${label} ${i + 1}`}
@@ -681,7 +690,7 @@ export function ProductionWorkspace({
                       ["impressions", "Impressions"],
                       ["ctr_percent", "CTR %"],
                       ["completion_percent", "Completion %"],
-                    ].map(([key, label]) => (
+                    ].filter(([key])=>!imageOnly || key!=="video_cost").map(([key, label]) => (
                       <Field
                         key={key}
                         label={`${label} ${i + 1}`}

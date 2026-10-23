@@ -1,4 +1,5 @@
 "use client";
+import {generatorSettings} from "./generator-settings";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { studioApi as api } from "./client";
 import { DraftNotice, Field, useDraft } from "./creative-forms";
@@ -479,12 +480,16 @@ export function QueueWorkspace({
   projects,
   onSelect,
   onChanged,
+  profiles,
 }: {
+  profiles?: {image_profiles:{id:string;name:string}[];video_profiles:{id:string;name:string}[]};
   templates: Template[];
   projects: ProjectSummary[];
   onSelect: (id: string) => void;
   onChanged?: () => void | Promise<unknown>;
 }) {
+  const [outputType,setOutputType]=useState("video");
+  const [generators,setGenerators]=useState({image_generator:"",image_model:"",video_generator:"",video_model:""});
   const [mode, setMode] = useControlMode("queue");
   const [queue, setQueue] = useState<Queue | null>(null);
   const [error, setError] = useState("");
@@ -595,7 +600,10 @@ export function QueueWorkspace({
               throw new Error(
                 "Refresh the identity source before creating this batch.",
               );
+            if(!generators.image_generator || !generators.image_model.trim() || (outputType==="video" && (!generators.video_generator || !generators.video_model.trim()))) throw new Error("Choose generator profiles and enter model names before creating a batch.");
             const args = {
+              output_type:outputType,
+              settings:generatorSettings(outputType,generators),
               name: name.trim() || idea.trim().split("\n")[0].slice(0, 100),
               idea: idea.trim(),
               kind,
@@ -631,6 +639,8 @@ export function QueueWorkspace({
         }}
       >
         <h2>Start from an idea</h2>
+        <label className="fs-label">Output type<select value={outputType} onChange={e=>setOutputType(e.target.value)}><option value="image">Image</option><option value="video">Video</option></select></label>
+        {["image",...(outputType==="video"?["video"]:[])].map(kind=><div key={kind}><label className="fs-label">{kind==="image"?"Image":"Video"} generator profile<select value={generators[`${kind}_generator` as keyof typeof generators]} onChange={e=>setGenerators({...generators,[`${kind}_generator`]:e.target.value})}><option value="">Choose a profile</option>{(kind==="image"?profiles?.image_profiles:profiles?.video_profiles)?.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><Field label={`${kind==="image"?"Image":"Video"} model name`} value={generators[`${kind}_model` as keyof typeof generators]} onChange={v=>setGenerators({...generators,[`${kind}_model`]:v})}/></div>)}
         <Field
           label="Batch name"
           value={name}

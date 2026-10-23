@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS, creator_ready
 import copy
 import tempfile
 import unittest
@@ -15,6 +16,7 @@ class CreativeTests(unittest.TestCase):
         root = Path(self.temp.name)
         self.studio = Studio(root / 'db.sqlite', root / 'media', root / 'inbox')
         self.p = self.studio.create_project('Directed film', 'ai-film')
+        self.p = creator_ready(self.studio, self.p)
         # Keep the pre-recipe fixture contract; new defaults have dedicated recipe tests.
         def legacy(p):
             p['production'].update(recipe={}, require_recorded_checks=False)

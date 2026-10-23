@@ -22,8 +22,11 @@ def references_for(project, shot, kind):
 
 
 def preflight(project, shot_id=None, kind=None):
+    image_only = project.get('output_type') == 'image' or kind == 'image'
     issues = []
     def issue(rule, severity, shot, path, message):
+        if image_only and rule in {'edit_exceeds_generation', 'action_timing', 'dialogue_timing', 'unmeasured_dialogue', 'motion_compatibility_notes', 'continuation_source', 'dense_action', 'runtime_total', 'story_runtime'}:
+            return
         issues.append({'rule': rule, 'severity': severity, 'shot_id': shot.get('id') if shot else None, 'path': path, 'message': message})
     production = project['production']
     selection = production.get('recipe', {})
@@ -55,6 +58,8 @@ def preflight(project, shot_id=None, kind=None):
             issue('unmeasured_dialogue', 'warning', shot, 'direction.sound.measured_seconds', 'Make a scratch read and record actual speaking time; no measured duration is recorded.')
         slots = set()
         for n, ref in enumerate(d['references']):
+            if image_only and ref['role'] == 'motion':
+                continue
             path = f'direction.references.{n}'
             asset = assets.get(ref['asset_id'])
             expected_kind = 'video' if ref['role'] == 'motion' else 'image'
@@ -93,7 +98,7 @@ def preflight(project, shot_id=None, kind=None):
         mode = d['generation_mode']
         if mode == 'inherit':
             mode = 'image_to_video' if project['settings']['video_generator'] == 'runway_i2v' else 'text_to_video'
-        if kind != 'image':
+        if not image_only:
             roles = {r['role'] for r in d['references']}
             if mode in ['image_to_video', 'start_end'] and not shot['image_asset'] and 'start_frame' not in roles:
                 issue('start_frame_missing', 'error', shot, 'direction.references', 'This mode needs an actual start image. Return a keyframe or bind a start-frame reference.')

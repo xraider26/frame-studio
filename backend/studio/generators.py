@@ -5,6 +5,7 @@ import json
 from .store import StudioError
 from .creative import effective_direction
 from .recipes import recipe_context, recipe_criteria
+from .intake import model_guidance
 
 VIDEO_PROFILES = [
     {'id': 'flow_veo', 'name': 'Google Flow / Veo', 'hint': 'Scene, action, camera and audio direction. Hand over to your Flow agent; no automatic account access.', 'source': 'https://deepmind.google/models/veo/prompt-guide/'},
@@ -17,6 +18,10 @@ IMAGE_PROFILES = [
     {'id': 'runway_image', 'name': 'Runway · image', 'hint': 'Visual descriptions and positive phrasing; exclusions remain separate notes.', 'source': 'https://help.runwayml.com/hc/en-us/articles/35694045317139-Gen-4-Image-Prompting-Guide'},
     {'id': 'custom', 'name': 'Custom image generator', 'hint': 'Set a reusable image prompt template.'},
 ]
+for _profile in VIDEO_PROFILES:
+    _profile['suggested_models'] = {'flow_veo': ['Veo 3.1', 'Veo 3'], 'runway_i2v': ['Gen-4.5', 'Gen-4', 'Gen-4 Turbo'], 'runway_t2v': ['Gen-4.5']}.get(_profile['id'], [])
+for _profile in IMAGE_PROFILES:
+    _profile['suggested_models'] = {'runway_image': ['Gen-4 Image']}.get(_profile['id'], [])
 FIELDS = {'subject', 'motion', 'camera', 'lighting', 'style', 'palette', 'framing', 'lens', 'continuity', 'narration', 'sound', 'aspect_ratio', 'duration', 'environment', 'mood', 'opening', 'ending', 'dialogue', 'composition', 'body_look', 'state_before', 'state_after', 'references'}
 
 
@@ -54,6 +59,9 @@ def prompt_for(project, shot, kind):
               'body_look': camera['body_look'], 'state_before': state_before, 'state_after': state_after,
               'references': named({r['slot']: f'{r["asset_id"]}@v{r["version"]} ({r["role"]})' for r in d['references']})}
     profile = settings.get('image_generator', 'general_image') if kind == 'image' else settings.get('video_generator', 'flow_veo')
+    model = settings.get('image_model' if kind == 'image' else 'video_model', '')
+    intake = settings.get('creative_intake') or {}
+    guidance = model_guidance(profile, model, kind)
     visual = '{subject}. {environment}. {framing}; {lens}. {composition}. {body_look}. {lighting}. {style}; {palette}. Mood: {mood}. {continuity}'
     if profile == 'custom':
         template = settings.get('custom_image_template' if kind == 'image' else 'custom_video_template') or (visual if kind == 'image' else '{subject}. {motion}. Camera: {camera}. {continuity}')
@@ -68,7 +76,12 @@ def prompt_for(project, shot, kind):
         template = visual + '. Action: {motion}. Camera: {camera}. Sound: {sound}. Dialogue: {dialogue}. Narration: {narration}'
     # Empty optional fields should not leave unreadable punctuation-only sentences.
     rendered = '. '.join(part.strip(' ;') for part in template.format_map(values).split('. ') if part.strip(' ;.'))
-    return {'generator_profile': profile, 'prompt': rendered.strip(), 'effective_direction': d, 'recipe_contract': recipe_context(project, shot),
+    # Appearance comes from the reference in I2V; retain the full brief in metadata.
+    # Other modes include the requested purpose so output intent is not just a UI label.
+    if profile != 'runway_i2v' and intake.get('purpose'):
+        rendered = join('Intended use: ' + intake['purpose'], rendered)
+    return {'generator_profile': profile, 'model': model, 'model_guidance': guidance,
+            'creative_intent': intake, 'prompt': rendered.strip(), 'effective_direction': d, 'recipe_contract': recipe_context(project, shot),
             'negative_prompt': settings.get('negative_prompt', '') if profile not in ['runway_i2v', 'runway_t2v', 'runway_image'] else '',
             'separate_notes': {'sound': sound, 'narration': shot['narration'], 'avoid': settings.get('negative_prompt', ''), 'reference_map': d['references'], 'acceptance_criteria': list(dict.fromkeys(recipe_criteria(project, shot, kind) + d['quality']['criteria'])), 'generation_mode': d['generation_mode']},
             'duration_seconds': shot['duration_seconds'], 'aspect_ratio': settings['aspect_ratio']}
