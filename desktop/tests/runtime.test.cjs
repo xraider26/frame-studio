@@ -6,6 +6,21 @@ const { once } = require('node:events');
 const path = require('node:path');
 const runtime = require('../runtime.cjs');
 
+test('startup removes only disposable Next route cache left by an earlier install', (t) => {
+ const fs=require('node:fs'),os=require('node:os');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'orchestra-upgrade-'));
+ t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const resources=path.join(root,'resources'),cache=path.join(resources,'web','.next','server','route-cache');
+ fs.mkdirSync(cache,{recursive:true});fs.writeFileSync(path.join(cache,'studio.html'),'old Frame Studio');
+ fs.writeFileSync(path.join(resources,'web','.next','server','studio.html'),'new Orchestra');
+ const data=path.join(root,'studio_data');fs.mkdirSync(data);fs.writeFileSync(path.join(data,'workflow.db'),'existing projects');
+ runtime.clearWebRouteCache(resources);
+ assert.equal(fs.existsSync(cache),false);
+ assert.equal(fs.readFileSync(path.join(resources,'web','.next','server','studio.html'),'utf8'),'new Orchestra');
+ assert.equal(fs.readFileSync(path.join(data,'workflow.db'),'utf8'),'existing projects');
+ runtime.clearWebRouteCache(resources);
+});
+
 test('packaged launch uses bundled resources and isolated writable data', () => {
   const plan = runtime.buildLaunchPlan({ resources: path.resolve('fixture resources'), dataDir: path.resolve('user data'), executable: process.execPath, backendPort: 49120, frontendPort: 49121, instanceId: 'launch-identity', env: { PATH: 'existing-path' } });
   assert.equal(plan.backend.command, path.resolve('fixture resources/backend/FrameStudioService.exe'));

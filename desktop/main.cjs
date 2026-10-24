@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { spawn } = require('node:child_process');
-const { buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal } = require('./runtime.cjs');
+const { clearWebRouteCache, buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal } = require('./runtime.cjs');
 
 app.setName('Orchestra');
 // Keep installed users' projects, credentials, Electron state and instance lock.
@@ -129,6 +129,7 @@ async function start() {
   if (stopping) return;
   fs.writeFileSync(runtimeFile + '.tmp', JSON.stringify({ api_url: plan.apiUrl, instance_id: instanceId }, null, 2));
   fs.renameSync(runtimeFile + '.tmp', runtimeFile);
+  clearWebRouteCache(resources);
   const frontend = startChild('Studio interface', plan.frontend);
   await waitForHealth(plan.frontendUrl, { child: frontend, timeoutMs: 90000 });
   if (stopping || !window) return;

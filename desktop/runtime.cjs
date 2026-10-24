@@ -1,9 +1,25 @@
 'use strict';
 const path = require('node:path');
+const fs = require('node:fs');
 const net = require('node:net');
 const http = require('node:http');
 const { spawn } = require('node:child_process');
 const { setTimeout: delay } = require('node:timers/promises');
+
+function clearWebRouteCache(resources) {
+  const root=path.resolve(resources);
+  const target=path.resolve(root,'web','.next','server','route-cache');
+  if(path.relative(root,target)!==path.join('web','.next','server','route-cache'))throw new Error('Invalid packaged route-cache path');
+  let current=root;
+  for(const part of ['web','.next','server','route-cache']) {
+    current=path.join(current,part);
+    if(!fs.existsSync(current))return;
+    if(fs.lstatSync(current).isSymbolicLink())throw new Error('Refusing to clear a linked packaged route cache');
+  }
+  // Generated route HTML can survive an in-place NSIS upgrade and mask new bundles.
+  // The fixed, checked target contains disposable Next cache, never project data.
+  fs.rmSync(target,{recursive:true,force:true});
+}
 
 function buildLaunchPlan({ resources, dataDir, executable, backendPort, frontendPort, instanceId, env = process.env }) {
   const inherited = { ...env };
@@ -104,4 +120,4 @@ function isSafeExternal(url) {
   try { const target = new URL(url); return target.protocol === 'https:' && Boolean(target.hostname) && !target.username && !target.password; } catch { return false; }
 }
 
-module.exports = { buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal };
+module.exports = { clearWebRouteCache, buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal };
