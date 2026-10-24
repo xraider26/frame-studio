@@ -127,6 +127,20 @@ RECIPES = [
 ]
 
 
+from .templates import IMAGE_FORMATS
+
+for _recipe in RECIPES:
+    _recipe['output_type'] = 'video'
+for key, name, intent, aspect, composition, lighting, check in IMAGE_FORMATS:
+    RECIPES.append({'id': 'image-' + key, 'name': name, 'intent': intent, 'output_type': 'image',
+        'rules': ['appearance', 'framing', 'light', 'identity', 'inspection'],
+        'references': ['Actual subject or product reference where fidelity matters', 'Approved style, palette and layout references; identify illustrative examples'],
+        'planning': [composition, 'Define purpose, target crop, required details and text/brand constraints before generating.'],
+        'image_checks': [check, 'Perspective, anatomy, light, edges and materials remain coherent.', 'Style and crop match the brief; exact text and brand elements are checked.'],
+        'video_checks': [], 'roles': [role('image-concept', name + ' concept', 1, intent, {'framing': composition}, {'technique': lighting}, [check], '', 'Repair the named visible defect against the actual reference.')],
+        'example_titles': []})
+
+
 def recipe_by_id(ident):
     found = next((r for r in RECIPES if r['id'] == ident), None)
     if not found:
@@ -149,6 +163,17 @@ def recipe_by_id(ident):
         recorded = examples.get(example['id'], {})
         example.update(prompt=recorded.get('prompt', ''), why=recorded.get('why', ''),
                        available=bool(recorded) and (manifest.parent / (example['id'] + '.png')).is_file())
+    if r['output_type'] == 'image':
+        source = {'portrait': ('custom', 3), 'product': ('advertisement', 2), 'thumbnail': ('ugc', 1), 'poster': ('ai-film', 3), 'concept-art': ('custom', 2), 'social': ('advertisement', 3), 'custom': ('custom', 1)}[ident[6:]]
+        preview = copy.deepcopy(recipe_by_id(source[0])['examples'][source[1] - 1])
+        preview.update(reused_from=preview['id'], attribution='Existing Orchestra recipe illustration; reused as visual reference, not an output of this image template.')
+        r.update(examples=[preview], stages={
+            'brief': ['Define the intended still image, audience, use, style, crop and required fidelity.', r['intent']],
+            'script': r['planning'],
+            'visual_direction': ['Prepare: ' + value for value in r['references']] + ['Inspect: ' + value for value in r['image_checks']],
+            'final_review': ['Inspect actual selected image at delivery size and record image quality checks.']},
+            final_checks=r['image_checks'], validation_status='illustrative_reference_only', source_rules=[],
+            decision_requirements=['Explain how composition, light, palette and references serve the intended still image.'])
     return r
 
 
@@ -167,6 +192,21 @@ def recipe_context(p, shot=None):
               'stage_instructions': r['stages'], 'settings_scope': {'video_profile': p['settings']['video_generator'],
               'image_profile': p['settings']['image_generator'], 'capabilities': p['production']['capabilities']},
               'guidance': 'These are directing and inspection requirements, not proof the generator obeyed them. Keep human policy and budget limits.'}
+    if p.get('output_type', 'video') == 'image':
+        stages = {
+            'brief': ['Ask for the intended image, purpose, audience and art style; preserve the creator\'s answers.', 'Confirm the image generator/model, aspect ratio, references and any text/brand constraints.'],
+            'script': ['Prepare the visual concept: subject, setting, emotional intent, composition and the details that must remain accurate.'],
+            'visual_direction': ['Prepare actual identity/style/product references and explain perspective, depth, lighting, palette and materials for the intended image.', *['Inspect: ' + value for value in r['image_checks']]],
+            'final_review': ['Inspect each selected actual image at intended viewing size, record required quality checks and export the chosen originals.'],
+        }
+        result.update(output_type='image', stages=stages, stage_instructions=stages,
+                      settings_scope={'image_profile': p['settings']['image_generator'], 'image_model': p['settings'].get('image_model', ''), 'capabilities': p['production']['capabilities']},
+                      planning=['Define the intended still image, visual treatment, required references and acceptance criteria.'],
+                      video_checks=[], final_checks=r['image_checks'])
+        if r.get('output_type') == 'image':
+            result.update(stages=r['stages'], stage_instructions=r['stages'], planning=r['planning'])
+    else:
+        result['settings_scope'].update(image_model=p['settings'].get('image_model', ''), video_model=p['settings'].get('video_model', ''))
     if shot:
         role_id = shot['direction'].get('recipe_role', '')
         result['shot_role'] = next((v for v in r['roles'] if v['id'] == role_id), None)

@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS, creator_ready
 import base64
 import tempfile
 import unittest
@@ -26,6 +27,8 @@ class StudioTests(unittest.TestCase):
         self.inbox.mkdir()
         self.studio = Studio(root / 'workflow.db', root / 'media', self.inbox)
         self.project = self.studio.create_project('A small film', 'ai-film')
+        self.project = creator_ready(self.studio, self.project)
+        self.project = self.studio.set_policy(self.project['id'], {s: True for s in self.project['approval_policy']}, self.project['revision'])
         # Exercise the original optional-QC workflow; course contracts have separate tests.
         self.project = self.studio.update_production(self.project['id'], {'recipe': {}, 'require_recorded_checks': False}, self.project['revision'], 'user')
 
@@ -184,7 +187,7 @@ class StudioTests(unittest.TestCase):
         self.assertEqual(clone['documents']['script']['text'], 'She enters. The stars begin to move.')
         self.assertNotEqual(clone['shots'][0]['id'], self.project['shots'][0]['id'])
         self.assertEqual(clone['jobs'], [])
-        self.assertEqual(clone['steps']['brief']['status'], 'awaiting_review')
+        self.assertEqual(clone['steps']['brief']['status'], 'auto_proceeded')
 
     def test_delete_is_recoverable_and_hidden_from_agents(self):
         p = self.project

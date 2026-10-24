@@ -8,11 +8,13 @@ export function ProjectDirection({
   onChange,
   catalog,
   mode = "professional",
+  imageOnly = false,
 }: {
   value: Direction;
   onChange: (d: Direction) => void;
   catalog: Catalog | null;
   mode?: ControlMode;
+  imageOnly?: boolean;
 }) {
   const groups: {
     group: "camera" | "lighting" | "art";
@@ -63,7 +65,7 @@ export function ProjectDirection({
         <div className="cv-section" key={group}>
           <h3>{group[0].toUpperCase() + group.slice(1)}</h3>
           <div className="cv-form-grid">
-            {fields.map(([key, label, help]) => (
+            {fields.filter(([key])=>!imageOnly||!["move","speed"].includes(key)).map(([key, label, help]) => (
               <ModeDetail
                 key={key}
                 mode={mode}
@@ -101,7 +103,7 @@ export function ProjectDirection({
           ["ambience", "Ambience"],
           ["foley", "Foley direction"],
           ["music", "Music intent"],
-        ].map(([key, label]) => (
+        ].filter(()=>!imageOnly).map(([key, label]) => (
           <Field
             key={key}
             label={`Project ${label.toLowerCase()}`}

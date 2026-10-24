@@ -1,12 +1,12 @@
 {
-  "name": "frame-studio-desktop",
-  "version": "0.2.0",
-  "description": "Frame Studio local creative production workspace",
+  "name": "orchestra-desktop",
+  "version": "0.2.1-beta.1",
+  "description": "Orchestra local creative production workspace",
   "private": true,
-  "author": "Frame Studio",
+  "author": "Orchestra",
   "main": "main.cjs",
   "scripts": {
-    "test": "node --test tests/runtime.test.cjs tests/build.test.cjs",
+    "test": "node --test tests/runtime.test.cjs tests/build.test.cjs tests/branding.test.cjs",
     "build": "node build.cjs",
     "package": "electron-builder --win nsis --x64 --publish never"
   },
@@ -16,14 +16,14 @@
   },
   "build": {
     "appId": "com.framestudio.desktop",
-    "productName": "Frame Studio",
+    "productName": "Orchestra",
     "directories": { "output": "dist" },
     "files": ["main.cjs", "runtime.cjs", "loading.html", "package.json", "icon.png"],
     "extraResources": [{ "from": "build/resources", "to": ".", "filter": ["**/*"] }],
     "asar": true,
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "artifactName": "Frame-Studio-Setup-${version}.${ext}",
+      "artifactName": "Orchestra-Setup-${version}.${ext}",
       "icon": "icon.ico",
       "signExecutable": false
     },

@@ -105,7 +105,7 @@ class DesktopRuntimeTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(result.stdout, '')
         self.assertIn('backend_unavailable', result.stderr)
-        self.assertIn('Open Frame Studio', result.stderr)
+        self.assertIn('Open Orchestra', result.stderr)
 
     def test_health_reports_desktop_instance(self):
         from fastapi.testclient import TestClient
@@ -120,7 +120,7 @@ class DesktopRuntimeTests(unittest.TestCase):
         with patch.object(studio_mcp, 'DATA', self.root), patch.dict(os.environ, {'STUDIO_DESKTOP_INSTANCE': 'test-nonce'}):
             with patch.dict(os.environ, {}, clear=False):
                 os.environ.pop('STUDIO_AGENT_TOKEN', None)
-                with self.assertRaisesRegex(ValueError, 'Open Frame Studio'):
+                with self.assertRaisesRegex(ValueError, 'Open Orchestra'):
                     asyncio.run(studio_mcp.command('list_projects'))
 
     def test_desktop_bridge_refuses_unready_instance_before_sending_token(self):

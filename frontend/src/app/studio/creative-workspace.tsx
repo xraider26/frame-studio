@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import {ImagePromptFields,emptyImageRequirements} from "./image-prompt-fields";
 import {
   Plus,
   ArrowUp,
@@ -112,6 +113,7 @@ export function CreativeWorkspace({
   catalog: Catalog | null;
   onOpenLibrary?: () => void;
 }) {
+  const imageOnly = project.output_type === "image";
   const [mode, setMode] = useControlMode("directing");
   const plan = useDraft(project.shots, project.revision, `shots:${project.id}`),
     defaults = useDraft(
@@ -123,7 +125,7 @@ export function CreativeWorkspace({
     [tab, setTab] = useState("Story");
   const [storedPreview, setPreview] = useState<{
     source_revision: number;
-    image: { prompt: string };
+    image: { prompt: string; warnings?:string[] };
     video: { prompt: string };
     preflight: Preflight;
   } | null>(null);
@@ -294,7 +296,7 @@ export function CreativeWorkspace({
                 value={shot.title}
                 onChange={(title) => edit({ title })}
               />
-              <div className="cv-two">
+              {!imageOnly && <div className="cv-two">
                 <Field
                   label="Edit source in-point (seconds)"
                   type="number"
@@ -317,7 +319,7 @@ export function CreativeWorkspace({
                   help="story"
                   {...common}
                 />
-              </div>
+              </div>}
             </div>
           </div>
           <div
@@ -325,7 +327,7 @@ export function CreativeWorkspace({
             aria-label="Shot direction sections"
             className="cv-tabs"
           >
-            {tabs.map((t) => (
+            {tabs.filter(t=>!imageOnly || !["Sound","Continuity"].includes(t)).map((t) => (
               <button
                 role="tab"
                 aria-selected={tab === t}
@@ -357,7 +359,7 @@ export function CreativeWorkspace({
                     {...common}
                   />
                   <Field
-                    label="Script beat"
+                    label={imageOnly ? "Visual concept" : "Script beat"}
                     value={d.script_beat}
                     onChange={(script_beat) => dir({ script_beat })}
                   />
@@ -382,6 +384,7 @@ export function CreativeWorkspace({
                   value={shot.image_prompt}
                   onChange={(image_prompt) => edit({ image_prompt })}
                 />
+                {!imageOnly && <>
                 <Field
                   label="Motion / base prompt"
                   multiline
@@ -394,11 +397,13 @@ export function CreativeWorkspace({
                   value={shot.narration}
                   onChange={(narration) => edit({ narration })}
                 />
+                </>}
+                <ImagePromptFields value={d.image || emptyImageRequirements()} onChange={image=>dir({image})}/>
               </>
             )}
             {tab === "Camera" && (
               <div className="cv-form-grid">
-                {cameraFields.map(([key, label, help]) => (
+                {cameraFields.filter(([key])=>!imageOnly || !["move","speed","start_framing","end_framing","move_timing"].includes(key)).map(([key, label, help]) => (
                   <ModeDetail
                     key={key}
                     mode={mode}
@@ -503,7 +508,7 @@ export function CreativeWorkspace({
                       ["image_to_video", "Image to video"],
                       ["start_end", "Start + end frames"],
                       ["motion_control", "Motion reference planning"],
-                    ].map(([v, l]) => (
+                    ].filter(([v])=>!imageOnly || v==="inherit").map(([v, l]) => (
                       <option key={v} value={v}>
                         {l}
                       </option>
@@ -1068,13 +1073,14 @@ export function CreativeWorkspace({
                   value={preview.image.prompt}
                   onChange={() => {}}
                 />
-                <Field
+                {preview.image.warnings?.map((warning,i)=><p className="fs-hint" role="status" key={i}>{warning}</p>)}
+                {!imageOnly && <Field
                   label="Compiled video prompt"
                   readOnly
                   multiline
                   value={preview.video.prompt}
                   onChange={() => {}}
-                />
+                />}
                 <Checks checks={preview.preflight} shots={shots} />
               </>
             )}
@@ -1097,7 +1103,7 @@ export function CreativeWorkspace({
             ["continuity", "Continuity anchors"],
             ["sound", "Sound direction"],
             ["negative_prompt", "Avoid"],
-          ].map(([key, label]) => (
+          ].filter(([key])=>!imageOnly || !["camera_move","sound"].includes(key)).map(([key, label]) => (
             <Field
               key={key}
               label={label}
@@ -1105,14 +1111,14 @@ export function CreativeWorkspace({
               onChange={(v) => defaults.edit((s) => ({ ...s, [key]: v }))}
             />
           ))}
-          <Field
+          {!imageOnly && <Field
             label="Target duration (seconds)"
             type="number"
             value={defaults.draft.duration_seconds}
             onChange={(v) =>
               defaults.edit((s) => ({ ...s, duration_seconds: Number(v) }))
             }
-          />
+          />}
           <label className="fs-label">
             Aspect ratio
             <select
@@ -1121,7 +1127,7 @@ export function CreativeWorkspace({
                 defaults.edit((s) => ({ ...s, aspect_ratio: e.target.value }))
               }
             >
-              {["16:9", "9:16", "1:1"].map((v) => (
+              {(imageOnly ? ["16:9", "9:16", "1:1", "4:5", "2:3"] : ["16:9", "9:16", "1:1"]).map((v) => (
                 <option key={v}>{v}</option>
               ))}
             </select>

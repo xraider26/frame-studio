@@ -8,6 +8,7 @@ import { RecipeEvidence } from "./recipe-evidence";
 
 export type TemplateSection = "settings" | "workflow" | "story";
 export type TemplateChoice = {
+  output_type?: "image" | "video";
   id: string;
   name: string;
   description: string;

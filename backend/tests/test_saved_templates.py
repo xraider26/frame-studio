@@ -133,8 +133,10 @@ class SavedTemplateTests(unittest.TestCase):
         saved=response.json()
         self.assertTrue(any(t['id']==saved['id'] for t in command('list_templates').json()))
         clone=command('create_project',{'name':'Agent start','template_id':saved['id']}).json()
-        self.assertTrue(clone['approval_policy']['brief'],'Agent template creation keeps human approval gates')
+        self.assertFalse(clone['approval_policy']['brief'],'New agent projects start with approvals disabled')
         apply={'project_id':clone['id'],'template_id':saved['id'],'sections':['workflow'],'expected_revision':clone['revision'],'template_revision':saved['revision']}
         self.assertEqual(command('apply_project_template',apply).status_code,403)
+        contract=command('get_workflow_contract',{'project_id':clone['id']}).json()
+        self.assertEqual(command('acknowledge_workflow_contract',{'project_id':clone['id'],'contract_version':contract['contract_version'],'expected_revision':contract['revision']}).status_code,200)
         apply['sections']=['settings']
         self.assertEqual(command('apply_project_template',apply).status_code,200)

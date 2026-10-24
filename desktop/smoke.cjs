@@ -2,7 +2,7 @@
 const fs=require('node:fs');const path=require('node:path');const assert=require('node:assert/strict');const {spawn,spawnSync}=require('node:child_process');const {setTimeout:delay}=require('node:timers/promises');
 const root=path.resolve(__dirname,'..');
 async function main(){
- const executable=path.resolve(process.argv[2]||path.join(__dirname,'dist','win-unpacked','Frame Studio.exe'));
+ const executable=path.resolve(process.argv[2]||path.join(__dirname,'dist','win-unpacked','Orchestra.exe'));
  const working=fs.mkdtempSync(path.join(root,'.superpowers','Frame desktop smoke '));
  const data=process.argv[3]?path.resolve(process.argv[3]):path.join(working,'Creator data'),reportFile=path.join(working,'report.json');
  const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>['SYSTEMROOT','WINDIR','TEMP','TMP','APPDATA','LOCALAPPDATA','USERPROFILE','COMSPEC','HOMEDRIVE','HOMEPATH'].includes(k.toUpperCase())));
@@ -17,9 +17,9 @@ async function main(){
  const token=fs.readFileSync(path.join(data,'browser.token'),'utf8').trim();
  async function command(operation,arguments_={}){const r=await fetch(report.backendURL+'/studio/v1/command',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({operation,arguments:arguments_})});const body=await r.json();assert.equal(r.status,200,JSON.stringify(body));return body;}
  const caps=await command('studio_capabilities');assert.equal(caps.mcp_launch.desktop,true);assert.equal(path.resolve(caps.mcp_launch.command),path.resolve(report.resourcesPath,'backend','FrameStudioService.exe'));assert.equal(caps.mcp_launch.args.at(-1),data);
- const knowledge=await command('knowledge_catalog');assert.equal(knowledge.coverage.sample_count,26);assert.equal((await command('recipe_catalog')).recipes.length,9);
+ const knowledge=await command('knowledge_catalog');assert.equal(knowledge.coverage.sample_count,26);const recipes=(await command('recipe_catalog')).recipes;assert.equal(recipes.length,16);assert.equal(recipes.filter(r=>r.output_type==='image').length,7);assert.ok(caps.execution_modes.includes('comfyui'));assert.ok(caps.image_profiles.some(p=>p.id==='qwen_image'));
  for(const entry of knowledge.entries.filter(e=>e.visual.sample)){const response=await fetch(new URL(entry.visual.sample.image,report.frontendURL),{method:'HEAD'});assert.equal(response.status,200,entry.id);}
- const page=await fetch(report.frontendURL);assert.equal(page.status,200);assert.match(await page.text(),/Camera.*visual library/s);
+ const page=await fetch(report.frontendURL);assert.equal(page.status,200);assert.match(await page.text(),/Orchestra/i);
  if(process.argv[3])assert.ok((await command('list_projects')).some(p=>p.name==='Packaged verification fixture'),'Saved project was not recovered after restart');
  const project=await command('create_project',{name:'Packaged verification fixture',template_id:'ai-film',request_id:'desktop-smoke'});
  const clip=path.join(data,'inbox','synthetic-smoke.mp4');
@@ -32,7 +32,7 @@ async function main(){
  while(exit===undefined&&Date.now()<deadline)await delay(250);
  assert.equal(exit,0,`Unexpected packaged app exit. ${report.logPath}`);assert.equal(fs.existsSync(path.join(data,'desktop-runtime.json')),false);assert.ok(fs.existsSync(path.join(data,'workflow.db')));
  for(const pid of [report.backendPid,report.frontendPid]){let alive=true;try{process.kill(pid,0);}catch{alive=false;}assert.equal(alive,false,`Owned service ${pid} survived app exit`);}
- fs.writeFileSync(path.join(working,'verification.json'),JSON.stringify({passed:true,project_id:project.id,executable,report,checks:['clean-PATH startup','installed MCP paths','26 still URLs','9 recipes','bundled FFmpeg/FFprobe video import','actual stdio MCP','single instance','owned child shutdown','data retained']},null,2));
+ fs.writeFileSync(path.join(working,'verification.json'),JSON.stringify({passed:true,project_id:project.id,executable,report,checks:['clean-PATH startup','installed MCP paths','26 still URLs','16 image/video recipes','Qwen and ComfyUI capabilities','bundled FFmpeg/FFprobe video import','actual stdio MCP','single instance','owned child shutdown','data retained']},null,2));
  console.log(`Packaged checks passed: ${working}`);
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

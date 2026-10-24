@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .assets import checked_file
 from .store import Store, StudioError
-from .templates import DEFAULT_SETTINGS, STEPS, TEMPLATES
+from .templates import DEFAULT_SETTINGS, STEPS, TEMPLATES, active_steps
 from .generators import VIDEO_PROFILES, IMAGE_PROFILES, prompt_for, validate_template
 from .exports import export_project
 from .creative import default_production, Direction, Production, merge, validated, normalize_direction, effective_direction
@@ -21,6 +21,8 @@ from .dispatch import Dispatch
 from .identity import Identity
 from .recipes import seed_recipe, recipe_context, retime_seeded_shots
 from .recipe_trials import RecipeTrials
+from .agent_rules import AgentRules
+from .sequences import Sequences, sequence_context
 
 
 def uid():
@@ -41,39 +43,48 @@ def clean_text(value, limit=12000):
     return value.strip()
 
 
-class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, ProductionTools, Store):
+class Studio(Sequences, AgentRules, Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, ProductionTools, Store):
     def __init__(self, db_path, media_root, inbox):
         super().__init__(db_path)
         self.media_root, self.inbox = Path(media_root).resolve(), Path(inbox).resolve()
         self.media_root.mkdir(parents=True, exist_ok=True)
         self.inbox.mkdir(parents=True, exist_ok=True)
 
-    def create_project(self, name, template_id, request_id=None, actor='user', allow_template_policy=True):
+    def create_project(self, name, template_id, request_id=None, actor='user', allow_template_policy=True, output_type='video', settings=None):
         if request_id:
             for p in self.all():
                 if p.get('request_id') == request_id:
                     return p
-        return self.insert(self._build_project(name, template_id, request_id, actor, allow_template_policy))
+        return self.insert(self._build_project(name, template_id, request_id, actor, allow_template_policy, output_type, settings))
 
-    def _build_project(self, name, template_id, request_id=None, actor='user', allow_template_policy=True):
+    def _build_project(self, name, template_id, request_id=None, actor='user', allow_template_policy=True, output_type='video', settings=None):
+        if output_type not in ['image', 'video']:
+            raise StudioError('invalid_output_type', 'Choose image or video output.')
+        if settings is not None:
+            settings = self._validate_settings(settings)
+        if template_id == 'custom' and output_type == 'image':
+            template_id = 'image-custom'
         saved = self.get_saved_template(template_id) if isinstance(template_id, str) and template_id.startswith('saved-') else None
         if saved:
             template_id = saved['base_template_id']
         template = next((t for t in TEMPLATES if t['id'] == template_id), None)
         if not template or not clean_text(name, 150):
             raise StudioError('invalid_input', 'Choose a valid template and project name.')
+        kind = saved.get('output_type', 'video') if saved else template['output_type']
+        if kind != output_type:
+            raise StudioError('template_output_mismatch', 'Choose a template matching the project output type: ' + output_type + '.')
         p = {'id': uid(), 'name': name.strip(), 'template_id': template_id, 'revision': 1, 'schema_version': 2,
-             'created_at': now(), 'request_id': request_id, 'epoch': 1,
-             'settings': dict(DEFAULT_SETTINGS, aspect_ratio=template['aspect']), 'documents': {},
-             'approval_policy': {s: True for s in STEPS},
+             'created_at': now(), 'request_id': request_id, 'epoch': 1, 'output_type': output_type, 'creative_intake_required': True,
+             'settings': dict(copy.deepcopy(DEFAULT_SETTINGS), aspect_ratio=template['aspect']), 'documents': {},
+             'approval_policy': {s: False for s in STEPS},
              'steps': {s: {'ready': False, 'status': 'draft'} for s in STEPS},
-             'shots': [{'id': uid(), 'title': title, 'image_prompt': '', 'motion_prompt': '', 'narration': '', 'duration_seconds': 4, 'image_asset': None, 'video_asset': None} for title in template['structure']],
+             'shots': [{'id': uid(), 'title': title, 'image_prompt': '', 'motion_prompt': '', 'narration': '', 'duration_seconds': 4, 'image_asset': None, 'video_asset': None} for title in (template['structure'][:1] if output_type == 'image' else template['structure'])],
              'assets': [], 'jobs': [], 'history': [], 'production': default_production(template_id)}
         for shot in p['shots']:
             shot.update(direction=Direction().model_dump(), edit_duration_seconds=shot['duration_seconds'], edit_in_seconds=0)
         seed_recipe(p, preserve=False)
         if saved:
-            sections = [s for s in saved['sections'] if allow_template_policy or s != 'workflow']
+            sections = [s for s in saved['sections'] if s != 'workflow']
             if 'settings' in sections and 'story' not in sections:
                 for shot in p['shots']:
                     for group in ['camera', 'lighting', 'art']:
@@ -81,11 +92,14 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             self._restore_template(p, saved, sections)
             if 'settings' in sections and 'story' not in sections:
                 retime_seeded_shots(p)
+        if settings:
+            p['settings'].update(copy.deepcopy(settings))
+        self._progress(p)
         event(p, 'created', actor, 'Project created from ' + template['name'])
         return p
 
     def list_projects(self):
-        return [{k: p[k] for k in ['id', 'name', 'template_id', 'revision', 'created_at']} for p in self.all() if not p.get('deleted_at')]
+        return [{k: p[k] for k in ['id', 'name', 'template_id', 'revision', 'created_at', 'output_type']} for p in self.all() if not p.get('deleted_at')]
 
     def list_deleted(self):
         return [{k: p[k] for k in ['id', 'name', 'template_id', 'revision', 'deleted_at']} for p in self.all() if p.get('deleted_at')]
@@ -109,8 +123,9 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
 
     def duplicate_project(self, project_id, name, actor):
         original = self.get(project_id)
-        p = self.create_project(name or original['name'] + ' (copy)', original['template_id'], actor=actor)
+        p = self.create_project(name or original['name'] + ' (copy)', ('image-custom' if original.get('output_type') == 'image' and not original['template_id'].startswith('image-') else original['template_id']), actor=actor, output_type=original.get('output_type', 'video'))
         def update(clone):
+            clone['template_id'] = original['template_id']
             clone['settings'] = copy.deepcopy(original['settings'])
             clone['production'] = copy.deepcopy(original['production'])
             clone['documents'] = {k: copy.deepcopy(v) for k, v in original['documents'].items() if k in ['brief', 'script']}
@@ -131,6 +146,7 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
                 entity['asset_ids'] = [asset_ids.get(key, key) for key in entity['asset_ids']]
             for shot in clone['shots']:
                 shot['direction']['action']['continuity_from'] = shot_ids.get(shot['direction']['action']['continuity_from'], '')
+                shot['direction']['editorial']['audio_source_shot_id'] = shot_ids.get(shot['direction']['editorial']['audio_source_shot_id'], '')
                 for ref in shot['direction']['references']:
                     ref['asset_id'] = asset_ids.get(ref['asset_id'], ref['asset_id'])
             for step in ['brief', 'script']:
@@ -144,7 +160,11 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
 
     def get_project(self, project_id):
         p = self.get(project_id)
+        from .intake import creative_intake
+        p['creative_intake'] = creative_intake(p)
+        p['active_steps'] = list(active_steps(p))
         p['recipe_context'] = recipe_context(p)
+        p['sequence_context'] = sequence_context(p)
         p['next_action'] = self._next(p)
         p['preflight'] = preflight(p)
         for asset in p['assets']:
@@ -175,15 +195,22 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
         shot = next((s for s in p['shots'] if s['id'] == shot_id), None)
         if not shot:
             raise StudioError('not_found', 'Shot not found.', 404)
-        return {'source_revision': p['revision'], 'image': prompt_for(p, shot, 'image'), 'video': prompt_for(p, shot, 'video'), 'preflight': preflight(p, shot_id), 'references': references_for(p, shot, 'video')}
+        result = {'source_revision': p['revision'], 'image': prompt_for(p, shot, 'image'), 'preflight': preflight(p, shot_id), 'references': references_for(p, shot, 'image' if p.get('output_type') == 'image' else 'video')}
+        if p.get('output_type') != 'image':
+            result['video'] = prompt_for(p, shot, 'video')
+        return result
 
     def _progress(self, p):
+        for step in set(STEPS) - set(active_steps(p)):
+            p['steps'][step] = {'ready': False, 'status': 'skipped'}
         for step, kind, shots in [('visual_direction', 'image', p['shots']), ('pilot', 'video', p['shots'][:1]), ('production', 'video', p['shots'])]:
+            if step not in active_steps(p):
+                continue
             ready = bool(shots) and all(s[kind + '_asset'] and quality_passed(p, s, kind) and not preflight(p, s['id'], kind)['errors'] for s in shots)
             p['steps'][step]['ready'] = ready
             if not ready and p['steps'][step]['status'] in ['approved', 'auto_proceeded']:
                 p['steps'][step]['status'] = 'draft'
-        for step in STEPS:
+        for step in active_steps(p):
             state = p['steps'][step]
             if not state['ready']:
                 break
@@ -196,7 +223,11 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
                 event(p, 'auto_proceeded', 'studio', step.replace('_', ' ') + ' completed without human review (your policy)')
 
     def _next(self, p):
-        for step in STEPS:
+        from .intake import creative_intake
+        intake = creative_intake(p)
+        if intake['status'] == 'needs_input':
+            return {'action': 'ask_creator', 'step': 'brief', 'questions': intake['questions'], 'message': intake['instructions']}
+        for step in active_steps(p):
             state = p['steps'][step]
             if state['status'] in ['approved', 'auto_proceeded']:
                 continue
@@ -274,31 +305,46 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
         if not text:
             raise StudioError('missing_output', 'Provide the actual step document or editing notes.')
         def update(p):
-            if any(p['steps'][s]['status'] not in ['approved', 'auto_proceeded'] for s in STEPS[:STEPS.index(step)]):
+            steps = active_steps(p)
+            if actor != 'user':
+                action = self._next(p)
+                if action['action'] != 'prepare_step' or action['step'] != step:
+                    raise StudioError('step_blocked', 'Follow current next_action: ' + action['action'] + '. ' + action['message'] + ' Refresh get_project before continuing.', 409)
+            if step not in steps:
+                raise StudioError('invalid_step', 'This output type does not use that workflow step.')
+            if any(p['steps'][s]['status'] not in ['approved', 'auto_proceeded'] for s in steps[:steps.index(step)]):
                 raise StudioError('step_blocked', 'Complete earlier workflow steps first.', 409)
-            if step == 'final_review' and not output.get('export_asset_id'):
+            image_final = step == 'final_review' and p.get('output_type') == 'image'
+            image_ids = [shot.get('image_asset') for shot in p['shots']] if image_final else []
+            if image_final and (not image_ids or any(not key or not any(a['id'] == key and a['kind'] == 'image' and not a.get('stale') and Path(a['path']).is_file() for a in p['assets']) for key in image_ids)):
+                raise StudioError('missing_export', 'Select actual current images before final review.')
+            if step == 'final_review' and not image_final and not output.get('export_asset_id'):
                 raise StudioError('missing_export', 'Import the actual external edit as a final video before completing final review.')
-            if step == 'final_review' and not any(a['id'] == output['export_asset_id'] and a['kind'] == 'final_video' and not a['stale'] for a in p['assets']):
+            if step == 'final_review' and not image_final and not any(a['id'] == output['export_asset_id'] and a['kind'] == 'final_video' and not a['stale'] for a in p['assets']):
                 raise StudioError('invalid_export', 'Final export is not attached to this project.')
             if p['steps'][step]['ready']:
                 self._invalidate(p, step)
-            p['documents'][step] = {'text': text, **({'export_asset_id': output['export_asset_id']} if step == 'final_review' else {})}
+            p['documents'][step] = {'text': text, **({'export_asset_ids': image_ids} if image_final else {'export_asset_id': output['export_asset_id']} if step == 'final_review' else {})}
             p['steps'][step] = {'ready': True, 'status': 'draft'}
             self._progress(p)
             event(p, 'step_prepared', actor, step.replace('_', ' ') + ' prepared')
         return self.mutate(project_id, expected_revision, update)
 
-    def update_settings(self, project_id, settings, expected_revision, actor):
+    def _validate_settings(self, settings):
         if not isinstance(settings, dict) or any(k not in DEFAULT_SETTINGS for k in settings):
             raise StudioError('invalid_settings', 'Unknown creative setting.')
         for k, v in settings.items():
-            if k == 'duration_seconds':
+            if k == 'creative_intake':
+                from .intake import validate_intake
+                settings = copy.deepcopy(settings)
+                settings[k] = validate_intake(v)
+            elif k == 'duration_seconds':
                 if type(v) is not int or not 1 <= v <= 3600:
                     raise StudioError('invalid_settings', 'Duration must be 1–3600 seconds.')
             else:
                 clean_text(v, 3000)
-        if 'aspect_ratio' in settings and settings['aspect_ratio'] not in ['16:9', '9:16', '1:1']:
-            raise StudioError('invalid_settings', 'Choose 16:9, 9:16 or 1:1.')
+        if 'aspect_ratio' in settings and settings['aspect_ratio'] not in ['16:9', '9:16', '1:1', '4:5', '2:3']:
+            raise StudioError('invalid_settings', 'Choose 16:9, 9:16, 1:1, 4:5 or 2:3; verify support in the selected model.')
         for field, profiles in [('video_generator', VIDEO_PROFILES), ('image_generator', IMAGE_PROFILES)]:
             if field in settings and settings[field] not in [v['id'] for v in profiles]:
                 raise StudioError('invalid_generator', 'Choose a supported generator profile or Custom.')
@@ -306,6 +352,10 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             raise StudioError('invalid_mode', 'Choose external_agent or api execution.')
         for field in ['custom_video_template', 'custom_image_template']:
             if field in settings: validate_template(settings[field])
+        return settings
+
+    def update_settings(self, project_id, settings, expected_revision, actor):
+        settings = self._validate_settings(settings)
         def update(p):
             if any(p['settings'][k] != v for k, v in settings.items()):
                 before = copy.deepcopy(p)
@@ -330,7 +380,7 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
                 raise StudioError('invalid_creative_record', 'Bible entities need distinct nonempty IDs.')
             if data != p['production']:
                 before = copy.deepcopy(p)
-                if data['resources']['unit'] != p['production']['resources']['unit'] and p['jobs']:
+                if data['resources']['unit'] != p['production']['resources']['unit'] and (p['jobs'] or any(a.get('cost') for a in p['assets'])):
                     raise StudioError('cost_unit_locked', 'Existing attempts use the current cost unit. Create a separate project for another unit.')
                 p['production'] = data
                 affected = self._changed_inputs(before, p)
@@ -415,9 +465,16 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             identity['input_version'] = shot['input_versions'].get(kind, 0)
         return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
 
-    def claim_next(self, project_id, actor, request_id):
+    def claim_next(self, project_id, actor, request_id, expected_revision=None):
         if not clean_text(request_id, 200):
             raise StudioError('invalid_request', 'Provide a unique request_id, reused only for retries of this same handoff.')
+        if expected_revision is not None:
+            p = self.get(project_id)
+            retried = next((j for j in p['jobs'] if j.get('request_id') == request_id), None)
+            if retried:
+                if retried['actor'] != actor:
+                    raise StudioError('job_owner', 'This request belongs to another executor. Read get_job; do not start duplicate paid work.', 403)
+                return {'job': copy.deepcopy(retried), 'handoff': copy.deepcopy(retried['handoff']), 'already_claimed': True}
         def update(p):
             block = self._dispatch_block(p)
             if block:
@@ -441,7 +498,9 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             handoff = {'schema_version': 2, 'project_id': p['id'], 'project_name': p['name'], 'shot_id': shot['id'],
                        'shot_title': shot['title'], 'step': action['step'], 'kind': action['kind'],
                        'prompt': prepared['prompt'], 'generator_profile': prepared['generator_profile'],
+                       'model': prepared.get('model'), 'model_guidance': copy.deepcopy(prepared.get('model_guidance')), 'creative_intent': copy.deepcopy(prepared.get('creative_intent')),
                        'negative_prompt': prepared['negative_prompt'], 'separate_notes': prepared['separate_notes'],
+                       'warnings': prepared.get('warnings', []), 'image_requirements': prepared.get('image_requirements'),
                        'execution_mode': p['settings']['generation_mode'],
                        'creative_settings': copy.deepcopy(p['settings']), 'narration': shot['narration'],
                        'effective_direction': prepared['effective_direction'], 'production': copy.deepcopy(p['production']),
@@ -461,7 +520,7 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             p['jobs'].append(job)
             event(p, 'generation_handoff', actor, f"{shot['title']}: {action['kind']} handoff created")
             return {'job': copy.deepcopy(job), 'handoff': copy.deepcopy(handoff), 'already_claimed': False}
-        return self.mutate(project_id, None, update)
+        return self.mutate(project_id, expected_revision, update)
 
     def find_job(self, job_id):
         for p in self.all():
@@ -514,21 +573,34 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
             event(p, 'job_canceled', actor, job_id)
         return self.mutate(project['id'], None, update)
 
-    def import_reference(self, project_id, path, name, expected_revision, actor, kind='image'):
+    def import_reference(self, project_id, path, name, expected_revision, actor, kind='image', entity_id=None):
+        if type(expected_revision) is not int:
+            raise StudioError('invalid_revision', 'Provide the current integer project revision.')
         if kind not in ['image', 'video']:
             raise StudioError('invalid_reference', 'Choose an image or motion-source video.')
         source, metadata = checked_file(path, [self.inbox, self.media_root], kind)
         def update(p):
+            entity = next((e for e in p['production']['bible'] if e['id'] == entity_id), None) if entity_id else None
+            if entity_id and not entity:
+                raise StudioError('not_found', 'Bible entity not found.', 404)
+            if entity and any(e['id'] == entity_id for e in p.get('shared_identity', {}).get('entities', [])):
+                raise StudioError('identity_locked', 'A canonical identity cannot be changed here. Edit the identity source project and sync the batch in Production queue.', 409)
             self._invalidate(p, 'visual_direction')
             asset_id = uid()
             dest = self.media_root / p['id'] / (asset_id + metadata['suffix'])
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, dest)
             p['assets'].append({'id': asset_id, 'kind': kind, 'role': 'reference', 'name': clean_text(name, 150), 'path': str(dest), 'url': f'/api/studio/media/{p["id"]}/{dest.name}', 'stale': False, **metadata})
+            if entity:
+                entity['asset_ids'].append(asset_id)
+                entity['version'] += 1
+            self._progress(p)
             event(p, 'reference_imported', actor, name)
         return self.mutate(project_id, expected_revision, update)
 
     def import_final(self, project_id, path, expected_revision, actor):
+        if self.get(project_id).get('output_type') == 'image':
+            raise StudioError('invalid_output_type', 'Image projects review selected images directly.')
         source, metadata = checked_file(path, [self.inbox, self.media_root], 'final_video')
         def update(p):
             if self._next(p).get('step') != 'final_review':
@@ -547,6 +619,8 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
 
     def editor_handoff(self, project_id):
         p = self.get(project_id)
+        if p.get('output_type') == 'image':
+            raise StudioError('invalid_output_type', 'Image projects export selected images without an editor handoff.')
         cursor = 0
         shots = []
         for s in p['shots']:
@@ -558,6 +632,6 @@ class Studio(Batching, Dispatch, Identity, SavedTemplates, RecipeTrials, Product
                           'video': next((a for a in p['assets'] if a['id'] == s['video_asset']), None)})
             cursor += duration
         return {'schema_version': 2, 'project_id': p['id'], 'project_name': p['name'], 'settings': p['settings'], 'source_revision': p['revision'],
-                'production': p['production'], 'preflight': preflight(p), 'shots': shots, 'edit_duration_seconds': cursor,
-                'instructions': 'Assemble these takes in your preferred editor. Return the final MP4 for final review.',
+                'production': p['production'], 'sequence_context': sequence_context(p), 'preflight': preflight(p), 'shots': shots, 'edit_duration_seconds': cursor,
+                'instructions': 'Assemble these takes in your preferred editor. J-cuts and L-cuts are deliberate editor notes: preserve specified source speech, room tone and audio continuity under cutaways. Check actual source audio and ranges; no internal audio edit has been rendered. Return the final MP4 for final review.',
                 'ready': all(p['steps'][s]['status'] in ['approved', 'auto_proceeded'] for s in STEPS[:5])}

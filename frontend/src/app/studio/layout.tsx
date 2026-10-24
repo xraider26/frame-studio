@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Frame Studio — Agent Workflow',
+  title: 'Orchestra — Agent Workflow',
   description: 'Local content studio with MCP control, generator handoffs and configurable review steps.',
 };
 

@@ -133,6 +133,7 @@ async function mount() {
   await React.act(() =>
     root.render(
       React.createElement(QueueWorkspace, {
+        profiles:{image_profiles:[{id:"general_image",name:"General image"}],video_profiles:[{id:"veo",name:"Veo"}]},
         templates: [
           { id: "ai-film", name: "Film" },
           { id: "saved-a", name: "Saved portrait", saved: true },
@@ -147,6 +148,10 @@ async function mount() {
       }),
     ),
   );
+  await change("Image generator profile","general_image");
+  await change("Video generator profile","veo");
+  await change("Image model name","Custom image v2");
+  await change("Video model name","Veo 3.1");
 }
 const field = (label) => {
   const l = [...document.querySelectorAll("label")].find((l) => {
@@ -338,4 +343,9 @@ test("invalid batch counts and mismatched item briefs cannot create partial work
     document.querySelector('[role="alert"]').textContent,
     /exactly one brief per item/,
   );
+});
+
+test('image batch sends only image generator settings',async()=>{
+ await mount();await change('Output type','image');await change('Idea','A painted fox portrait');await click('Create production batch');
+ const args=command('create_batch').arguments;assert.equal(args.output_type,'image');assert.equal(args.settings.image_generator,'general_image');assert.equal(args.settings.image_model,'Custom image v2');assert.equal('video_generator' in args.settings,false);assert.equal('video_model' in args.settings,false);
 });

@@ -27,6 +27,9 @@ function run(file,args,cwd=root){
  const result=spawnSync(file,args,{cwd,stdio:'inherit',windowsHide:true});
  if(result.error)throw result.error;if(result.status!==0)throw Error(`${path.basename(file)} failed (${result.status})`);
 }
+function installerPath(version=require('./package.json').version){
+ return path.join(__dirname,'dist',`Orchestra-Setup-${version}.exe`);
+}
 function executable(name){
  if(process.env[`FRAME_STUDIO_${name.toUpperCase()}`])return process.env[`FRAME_STUDIO_${name.toUpperCase()}`];
  const result=spawnSync('where.exe',[`${name}.exe`],{encoding:'utf8',windowsHide:true});
@@ -64,10 +67,10 @@ async function main(){
  if(args.has('--stage-only')){console.log(`Payload staged: ${resources}`);return;}
  const {build,Platform,Arch}=require('electron-builder');
  await build({projectDir:__dirname,targets:Platform.WINDOWS.createTarget(['nsis'],Arch.x64),publish:'never'});
- const setup=path.join(__dirname,'dist',`Frame-Studio-Setup-${require('./package.json').version}.exe`);
+ const setup=installerPath();
  if(!fs.existsSync(setup))throw Error('Installer output missing');
  fs.writeFileSync(setup+'.sha256',`${crypto.createHash('sha256').update(fs.readFileSync(setup)).digest('hex')}  ${path.basename(setup)}\n`);
  console.log(`Installer ready: ${setup}`);
 }
-module.exports={isPrivate,copyTree,resetBuildDirectory,assertResources};
+module.exports={isPrivate,copyTree,resetBuildDirectory,assertResources,installerPath};
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -98,7 +98,26 @@ class Quality(Record):
     revision_reason: Text = ''
 
 
+class Editorial(Record):
+    coverage_role: Short = ''
+    purpose: Text = ''
+    transition_in: Text = ''
+    audio_source_shot_id: Short = ''
+    audio_continuity: Text = ''
+
+
+class ImageRequirements(Record):
+    mode: Literal['generate', 'edit'] = 'generate'
+    instructions: Text = ''
+    preserve: Text = ''
+    exact_text: list[Short] = Field(default_factory=list, max_length=30)
+    layout: Text = ''
+    background: Text = ''
+
+
 class Direction(Record):
+    image: ImageRequirements = Field(default_factory=ImageRequirements)
+    editorial: Editorial = Field(default_factory=Editorial)
     recipe_role: Short = ''
     decision_reason: Text = ''
     scene_id: Short = ''
@@ -140,6 +159,7 @@ class StoryBeat(Record):
 
 
 class Story(Record):
+    sequence_id: Short = ''
     hooks: list[Short] = Field(default_factory=list, max_length=20)
     selected_hook: Text = ''
     framework: Text = ''
@@ -231,7 +251,7 @@ def default_production(template_id='custom'):
         '2d-animation': {'art': {'style': 'Graphic 2D animation', 'materials': 'Consistent line weight, silhouette and flat colour'}},
         'claymation': {'art': {'style': 'Tactile claymation', 'materials': 'Hand-shaped clay in a consistent miniature set', 'texture': 'Subtle fingerprints and tool marks'}},
     }
-    return Production(format_rules=FORMAT_RULES.get(template_id, FORMAT_RULES['custom']), defaults=Direction.model_validate(looks.get(template_id, {}))).model_dump()
+    return Production(format_rules=FORMAT_RULES.get(template_id, ['Define subject, use, composition, light, style and required references.', 'Inspect actual image fidelity, anatomy, materials, crop and text constraints.'] if template_id.startswith('image-') else FORMAT_RULES['custom']), defaults=Direction.model_validate(looks.get(template_id, {}))).model_dump()
 
 
 def merge(base, patch):
@@ -267,7 +287,7 @@ def populated(value):
 def effective_direction(project, shot):
     s = project['settings']
     base = Direction(camera=Camera(lens=s['lens'], framing=s['framing'], move=s['camera_move']),
-                     lighting=Lighting(technique=s['lighting']), art=Art(style=s['style'], palette=s['palette']),
+                     lighting=Lighting(technique=s['lighting']), art=Art(style=(s.get('creative_intake') or {}).get('art_style') or s['style'], palette=s['palette']),
                      sound=Sound(ambience=s['sound'])).model_dump()
     base = merge(base, populated(project.get('production', {}).get('defaults', {})))
     result = merge(base, populated(shot.get('direction', {})))

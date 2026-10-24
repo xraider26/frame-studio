@@ -19,6 +19,8 @@ def data_root():
         return Path(override).resolve()
     if getattr(sys, 'frozen', False):
         profile = os.environ.get('APPDATA')
+        # Orchestra deliberately retains Frame Studio's installed data location:
+        # existing projects and connection credentials must remain available.
         return (Path(profile) if profile else Path.home() / 'AppData' / 'Roaming') / 'Frame Studio' / 'studio_data'
     return Path(__file__).resolve().parents[2] / 'studio_data'
 

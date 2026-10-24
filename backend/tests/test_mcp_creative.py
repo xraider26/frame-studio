@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS
 import asyncio
 import json
 import os
@@ -23,7 +24,7 @@ class McpCreativeTests(unittest.TestCase):
             async with ClientSession(read,write) as client:
                 await client.initialize()
                 names={t.name for t in (await client.list_tools()).tools}
-                self.assertTrue({'creative_schema','knowledge_catalog','preview_shot','record_take_review','record_job_cost','repair_handoff'}<=names)
+                self.assertTrue({'creative_schema','knowledge_catalog','preview_shot','record_take_review','record_job_cost','repair_handoff','get_workflow_contract','acknowledge_workflow_contract'}<=names)
                 self.assertFalse({'review','set_policy'}&names)
                 async def call(name,args=None):
                     result=await client.call_tool(name,args or {})
@@ -31,9 +32,12 @@ class McpCreativeTests(unittest.TestCase):
                     if result.structuredContent is not None:
                         return result.structuredContent.get('result',result.structuredContent)
                     return json.loads(next(c.text for c in result.content if c.type=='text'))
+                async def acknowledge(project_id):
+                    contract=await call('get_workflow_contract',{'project_id':project_id})
+                    return await call('acknowledge_workflow_contract',{'project_id':project_id,'contract_version':contract['contract_version'],'expected_revision':contract['revision']})
                 schema=await call('creative_schema');self.assertEqual(schema['schema_version'],2)
                 catalog=await call('knowledge_catalog',{'category':'lighting'});self.assertTrue(catalog['entries'])
-                p=await call('create_project',{'name':'SDK fixture','template_id':'ai-film','request_id':'sdk'})
+                p=await call('create_project',{'name':'SDK fixture','template_id':'ai-film','request_id':'sdk','settings':CREATOR_SETTINGS})
                 blocked=await client.call_tool('update_production',{'project_id':p['id'],'production':{'require_recorded_checks':False},'expected_revision':p['revision']})
                 self.assertTrue(blocked.isError)
                 # Human side of the same database; the MCP client cannot perform this operation.
@@ -43,13 +47,15 @@ class McpCreativeTests(unittest.TestCase):
                 self.assertIn(saved['id'],[t['id'] for t in templates])
                 snapshot=await call('get_saved_template',{'template_id':saved['id']})
                 self.assertEqual(snapshot['sections'],['settings'])
+                await acknowledge(p['id'])
                 p=await call('apply_project_template',{'project_id':p['id'],'template_id':saved['id'],'sections':['settings'],'expected_revision':p['revision'],'template_revision':saved['revision']})
-                p=human.set_policy(p['id'],{'brief':False,'script':False},p['revision'])
+                p=human.set_policy(p['id'],{'brief':False,'script':False,'visual_direction':True},p['revision'])
+                await acknowledge(p['id'])
                 for step in ['brief','script']:
                     p=await call('complete_step',{'project_id':p['id'],'step':step,'output':{'text':'Actual '+step+' fixture'},'expected_revision':p['revision']})
                 p=await call('update_shots',{'project_id':p['id'],'shots':[{'title':'Window','image_prompt':'Traveler beside window','motion_prompt':'Turns toward light','direction':{'camera':{'lens':'85mm'},'lighting':{'world_source':'North wall window'}}}],'expected_revision':p['revision']})
                 preview=await call('preview_shot',{'project_id':p['id'],'shot_id':p['shots'][0]['id']});self.assertIn('85mm',preview['image']['prompt'])
-                task=await call('claim_generation',{'project_id':p['id'],'request_id':'sdk-image'})
+                task=await call('claim_generation',{'project_id':p['id'],'request_id':'sdk-image','expected_revision':p['revision']})
                 self.assertIn('North wall window',task['handoff']['prompt'])
                 file=root/'inbox'/'synthetic.png';Image.new('RGB',(32,18),'orange').save(file)
                 result=await call('return_generation',{'job_id':task['job']['id'],'output_path':str(file)})
@@ -62,12 +68,15 @@ class McpCreativeTests(unittest.TestCase):
                     self.assertEqual(manifest['shots'][0]['direction']['camera']['lens'],'85mm')
                     self.assertIn('source_coverage',manifest)
                 self.assertEqual((await call('next_action',{'project_id':p['id']}))['action'],'await_approval')
-                batch=await call('create_batch',{'name':'SDK batch','idea':'One observatory mystery','request_id':'sdk-batch','count':1,'kind':'episodes','template_id':'ai-film'})
+                batch=await call('create_batch',{'name':'SDK batch','idea':'One observatory mystery','request_id':'sdk-batch','count':1,'kind':'episodes','template_id':'ai-film','settings':CREATOR_SETTINGS})
+                bp=human.get(batch['project_ids'][0])
+                human.set_policy(bp['id'],{'brief':True},bp['revision'])
                 queue=await call('production_queue',{'batch_id':batch['id']})
                 self.assertEqual(len(queue['items']),1)
                 task=await call('claim_queue_task',{'request_id':'sdk-work','batch_id':batch['id']})
                 self.assertEqual(task['status'],'active')
                 await call('renew_queue_task',{'task_id':task['id']})
+                await acknowledge(task['project_id'])
                 prepared=await call('complete_step',{'project_id':task['project_id'],'step':'brief','output':{'text':'Actual batch brief'},'expected_revision':task['project_revision']})
                 await call('finish_queue_task',{'task_id':task['id'],'status':'done','note':'Actual brief prepared'})
                 self.assertEqual((await call('production_queue',{'batch_id':batch['id']}))['items'][0]['state'],'awaiting_approval')

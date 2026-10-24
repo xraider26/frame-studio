@@ -1,6 +1,6 @@
-# Frame Studio frontend
+# Orchestra frontend
 
-This Next.js interface belongs to the local Frame Studio production workflow. Start with the [project README](../README.md) and [first-project guide](../docs/GETTING-STARTED.md).
+This Next.js interface belongs to the local Orchestra production workflow. Start with the [project README](../README.md) and [first-project guide](../docs/GETTING-STARTED.md).
 
 The connected application is `/studio`. It expects the local workflow API and its private data/token directory; a standalone public web deployment is not the current architecture. The older companion page at `/` uses a separate legacy API.
 

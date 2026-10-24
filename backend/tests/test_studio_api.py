@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS
 import base64
 import io
 import json
@@ -88,13 +89,15 @@ class ApiTests(unittest.TestCase):
         self.addCleanup(server.shutdown)
         with TestClient(self.app) as client:
             self.client = client
-            p = self.command('create_project', {'name': 'API connector fixture', 'template_id': 'ai-film'}).json()
+            p = self.command('create_project', {'name': 'API connector fixture', 'template_id': 'ai-film', 'settings': CREATOR_SETTINGS}).json()
             p = self.command('set_policy', {'project_id': p['id'], 'policy': {'brief': False, 'script': False, 'visual_direction': False}, 'expected_revision': p['revision']}, self.browser).json()
             p = self.command('update_production', {'project_id': p['id'], 'production': {'require_recorded_checks': False}, 'expected_revision': p['revision']}, self.browser).json()
+            contract = self.command('get_workflow_contract', {'project_id': p['id']}).json()
+            self.assertEqual(self.command('acknowledge_workflow_contract', {'project_id': p['id'], 'contract_version': contract['contract_version'], 'expected_revision': contract['revision']}).status_code, 200)
             for step in ['brief', 'script']:
                 p = self.command('complete_step', {'project_id': p['id'], 'step': step, 'output': {'text': 'Actual test document'}, 'expected_revision': p['revision']}).json()
             p = self.command('update_shots', {'project_id': p['id'], 'shots': [{'title': 'Test', 'image_prompt': 'Fixture image', 'motion_prompt': 'Slow motion'}], 'expected_revision': p['revision']}).json()
-            job = self.command('claim_generation', {'project_id': p['id'], 'request_id': 'api-image'}).json()['job']
+            job = self.command('claim_generation', {'project_id': p['id'], 'request_id': 'api-image', 'expected_revision': p['revision']}).json()['job']
             self.command('save_connection', {'id': 'local-test', 'name': 'Local contract fixture', 'base_url': f'http://127.0.0.1:{server.server_port}', 'enabled': True, 'max_requests': 1}, self.browser)
             res = self.command('run_provider', {'job_id': job['id'], 'connection_id': 'local-test'})
             self.assertEqual(res.status_code, 200, res.text)

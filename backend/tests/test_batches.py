@@ -1,3 +1,4 @@
+from workflow_fixtures import CREATOR_SETTINGS, creator_ready
 import copy
 import tempfile
 import unittest
@@ -16,7 +17,7 @@ class BatchTests(unittest.TestCase):
 
     def batch(self,count=3,policy=None,request='batch-once'):
         self.assertTrue(hasattr(self.s,'create_batch'),'Idea-to-production batches are missing')
-        return self.s.create_batch('Observatory stories','A traveler discovers abandoned observatories','episodes','ai-film',count,request,'user',policy=policy)
+        return self.s.create_batch('Observatory stories','A traveler discovers abandoned observatories','episodes','ai-film',count,request,'user',policy=policy,settings=CREATOR_SETTINGS)
 
     def prepare(self,p):
         p=self.s.set_policy(p['id'],{'brief':False,'script':False},p['revision'])

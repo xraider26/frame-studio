@@ -1,12 +1,16 @@
 # Your first project
 
-Frame Studio organizes a video production. Your agent and chosen generators create the media; your editor assembles the final cut. You can review and adjust each creative decision along the way.
+The next-beta source is named Orchestra. The published 0.2.0 installer still displays Frame Studio; image-only projects, strict MCP contracts and the renamed interface require the newer source or a future packaged beta.
+
+Orchestra organizes a video production. Your agent and chosen generators create the media; your editor assembles the final cut. You can review and adjust each creative decision along the way.
 
 ## 1. Open the studio
 
-Install the [Windows beta](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1), then launch **Frame Studio**. It bundles its runtimes. See [Windows setup](WINDOWS.md) for data, logs and source builds.
+Install the [Windows beta](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1), then launch **Orchestra**. It bundles its runtimes. See [Windows setup](WINDOWS.md) for data, logs and source builds.
 
 Choose **New project**, give it a name and select a content recipe. Explore **Template library** first if you want to compare formats and their example images. Start with one short project before creating a large production batch.
+
+In next-beta source, open **Templates → Image or Video → Built-in or Saved**. Project tools follow **Brief → Plan → Create → Review → Export**; the current-task banner opens the next required tool. Video sequence patterns are under **Plan → Sequences**. See [templates and sequence planning](TEMPLATES-AND-SEQUENCES.md) for replacement safeguards and retained media.
 
 ## 2. Describe the result you want
 
@@ -16,7 +20,7 @@ If using an agent, open **Connections & MCP**, select your client format and cop
 
 An example instruction for your agent:
 
-> Use Frame Studio to prepare a 30-second short drama about a ceramic artist repairing a gift before a visitor arrives. Start with the short-drama recipe. Propose the brief and script, prepare a coherent shot plan and explain how the camera and lighting support the emotional turn. Follow the project's approval policy. Use only my authorized generation tools, return actual outputs and stop when approval is required.
+> Use Orchestra to prepare a 30-second short drama about a ceramic artist repairing a gift before a visitor arrives. Start with the short-drama recipe. Propose the brief and script, prepare a coherent shot plan and explain how the camera and lighting support the emotional turn. Follow the project's approval policy. Use only my authorized generation tools, return actual outputs and stop when approval is required.
 
 MCP gives the agent a workflow, not a built-in image/video model. Confirm that your agent can actually use the generator you intend before requesting media.
 
@@ -68,7 +72,7 @@ Yes. Use generator-specific exports or an agent with its own tools. Those tools 
 The production workspace is not tied to the original developer's GPU. Any local generation model has separate hardware requirements.
 
 **Where are my projects?**  
-In the desktop app, use **Frame Studio → Open data folder**. Data normally lives under `%APPDATA%\Frame Studio\studio_data`. A source checkout uses its local `studio_data` directory. These are separate workspaces; the installer does not silently migrate repository data.
+In the desktop app, use **Orchestra → Open data folder**. Data normally lives under `%APPDATA%\Frame Studio\studio_data`. A source checkout uses its local `studio_data` directory. These are separate workspaces; the installer does not silently migrate repository data.
 
 **Can everyone use the same MCP configuration?**  
 The structure is shared, but the executable/data paths are generated for each installation. Copy them from your own studio. Reconnect the client after changing its MCP settings.
@@ -77,7 +81,7 @@ The structure is shared, but the executable/data paths are generated for each in
 They preserve direction, reference requirements and review standards. Actual consistency depends on the generator, references, execution and inspection. Test a representative pilot and record real results.
 
 **Why can't I download the release?**  
-Use the [Windows beta release page](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1) and expand its Assets section. The beta is marked as a prerelease, so a generic “latest stable release” link may not find it. The public download does not require repository membership.
+Use the [Windows beta release page](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1) and expand its Assets section. The beta is marked as a prerelease, so a generic “latest stable release” link may not find it. The repository is private again; GitHub requires repository access to download its assets.
 
 **What should I include in a bug report?**  
 App version, desktop versus source mode, Windows version, exact steps and the expected/actual result. Use a small synthetic project where possible. Review logs for credentials/private content before attaching them. See [security reporting](../SECURITY.md).

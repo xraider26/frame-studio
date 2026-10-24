@@ -2,6 +2,7 @@
 import copy
 from .cinematography import enrich_visual_entries
 from .course_rules import verified_course_material
+from .prompting import prompting_guide, style_setups
 
 SOURCE = 'AI Video Course Review and Workflow · Production playbook'
 ENTRIES = []
@@ -69,13 +70,21 @@ add('mono-palette', 'palette', 'Monochrome', 'Value, texture and light carry sep
 add('complementary-palette', 'palette', 'Warm / cool separation', 'A controlled warm subject and cool surroundings create a clear colour hierarchy.', 'Separate a motivated practical from ambient sky light.', 'Exaggeration can make skin and props feel artificial.', {'art': {'palette': 'Restrained warm subject against cooler ambient environment'}}, 'neon')
 
 
+for setup in style_setups():
+    add(setup['id'], 'style', setup['name'], setup['intent'], 'Use as an editable starting point when it fits the creator\'s chosen vision.',
+        'These are approximate appearance cues; references, overrides and inspection determine the result.', setup['apply'], provenance='reviewed_shared_guide')
+    ENTRIES[-1].update(source='Creator-supplied prompting report · reviewed adaptation', section='Style setups',
+                       source_note='Studio-authored setup informed by the shared report, with corrections and limitations; not a validated finished-output preset.',
+                       source_url=prompting_guide()['source_url'])
+
+
 def knowledge_catalog(query='', category=''):
     query = query.casefold().strip()[:200]
     entries = [e for e in ENTRIES if (not category or e['category'] == category) and
                (not query or query in ' '.join(str(e[k]) for k in ['name', 'explanation', 'use_when', 'category']).casefold())]
     enriched, sample_count = enrich_visual_entries(copy.deepcopy(entries))
     material = verified_course_material()
-    return {'entries': enriched, 'categories': sorted({e['category'] for e in ENTRIES}),
+    return {'entries': enriched, 'categories': sorted({e['category'] for e in ENTRIES}), 'prompting_guide': prompting_guide(),
             'coverage': {'full_original_catalogues': False, 'available_source': SOURCE,
                          'status': 'Selected original source pages verified; examples and applications are studio-authored, not an exhaustive original catalogue.',
                          'source_count': len(material['sources']), 'sample_count': sample_count,
