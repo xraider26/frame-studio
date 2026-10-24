@@ -47,7 +47,7 @@ Keep the existing FastAPI/SQLite/local-media backend, stdio MCP bridge, Next.js 
 
 ## Verification checklist
 
-24 October update: image prompting and mapped direct ComfyUI execution are implemented; see [setup and limits](COMFYUI.md). Fresh release-preparation checks passed **187 backend, 66 interface and 13 desktop tests**. The desktop source version is **0.2.1-beta.1**. A new installer build and packaged smoke verification are being performed separately; do not equate source tests with a tested installer. The earlier beta tag/assets remain unchanged.
+24 October update: image prompting and mapped direct ComfyUI execution are implemented; see [setup and limits](COMFYUI.md). Fresh checks passed **187 backend, 66 interface and 14 desktop tests**. **Orchestra 0.2.1-beta.1** was built and installed locally; unpacked and installed binaries pass clean-PATH startup, real MCP, bundled media tools and persistence smoke checks. An actual upgrade regression involving stale Next.js route-cache files was fixed and retested. See the [Windows update evidence](qa/2026-10-24/windows-update.md). The earlier beta tag/assets remain unchanged; no new GitHub release is published by the local update.
 
 Implementation is present on this branch. Fresh verification: **165 backend tests, 63 interface tests and 12 desktop tests**; production build with Next.js 16.4.2. The prior production-dependency audit reported zero known vulnerabilities; dependency versions are unchanged in this update. Actual browser rendering and a new packaged-installer smoke run remain outstanding: automatic approval review rejected launching the UI server as “blocked by policy.” Component tests do not substitute for those checks.
 
@@ -63,7 +63,7 @@ Implementation is present on this branch. Fresh verification: **165 backend test
 - [x] Test persisted actor-specific rule acknowledgements, policy/model invalidation, integer revision enforcement, actual-next-step preparation and safe return of previously claimed outputs.
 - [x] Test Orchestra desktop naming while preserving existing data, credentials, overrides and installation identity; keep service/MCP compatibility identifiers unchanged.
 - [ ] Inspect the real rendered image/video creation and attachment flows on desktop and mobile.
-- [ ] Before shipping another installer, bump the beta version, package the tested commit and run the installed-app/MCP/media/persistence smoke checks. Keep the earlier beta artifact intact.
+- [x] Bump the beta version, package the tested application commit and run the installed-app/MCP/media/persistence smoke checks. Earlier beta artifact retained. Signing and second-computer validation remain external release work.
 
 ## Commands and remaining release work
 

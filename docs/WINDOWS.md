@@ -10,6 +10,8 @@ Run setup, choose the installation folder and open Orchestra from its shortcut. 
 
 The app starts its own loopback services on available ports and opens `/studio`. It can coexist with a source checkout on ports 3000/8010. The window is sandboxed; it does not load remote pages inside the studio. External HTTPS links open in the default browser.
 
+Orchestra clears only the bundled interface's disposable Next.js `web/.next/server/route-cache` before starting its web service. This prevents an older installed interface from surviving an in-place update; project data and generated media are stored separately and are not cleared.
+
 Projects, media, keys and logs are stored separately under the current Windows user's application-data directory, normally `%APPDATA%\Frame Studio\studio_data`. The Orchestra menu opens the actual data directory. This directory is not inside the installation folder and is retained on uninstall. Existing repository projects are not silently copied or replaced. Back up the data folder before moving to another computer; credentials remain private.
 
 ## Connect an agent
