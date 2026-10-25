@@ -8,9 +8,9 @@ from PIL import Image
 
 
 async def verify_chat_transport(client):
-    async def call(name, **arguments):
-        response = await client.call_tool(name, arguments)
-        assert not response.isError, (name, response.content)
+    async def call(tool_name, **arguments):
+        response = await client.call_tool(tool_name, arguments)
+        assert not response.isError, (tool_name, response.content)
         payload = response.structuredContent
         if payload is None:
             payload = json.loads(next(c.text for c in response.content if c.type == 'text'))
