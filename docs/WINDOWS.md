@@ -1,8 +1,8 @@
 # Orchestra for Windows
 
-The next-beta source uses Orchestra branding and an `Orchestra-Setup-<version>.exe` installer name. The published 0.2.0 beta below still uses its original Frame Studio name. Upgrade identity and `%APPDATA%\Frame Studio\studio_data` storage are deliberately retained so existing projects and connections are preserved.
+Orchestra 0.3.0-beta.1 uses Orchestra branding and an `Orchestra-Setup-<version>.exe` installer name. Upgrade identity and `%APPDATA%\Frame Studio\studio_data` storage are deliberately retained so existing projects and connections are preserved. The older 0.2.0 release remains in the history under its original Frame Studio name.
 
-Download `Frame-Studio-Setup-0.2.0.exe` and its SHA256 file from the [Windows beta release](https://github.com/xraider26/frame-studio/releases/tag/v0.3.0-beta.1). It is unsigned. Publisher signing and testing on a second physical computer remain release work. GitHub requires repository access while the repository is private.
+Download `Orchestra-Setup-0.3.0-beta.1.exe` and its `.sha256` file from the [public Windows beta release](https://github.com/xraider26/frame-studio/releases/tag/v0.3.0-beta.1). It is unsigned. Publisher signing and testing on a second physical computer remain unverified.
 
 ## Install and use
 
@@ -39,7 +39,7 @@ The build creates Next standalone output, freezes the Python service/MCP bridge,
 
 `desktop/build/`, `desktop/dist/` and dependencies are ignored by Git. User data, original private course PDFs, tokens and API keys are excluded from packaging. Bundled software notices are under `desktop/THIRD-PARTY-NOTICES.md` and the installed resources.
 
-## Verified beta scope
+## Earlier beta verification
 
 On the current Windows 11 x64 machine, both the unpacked app and an actual silent setup installation in a different `C:` folder passed a clean-PATH check: startup, 26 example image URLs, nine production recipes, dynamic installed MCP configuration, video import using bundled FFmpeg/FFprobe, actual stdio SDK communication with 43 tools, single-instance handling, child-process shutdown and retained data files. Test media/projects were isolated fixtures. These checks do not replace testing on a separate computer or validate artistic video quality.
 
@@ -51,4 +51,4 @@ The service and desktop resolve the writable data directory through a uniquely o
 
 Discovery is published atomically only after the service health check verifies its instance and PID. The record includes ready state, service PID, root and URL; the bridge verifies those fields before connecting. Cleanup removes only its own discovery record and stops only children launched by that desktop instance. Error messages distinguish startup failure from a later Studio service exit. Restart Orchestra closes owned children first, preserving projects and credentials.
 
-Source verification uses deterministic temporary fixtures. Packaged smoke test remains to be scheduled separately: from a normal shortcut and a packaged Codex parent, launch with an isolated temporary FRAME_STUDIO_DATA_DIR, inspect health root/PID, create a temporary project, claim one fixture image job, upload/return an existing real PNG, restart and reopen that project. No paid generation, live database migration or installer replacement is authorized by source tests. The actual MSIX virtualization behavior remains unverified until that smoke test.
+The 0.3.0-beta.1 packaged payload passed clean-PATH startup, real MCP/PNG return, actual virtualized AppData-root handling, shutdown and restart persistence under a packaged Codex parent. See [release verification](qa/2026-10-25/release-0.3.0-beta.1.md). A fresh NSIS installation/upgrade, an Explorer-shortcut launch outside that parent and a second physical computer remain unverified. No paid generation, live project migration or replacement of the user's installed app was performed.

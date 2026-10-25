@@ -18,7 +18,7 @@ Run python benchmark_handoffs.py from backend. Synthetic fixture: compact packet
 
 ## Remaining environment checks
 
-The source production build uses Next's supported webpack mode because this isolated worktree shares dependencies through an external junction. This is not a packaged installer test. The normal-shortcut and packaged-Codex-parent Windows smoke procedure is in WINDOWS.md; it remains unexecuted. The installed app has not been replaced, published or restarted by this source change.
+The earlier source check used Next's supported webpack mode with shared dependencies. Release 0.3.0-beta.1 uses a fresh normal dependency installation and successful production build. Its packaged payload passed startup, real fixture media return, actual AppData virtualization and restart checks under the packaged Codex parent; see [release verification](qa/2026-10-25/release-0.3.0-beta.1.md). A fresh NSIS installation/upgrade, Explorer-shortcut launch outside that parent and second computer remain unverified. The user's installed app was not replaced or restarted.
 
 ### Source verification limits
 
