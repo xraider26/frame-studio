@@ -34,13 +34,22 @@ def preflight(project, shot_id=None, kind=None):
         from .recipes import recipe_context
         if not recipe_context(project)['active']:
             issue('recipe_version', 'error', None, 'production.recipe', 'Recipe ID/version is unavailable. Explicitly activate the current recipe in the studio before generation.')
-    caps = production['capabilities']
+    caps = production['capabilities_by_kind']['image' if image_only else 'video'] if project.get('generation_setup') else production['capabilities']
     assets = {a['id']: a for a in project['assets']}
     entities = {e['id']: e for e in production['bible']}
     shots = project['shots']
     for i, shot in enumerate(shots):
         if shot_id and shot['id'] != shot_id:
             continue
+        # Rule applicability is computed from trusted recipe metadata and saved scope.
+        from .execution_evidence import build_rule_application, rule_blockers
+        requested_kind = 'image' if image_only else (kind or 'video')
+        stage = 'visual_direction' if requested_kind == 'image' else 'production'
+        rules = build_rule_application(project, shot, requested_kind, stage)
+        blocked_ids = {r['rule_id'] for r in rule_blockers(rules, stage)}
+        for rule in rules:
+            if rule['status'] == 'unverified':
+                issue('rule_application:'+rule['rule_id'], 'error' if rule['rule_id'] in blocked_ids else 'warning', shot, 'rule_application', rule['reason'])
         d = effective_direction(project, shot)
         if image_only and d['image']['mode'] == 'edit':
             if not any(r['role'] in ['character','location','prop','style','start_frame'] for r in d['references']) or not references_for(project, shot, 'image'):

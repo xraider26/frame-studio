@@ -2,7 +2,7 @@
 
 The next-beta source uses Orchestra branding and an `Orchestra-Setup-<version>.exe` installer name. The published 0.2.0 beta below still uses its original Frame Studio name. Upgrade identity and `%APPDATA%\Frame Studio\studio_data` storage are deliberately retained so existing projects and connections are preserved.
 
-Download `Frame-Studio-Setup-0.2.0.exe` and its SHA256 file from the [Windows beta release](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1). It is unsigned. Publisher signing and testing on a second physical computer remain release work. GitHub requires repository access while the repository is private.
+Download `Frame-Studio-Setup-0.2.0.exe` and its SHA256 file from the [Windows beta release](https://github.com/xraider26/frame-studio/releases/tag/v0.3.0-beta.1). It is unsigned. Publisher signing and testing on a second physical computer remain release work. GitHub requires repository access while the repository is private.
 
 ## Install and use
 
@@ -22,7 +22,7 @@ Keep Orchestra open while using MCP. Its bundled `FrameStudioService.exe mcp --d
 
 ## Build from source
 
-Current source packages **Orchestra 0.2.1-beta.1** as `Orchestra-Setup-0.2.1-beta.1.exe` plus its SHA256 file. This version advances the installed 0.2.0 application version; the historical `v0.2.0-beta.1` release/tag and files remain unchanged. A local build does not publish a GitHub release. Current capabilities include image projects/templates, five-stage navigation, model-aware image requirements, Qwen guidance and mapped direct ComfyUI execution. See [ComfyUI setup](COMFYUI.md) and [browser findings](qa/2026-10-24/browser-checks.md) for current limits.
+Current release packages **Orchestra 0.3.0-beta.1** as `Orchestra-Setup-0.3.0-beta.1.exe` plus its SHA256 file. This version advances the installed 0.2.0 application version; the historical `v0.2.0-beta.1` release/tag and files remain unchanged. A local build does not publish a GitHub release. Current capabilities include image projects/templates, five-stage navigation, model-aware image requirements, Qwen guidance and mapped direct ComfyUI execution. See [ComfyUI setup](COMFYUI.md) and [browser findings](qa/2026-10-24/browser-checks.md) for current limits.
 
 Build requirements: Windows x64, Node.js >=22.12, Python 3.12, `uv`, and FFmpeg/FFprobe on the build machine. Install the source application's backend/frontend dependencies first. Runtime dependencies are separate from build-only tools.
 
@@ -44,3 +44,11 @@ The build creates Next standalone output, freezes the Python service/MCP bridge,
 On the current Windows 11 x64 machine, both the unpacked app and an actual silent setup installation in a different `C:` folder passed a clean-PATH check: startup, 26 example image URLs, nine production recipes, dynamic installed MCP configuration, video import using bundled FFmpeg/FFprobe, actual stdio SDK communication with 43 tools, single-instance handling, child-process shutdown and retained data files. Test media/projects were isolated fixtures. These checks do not replace testing on a separate computer or validate artistic video quality.
 
 To rerun the binary check from the build machine: `node desktop/smoke.cjs "<path to installed Orchestra.exe>"`. It starts the real app with isolated fixture data and no Node/Python/FFmpeg on PATH, writes reports under ignored `.superpowers/`, and exits automatically. The Python MCP SDK is needed only by this verification script, not by the installed user's agent.
+
+### Physical writable roots and recovery
+
+The service and desktop resolve the writable data directory through a uniquely owned probe file, then verify that the physical directory and file agree. An explicit STUDIO_DATA_DIR (service) or FRAME_STUDIO_DATA_DIR (desktop) is honored. A divergent root containing competing existing state stops startup with instructions to select one physical directory; no databases or credentials are moved or merged. Inbox/media containment checks remain enforced. MCP configuration publishes the effective physical root.
+
+Discovery is published atomically only after the service health check verifies its instance and PID. The record includes ready state, service PID, root and URL; the bridge verifies those fields before connecting. Cleanup removes only its own discovery record and stops only children launched by that desktop instance. Error messages distinguish startup failure from a later Studio service exit. Restart Orchestra closes owned children first, preserving projects and credentials.
+
+Source verification uses deterministic temporary fixtures. Packaged smoke test remains to be scheduled separately: from a normal shortcut and a packaged Codex parent, launch with an isolated temporary FRAME_STUDIO_DATA_DIR, inspect health root/PID, create a temporary project, claim one fixture image job, upload/return an existing real PNG, restart and reopen that project. No paid generation, live database migration or installer replacement is authorized by source tests. The actual MSIX virtualization behavior remains unverified until that smoke test.

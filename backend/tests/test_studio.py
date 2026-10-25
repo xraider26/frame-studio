@@ -1,3 +1,4 @@
+from workflow_fixtures import return_fixture
 from workflow_fixtures import CREATOR_SETTINGS, creator_ready
 import base64
 import tempfile
@@ -66,8 +67,8 @@ class StudioTests(unittest.TestCase):
         same = self.studio.claim_next(self.project['id'], 'claude', 'task-2')
         self.assertEqual(task['job']['id'], same['job']['id'])
         self.assertEqual(task['handoff']['kind'], 'image')
-        result = self.studio.return_result(task['job']['id'], str(self.image()), 'cursor')
-        duplicate = self.studio.return_result(task['job']['id'], str(self.image()), 'cursor')
+        result = return_fixture(self.studio, task['job']['id'], str(self.image()), 'cursor')
+        duplicate = return_fixture(self.studio, task['job']['id'], str(self.image()), 'cursor')
         self.assertEqual(result['asset']['id'], duplicate['asset']['id'])
         self.assertEqual(len(self.studio.get_project(self.project['id'])['assets']), 1)
         self.assertEqual(self.studio.next_action(self.project['id'])['action'], 'await_approval')
@@ -77,7 +78,7 @@ class StudioTests(unittest.TestCase):
         p = self.project
         self.studio.set_policy(p['id'], {'visual_direction': False}, p['revision'])
         task = self.studio.claim_next(p['id'], 'codex', 'one')
-        self.studio.return_result(task['job']['id'], str(self.image()), 'codex')
+        return_fixture(self.studio, task['job']['id'], str(self.image()), 'codex')
         action = self.studio.next_action(p['id'])
         self.assertEqual((action['step'], action['kind']), ('pilot', 'video'))
 
@@ -87,7 +88,7 @@ class StudioTests(unittest.TestCase):
         p = self.studio.get_project(self.project['id'])
         shots = [dict(p['shots'][0], image_prompt='Completely different direction')]
         self.studio.update_shots(p['id'], shots, p['revision'], 'agent')
-        returned = self.studio.return_result(task['job']['id'], str(self.image()), 'agent')
+        returned = return_fixture(self.studio, task['job']['id'], str(self.image()), 'agent')
         self.assertTrue(returned['asset']['stale'])
         p = self.studio.get_project(p['id'])
         self.assertIsNone(p['shots'][0]['image_asset'])
@@ -115,11 +116,11 @@ class StudioTests(unittest.TestCase):
         outside = Path(self.temp.name) / 'outside.png'
         Image.new('RGB', (8, 8)).save(outside)
         with self.assertRaises(StudioError):
-            self.studio.return_result(task['job']['id'], str(outside), 'agent')
+            return_fixture(self.studio, task['job']['id'], str(outside), 'agent')
         invalid = self.inbox / 'fake.png'
         invalid.write_text('not an image')
         with self.assertRaises(StudioError):
-            self.studio.return_result(task['job']['id'], str(invalid), 'agent')
+            return_fixture(self.studio, task['job']['id'], str(invalid), 'agent')
         self.assertEqual(len(self.studio.get_project(self.project['id'])['assets']), 0)
 
     def test_projects_are_isolated_and_state_survives_restart(self):
@@ -142,7 +143,7 @@ class StudioTests(unittest.TestCase):
         p = self.project
         self.studio.set_policy(p['id'], {'visual_direction': False}, p['revision'])
         task = self.studio.claim_next(p['id'], 'agent', 'stable-request')
-        self.studio.return_result(task['job']['id'], str(self.image()), 'agent')
+        return_fixture(self.studio, task['job']['id'], str(self.image()), 'agent')
         retried = self.studio.claim_next(p['id'], 'agent', 'stable-request')
         self.assertEqual(retried['job']['id'], task['job']['id'])
         self.assertTrue(retried['already_claimed'])
@@ -153,11 +154,11 @@ class StudioTests(unittest.TestCase):
         p = self.project
         self.studio.set_policy(p['id'], {'visual_direction': False}, p['revision'])
         image_job = self.studio.claim_next(p['id'], 'agent', 'image')
-        self.studio.return_result(image_job['job']['id'], str(self.image()), 'agent')
+        return_fixture(self.studio, image_job['job']['id'], str(self.image()), 'agent')
         video_job = self.studio.claim_next(p['id'], 'agent', 'video')
         video = self.inbox / 'fixture.mp4'
         subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=orange:s=64x36:d=0.5', '-pix_fmt', 'yuv420p', str(video)], check=True, capture_output=True)
-        self.studio.return_result(video_job['job']['id'], str(video), 'agent')
+        return_fixture(self.studio, video_job['job']['id'], str(video), 'agent')
         p = self.studio.get_project(p['id'])
         self.studio.review(p['id'], 'pilot', False, 'Change the camera motion', p['revision'])
         action = self.studio.next_action(p['id'])
@@ -203,7 +204,7 @@ class StudioTests(unittest.TestCase):
         from studio.providers import Providers
         self.prepare()
         task = self.studio.claim_next(self.project['id'], 'agent', 'one')
-        self.studio.return_result(task['job']['id'], str(self.image()), 'agent')
+        return_fixture(self.studio, task['job']['id'], str(self.image()), 'agent')
         Providers(self.studio, Path(self.temp.name) / 'connections.json')._failed(task['job']['id'], 'failed', 'late provider timeout')
         self.assertEqual(self.studio.find_job(task['job']['id'])[1]['status'], 'succeeded')
 
@@ -212,19 +213,19 @@ class StudioTests(unittest.TestCase):
         self.prepare()
         p = self.project
         p = self.studio.set_policy(p['id'], {'visual_direction': False, 'pilot': False}, p['revision'])
-        self.studio.update_shots(p['id'], [{'title': 'One', 'image_prompt': 'One', 'motion_prompt': 'Move'}, {'title': 'Two', 'image_prompt': 'Two', 'motion_prompt': 'Move'}], p['revision'], 'agent')
+        self.studio.update_shots(p['id'], [{'title': 'One', 'image_prompt': 'One', 'motion_prompt': 'Move'}, {'title': 'Two', 'image_prompt': 'Two', 'motion_prompt': 'Move', 'direction': {'action': {'state_before': {'door': 'closed'}, 'state_after': {'door': 'closed'}}}}], p['revision'], 'agent')
         for i in range(2):
             j = self.studio.claim_next(p['id'], 'agent', 'image-' + str(i))
-            self.studio.return_result(j['job']['id'], str(self.image()), 'agent')
+            return_fixture(self.studio, j['job']['id'], str(self.image()), 'agent')
         video = self.inbox / 'video.mp4'
         subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=orange:s=64x36:d=0.5', '-pix_fmt', 'yuv420p', str(video)], check=True, capture_output=True)
         pilot = self.studio.claim_next(p['id'], 'agent', 'pilot')
-        self.studio.return_result(pilot['job']['id'], str(video), 'agent')
+        return_fixture(self.studio, pilot['job']['id'], str(video), 'agent')
         pending = self.studio.claim_next(p['id'], 'agent', 'production')
         p = self.studio.get_project(p['id'])
         p = self.studio.set_policy(p['id'], {'pilot': True}, p['revision'])
         self.studio.review(p['id'], 'pilot', False, 'Different motion', p['revision'])
-        result = self.studio.return_result(pending['job']['id'], str(video), 'agent')
+        result = return_fixture(self.studio, pending['job']['id'], str(video), 'agent')
         self.assertTrue(result['asset']['stale'])
         p = self.studio.get_project(p['id'])
         self.assertIsNone(p['shots'][1]['video_asset'])

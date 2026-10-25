@@ -9,7 +9,7 @@ class TemplatesSequencesTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         root=Path(self.tmp.name); self.studio=Studio(root/'db',root/'media',root/'inbox')
     def test_image_recipes_have_still_only_contract(self):
-        recipes={r['id']:r for r in recipe_catalog()}
+        recipes={r['id']:r for r in recipe_catalog(detail="full", include_provenance=True)}
         self.assertIn('image-product', recipes)
         r=recipes['image-product']; self.assertEqual(r['output_type'],'image')
         self.assertEqual(set(r['stages']),{'brief','script','visual_direction','final_review'})

@@ -85,7 +85,12 @@ class ComfyProviderTests(unittest.TestCase):
                 self.assertEqual(submitted,[])
                 return
             self.assertEqual(current['status'], 'succeeded', current)
+            current = self.command('get_job', {'job_id': job['id'], 'detail': 'full'}).json()
             self.assertEqual(current['remote_prompt_id'], 'remote-123')
+            self.assertEqual(current['execution']['evidence_source'], 'server_recorded')
+            self.assertEqual(current['execution']['validation']['state'], 'match')
+            self.assertEqual(current['execution']['arguments']['prompt'], submitted[0]['prompt'])
+            self.assertEqual(current['execution']['prompt'], submitted[0]['prompt']['11']['inputs']['text'])
             self.assertEqual(submitted[0]['prompt']['22']['inputs']['steps'], 8)
             project = self.command('get_project', {'project_id': p['id']}).json()
             self.assertTrue(Path(project['assets'][0]['path']).is_file())

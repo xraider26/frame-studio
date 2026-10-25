@@ -88,3 +88,26 @@ def course_coverage():
                     'Video-only lesson content', 'Current provider capability validation',
                     'Real finished-video validation for each recipe'],
     }
+
+
+def source_catalog(source_id=None, recipe_id=None, stage=None, role=None, detail='summary', include_provenance=False, offset=0, limit=20):
+    from .store import StudioError
+    if detail not in {'summary', 'full'}: raise StudioError('invalid_detail', 'Choose summary or full.')
+    if offset < 0 or not 1 <= limit <= 100: raise StudioError('invalid_page', 'Use offset >= 0 and limit 1..100.')
+    if recipe_id:
+        from .recipes import recipe_catalog
+        recipes = recipe_catalog(recipe_id, stage, role, 'full', include_provenance)
+        rules = recipes[0]['source_rules'] if recipes else []
+    else:
+        rules = source_rules()
+        if stage or role:
+            raise StudioError('recipe_scope_required', 'Provide recipe_id to resolve stage/role applicability.')
+    rules = [r for r in rules if source_id is None or r['id'] == source_id or r['source_id'] == source_id]
+    rules = rules[offset:offset+limit]
+    for rule in rules:
+        if detail == 'summary':
+            for key in list(rule):
+                if key not in {'id', 'source_id', 'section', 'grounding', 'version', 'required', 'phase', 'stage', 'role_ids'}: rule.pop(key)
+        elif not include_provenance:
+            for key in ('citations', 'correction_citations', 'provenance', 'citation_scope'): rule.pop(key, None)
+    return {'rules': rules, 'offset': offset, 'limit': limit}

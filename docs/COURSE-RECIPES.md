@@ -19,3 +19,14 @@ Historical summaries describe reviewed productions, distinct ideas/models and de
 ## Sources
 
 The supplied review and selected original PDF pages are tracked separately from studio-authored adaptations and corrections. The [source ledger](sources/verified-course-lessons.json) records exact verification scope; [source notes](COURSE-SOURCES.md) explain the remaining gaps. Private original PDFs stay in ignored local storage and are not required to run a fresh checkout.
+
+
+### Per-take rule and request evidence
+
+New claims snapshot a `rule_application` manifest. Recipe-owned metadata supplies requiredness, phase, stages, role scope and declarative predicates. Required applicable pre-generation rules need a concrete populated compiler/reference binding; missing mappings, required references and unverified prerequisites block execution. Optional unverified guidance remains visible. `not_applicable` is computed from the saved scope and predicate, never an agent waiver. Required identity/product requirements remain in `production.reference_requirements`; calibration scope only limits the representative baseline.
+
+A mapped media-review criterion has a pending outcome until the actual take is inspected. Editing rules apply at their named editor/final-review stage. The per-take evidence view displays compiled/submitted prompts, reference versions, argument payloads, source attribution, scoped mappings and actual inspection separately. A mapping is traceability, not proof the generated picture followed a rule or creator acceptance.
+
+The compiler preserves authored punctuation, exact text and custom-template syntax. Explicit subject/environment prose precedes duplicate bible contributions. Administrative intent, sound and review notes stay outside still-image visual prose. A required rule omitted by a custom template needs an explicit saved-template revision rather than a silent prompt rewrite.
+
+The mutable-state rule stays a required pre-generation rule where applicable. Its trusted `video_continuity` predicate excludes an initial scene with no preceding shot or explicitly tracked state; subsequent shots and explicit state tracking require populated continuity bindings. This does not waive any saved identity/product fidelity requirement.

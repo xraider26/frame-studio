@@ -12,6 +12,12 @@ Choose **New project**, give it a name and select a content recipe. Explore **Te
 
 In next-beta source, open **Templates → Image or Video → Built-in or Saved**. Project tools follow **Brief → Plan → Create → Review → Export**; the current-task banner opens the next required tool. Video sequence patterns are under **Plan → Sequences**. See [templates and sequence planning](TEMPLATES-AND-SEQUENCES.md) for replacement safeguards and retained media.
 
+Choose your generators before the creative brief. **Project generators** asks one grouped question: use your AI's built-in image tool, another app, or a connected API/ComfyUI service. Image projects ask only about images. A managed built-in tool does not need an exact model/version; leave it managed or unknown. For video projects you can choose **Decide video later** and continue image preparation; video generation waits for its selection.
+
+Orchestra remembers these choices per project across sessions. Use **Change generator setup** when you change tools. A saved external destination does not connect its account or verify its capabilities. Reused template settings are suggestions until confirmed. Older saved projects keep their prior workflow until you explicitly save generator setup.
+
+Under **Production settings → Observed generator capabilities**, record the actual image or video tool's supported controls separately. Changing one generator clears that medium's observation; the other medium's evidence remains saved. Old-tool takes remain historical evidence and cannot be reselected as current for a different tool.
+
 ## 2. Describe the result you want
 
 Record the audience, intended emotion, runtime, aspect ratio and viewer promise. Decide what the opening sets up and what the ending pays off. Include factual sources for claims when relevant.
@@ -23,6 +29,8 @@ An example instruction for your agent:
 > Use Orchestra to prepare a 30-second short drama about a ceramic artist repairing a gift before a visitor arrives. Start with the short-drama recipe. Propose the brief and script, prepare a coherent shot plan and explain how the camera and lighting support the emotional turn. Follow the project's approval policy. Use only my authorized generation tools, return actual outputs and stop when approval is required.
 
 MCP gives the agent a workflow, not a built-in image/video model. Confirm that your agent can actually use the generator you intend before requesting media.
+
+Your agent should call `start_project_setup` first and ask for generators before creative questions. If you already named your tools in the request, it should save those choices without asking twice. The server enforces setup at its tool boundary; it cannot force another AI's conversational behavior or control tools used outside Orchestra. An agent's saved assertion about your request is not your approval of generated artwork.
 
 ## 3. Set review gates
 

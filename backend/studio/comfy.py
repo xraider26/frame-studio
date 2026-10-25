@@ -110,7 +110,7 @@ def validate_installed(config, schemas):
     return {'status': 'validated', 'node_count': len(config['workflow']), 'kind': config['kind'], 'output_node': config['output_node']}
 
 
-async def execute_comfy(client, config, handoff, media_root, inbox, record_prompt, *, poll_interval=2, attempts=1800, before_submit=None):
+async def execute_comfy(client, config, handoff, media_root, inbox, record_prompt, *, poll_interval=2, attempts=1800, before_submit=None, record_execution=None):
     config = validate_config(config)
     refs = handoff.get('references', [])
     # Check mappings before making uploads or queueing work.
@@ -133,7 +133,13 @@ async def execute_comfy(client, config, handoff, media_root, inbox, record_promp
         uploaded[ref['slot']] = '/'.join(p for p in [subfolder, name] if p)
     workflow = build_workflow(config, handoff, uploaded)
     if before_submit: before_submit()
-    response = await client.post('/prompt', json={'prompt': workflow, 'client_id': 'orchestra-' + uuid.uuid4().hex})
+    payload = {'prompt': workflow, 'client_id': 'orchestra-' + uuid.uuid4().hex}
+    if record_execution:
+        positive = config['bindings']['positive']; negative = config['bindings'].get('negative')
+        record_execution({'tool': 'comfyui', 'prompt': workflow[positive['node']]['inputs'][positive['input']],
+            'negative_prompt': workflow[negative['node']]['inputs'][negative['input']] if negative else '',
+            'references': copy.deepcopy(refs), 'arguments': {**copy.deepcopy(payload), 'uploaded_references': copy.deepcopy(uploaded)}})
+    response = await client.post('/prompt', json=payload)
     response.raise_for_status()
     data = response.json()
     prompt_id = data.get('prompt_id')

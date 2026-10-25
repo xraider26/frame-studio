@@ -9,6 +9,8 @@ from .creative import default_production, Direction, merge
 def load(value):
     project = json.loads(value)
     project['settings'] = dict(DEFAULT_SETTINGS, **project['settings'])
+    # Do not synthesize generation_setup from legacy settings or template defaults.
+    # Presence of the versioned record is the adoption boundary for persisted projects.
     project.setdefault('output_type', 'video')
     project['schema_version'] = 2
     project.setdefault('dispatch', {'paused': False, 'priority': 0, 'blocked_reason': ''})
@@ -20,6 +22,10 @@ def load(value):
         shot['direction'] = merge(Direction().model_dump(), shot.get('direction', {}))
         shot.setdefault('edit_duration_seconds', shot['duration_seconds'])
         shot.setdefault('edit_in_seconds', 0)
+    from .calibration import normalize_review
+    for asset in project.get('assets', []):
+        if asset.get('review'):
+            asset['review'] = normalize_review(asset['review'])
     return project
 
 
@@ -77,7 +83,7 @@ class Store:
             conn.execute('INSERT INTO studio_projects VALUES (?,?)', (project['id'], json.dumps(project)))
         return project
 
-    def mutate(self, project_id, expected_revision, fn, allow_deleted=False):
+    def mutate(self, project_id, expected_revision, fn, allow_deleted=False, commit_hook=None):
         with self.connect() as conn:
             conn.execute('BEGIN IMMEDIATE')
             row = conn.execute('SELECT payload FROM studio_projects WHERE id=?', (project_id,)).fetchone()
@@ -92,4 +98,6 @@ class Store:
             project['revision'] += 1
             project['history'] = project['history'][-500:]
             conn.execute('UPDATE studio_projects SET payload=? WHERE id=?', (json.dumps(project), project_id))
+            if commit_hook is not None:
+                commit_hook(conn)
         return project if result is None else result

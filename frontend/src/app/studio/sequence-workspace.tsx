@@ -62,7 +62,7 @@ export function SequenceWorkspace({
   useEffect(() => {
     if (imageOnly) return;
     let active = true;
-    api<{ sequences: Sequence[] }>("sequence_catalog")
+    api<{ sequences: Sequence[] }>("sequence_catalog", {detail:"full",limit:100})
       .then((data) => {
         if (active) {
           setCatalogue(data.sequences);

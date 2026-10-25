@@ -11,3 +11,8 @@ Original PDFs and complete extracted text are private, git-ignored files under `
 Verification does not establish that lesson videos were watched, all course attachments were recovered, provider settings are current, claims or testimonials are true, or finished recipe videos have passed quality review. Inspect `coverage` and each source's `review_scope` before presenting coverage figures.
 
 Directing coverage includes source-motivated lighting, shadow quality and material response; visually inspected angle, shot-size and optics examples; and depth layers, atmosphere, composition and lead room. Optical labels remain approximate appearance cues. Lighting continuity preserves physical source placement while screen direction changes with viewpoint.
+
+
+### Execution attribution
+
+Per-take manifests retain the review-derived rule ID/version and section locator, the original-page citations supporting linked paraphrases, and studio corrections as distinct attribution. An original-page citation does not turn the whole adapted rule or its studio correction into a verbatim course instruction. Recovery remains partial: 10 recovered PDFs and 66 selected verified pages. Neither a mapped rule nor an exact prompt match certifies entire bootcamp compliance, provider capabilities, media quality or creator approval.

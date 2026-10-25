@@ -5,6 +5,52 @@ const net = require('node:net');
 const http = require('node:http');
 const { spawn } = require('node:child_process');
 const { setTimeout: delay } = require('node:timers/promises');
+const { randomUUID } = require('node:crypto');
+
+function resolveWritableRoot(input, io = fs) {
+  const requested=path.resolve(input);
+  io.mkdirSync(requested,{recursive:true});
+  const logical=io.realpathSync(requested);
+  const probe=path.join(requested,`.orchestra-probe-${randomUUID()}`);
+  let verification;
+  let probeCreated=false,verificationCreated=false;
+  try {
+    io.writeFileSync(probe,'orchestra-root-probe',{flag:'wx'});
+    probeCreated=true;
+    const physical=io.realpathSync(path.dirname(io.realpathSync(probe)));
+    if(physical!==logical) {
+      for(const name of ['workflow.db','agent.token','browser.token','connections.json']) {
+        const left=path.join(logical,name),right=path.join(physical,name);
+        if(io.existsSync(left)&&io.realpathSync(left)!==path.join(physical,name))
+          throw new Error('Data root has competing state. Choose one explicit physical FRAME_STUDIO_DATA_DIR; no data was merged.');
+      }
+    }
+    verification=path.join(physical,`.orchestra-probe-${randomUUID()}`);
+    io.writeFileSync(verification,'orchestra-root-verification',{flag:'wx'});
+    verificationCreated=true;
+    if(path.dirname(io.realpathSync(verification))!==physical)throw new Error('Studio writable data root is unstable. Choose an explicit physical FRAME_STUDIO_DATA_DIR.');
+    return physical;
+  } finally {
+    if(probeCreated&&io.existsSync(probe))io.unlinkSync(probe);
+    if(verificationCreated&&io.existsSync(verification))io.unlinkSync(verification);
+  }
+}
+
+function publishRuntime(file, record) {
+  const temp=`${file}.${record.instance_id}.tmp`;
+  try {
+    fs.writeFileSync(temp,JSON.stringify({...record,schema_version:2,ready:true},null,2),{flag:'wx'});
+    fs.renameSync(temp,file);
+  } finally { if(fs.existsSync(temp))fs.unlinkSync(temp); }
+}
+
+function removeOwnedRuntime(file, instanceId) {
+  if(file&&fs.existsSync(file)&&JSON.parse(fs.readFileSync(file,'utf8')).instance_id===instanceId)fs.unlinkSync(file);
+}
+
+function serviceExitMessage(name,code,signal,ready) {
+  return `${name} stopped ${ready?'after startup':'during startup'} (code ${code}, signal ${signal}). Check the desktop log, then restart Orchestra.`;
+}
 
 function clearWebRouteCache(resources) {
   const root=path.resolve(resources);
@@ -120,4 +166,4 @@ function isSafeExternal(url) {
   try { const target = new URL(url); return target.protocol === 'https:' && Boolean(target.hostname) && !target.username && !target.password; } catch { return false; }
 }
 
-module.exports = { clearWebRouteCache, buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal };
+module.exports = { resolveWritableRoot, publishRuntime, removeOwnedRuntime, serviceExitMessage, clearWebRouteCache, buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal };

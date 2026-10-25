@@ -108,7 +108,8 @@ class ApiTests(unittest.TestCase):
                 time.sleep(.05)
             self.assertEqual(current['status'], 'succeeded', current)
             p = self.command('get_project', {'project_id': p['id']}).json()
-            self.assertEqual(p['next_action']['step'], 'pilot')
+            self.assertEqual(p['next_action']['action'], 'record_quality')
+            self.assertEqual(p['next_action']['step'], 'visual_direction')
             self.assertEqual(len(p['assets']), 1)
             self.assertTrue(Path(p['assets'][0]['path']).is_file())
 

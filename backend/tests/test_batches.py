@@ -1,3 +1,4 @@
+from workflow_fixtures import return_fixture
 from workflow_fixtures import CREATOR_SETTINGS, creator_ready
 import copy
 import tempfile
@@ -112,7 +113,7 @@ class BatchTests(unittest.TestCase):
         p=self.prepare(self.s.get(b['project_ids'][0]))
         file=self.s.inbox/'fixture.png';Image.new('RGB',(32,18),'orange').save(file)
         task=self.s.claim_next(p['id'],'agent','quality-first')
-        result=self.s.return_result(task['job']['id'],str(file),'agent')
+        result=return_fixture(self.s, task['job']['id'],str(file),'agent')
         p=self.s.get(p['id'])
         p=self.s.record_take_review(p['id'],result['asset']['id'],{'criteria':{},'inspected':['image'],'defect':'Visible duplicate hand'},p['revision'],'agent')
         self.assertIsNone(p['shots'][0]['image_asset'])
@@ -121,7 +122,7 @@ class BatchTests(unittest.TestCase):
         p=self.s.record_take_review(p['id'],result['asset']['id'],{'criteria':{},'inspected':['image'],'defect':'Same old take'},p['revision'],'agent')
         self.assertEqual(p['shots'][0]['quality_retries']['image'],1)
         task=self.s.claim_next(p['id'],'agent','quality-second')
-        result=self.s.return_result(task['job']['id'],str(file),'agent');p=self.s.get(p['id'])
+        result=return_fixture(self.s, task['job']['id'],str(file),'agent');p=self.s.get(p['id'])
         p=self.s.record_take_review(p['id'],result['asset']['id'],{'criteria':{},'inspected':['image'],'defect':'Still incorrect'},p['revision'],'agent')
         self.assertEqual(self.s.next_action(p['id'])['action'],'quality_attention')
 
@@ -140,7 +141,7 @@ class BatchTests(unittest.TestCase):
         p=self.prepare(self.s.get(b['project_ids'][0]))
         file=self.s.inbox/'same-take.png';Image.new('RGB',(32,18),'orange').save(file)
         task=self.s.claim_next(p['id'],'agent','same-take')
-        result=self.s.return_result(task['job']['id'],str(file),'agent');p=self.s.get(p['id'])
+        result=return_fixture(self.s, task['job']['id'],str(file),'agent');p=self.s.get(p['id'])
         review={'criteria':{},'inspected':['image'],'defect':'Duplicate hand'}
         p=self.s.record_take_review(p['id'],result['asset']['id'],review,p['revision'],'agent')
         p=self.s.select_take(p['id'],result['asset']['id'],p['revision'],'user')

@@ -97,6 +97,9 @@ class SavedTemplateTests(unittest.TestCase):
         p=self.studio.create_project('Different cast','ugc')
         p=self.studio.update_production(p['id'],{'bible':[{'id':'old-hero','name':'Old hero','kind':'character'}], 'defaults':{'camera':{'lens':'135mm'},'action':{'visible_entities':['old-hero'],'continuity_from':p['shots'][0]['id']},'sound':{'speaker_id':'old-hero'},'references':[{'slot':'old-face','asset_id':'old-face-file','role':'character','entity_id':'old-hero','version':1}]}},p['revision'],'user')
         p=self.studio.apply_project_template(p['id'],saved['id'],['story'],p['revision'],saved['revision'],'user')
+        # Supply actual fixture planning evidence so this assertion isolates the
+        # restored link integrity without relying on empty required UGC bindings.
+        p=self.studio.update_production(p['id'],{'story':{'selected_hook':'Show how the fixture fabric resists a water drop'},'brief':{'factual_sources':'Synthetic test-only product specification: fixture fabric resists a water drop.'}},p['revision'],'user')
         self.assertEqual(preflight(p)['errors'],0)
         d=p['production']['defaults']
         self.assertEqual(d['camera']['lens'],'135mm')
@@ -136,6 +139,10 @@ class SavedTemplateTests(unittest.TestCase):
         self.assertFalse(clone['approval_policy']['brief'],'New agent projects start with approvals disabled')
         apply={'project_id':clone['id'],'template_id':saved['id'],'sections':['workflow'],'expected_revision':clone['revision'],'template_revision':saved['revision']}
         self.assertEqual(command('apply_project_template',apply).status_code,403)
+        from studio.generation_setup import setup_from_explicit_settings
+        from workflow_fixtures import CREATOR_SETTINGS
+        clone=command('set_generation_setup',{'project_id':clone['id'],'setup':setup_from_explicit_settings(CREATOR_SETTINGS),'expected_revision':clone['revision']}).json()
+        apply['expected_revision']=clone['revision']
         contract=command('get_workflow_contract',{'project_id':clone['id']}).json()
         self.assertEqual(command('acknowledge_workflow_contract',{'project_id':clone['id'],'contract_version':contract['contract_version'],'expected_revision':contract['revision']}).status_code,200)
         apply['sections']=['settings']

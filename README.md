@@ -1,18 +1,24 @@
 # Orchestra
 
-Formerly Frame Studio. The next-beta source is renamed Orchestra; existing projects, MCP identifiers and application-data paths remain compatible. The earlier Windows release keeps its historical Frame Studio name and filename.
+Formerly Frame Studio. Orchestra keeps existing projects, MCP identifiers and application-data paths compatible.
 
 **An idea-to-production workspace for creators and their AI agents.**
 
 Plan the story, choose the visual direction, generate through your own tools, and review each result in one local studio. Frame keeps the workflow, creative decisions, references and quality checks together so a successful approach can be reused.
 
-[Download the Windows beta](https://github.com/xraider26/frame-studio/releases/tag/v0.2.0-beta.1) · [First project](docs/GETTING-STARTED.md) · [Agent / MCP guide](docs/MCP.md) · [Windows setup](docs/WINDOWS.md)
+[Download Orchestra 0.3.0-beta.1 for Windows](https://github.com/xraider26/frame-studio/releases/tag/v0.3.0-beta.1) · [Release notes](docs/releases/v0.3.0-beta.1.md) · [First project](docs/GETTING-STARTED.md) · [Agent / MCP guide](docs/MCP.md) · [Windows setup](docs/WINDOWS.md)
 
-Next-beta development adds image-only projects, creator intake, model selection and direct media uploads. See the [implementation handover](docs/NEXT-BETA-HANDOVER.md). These changes are separate from the existing 0.2.0 installer. The repository and its downloads currently require GitHub access.
+**0.3.0-beta.1** adds per-project generator setup, a creator-approved calibration image, exact submitted-prompt and course-rule evidence, compact agent handoffs and Windows data-root/recovery fixes. The repository and release downloads are public. Image-only projects, creator intake, model selection and direct media uploads are included.
 
-The next-beta workspace also separates **Image / Video templates**, adds seven image formats and seven editable video sequence patterns, and organizes tools into **Brief → Plan → Create → Review → Export**. See [templates and navigation](docs/TEMPLATES-AND-SEQUENCES.md).
+The workspace separates **Image / Video templates**, includes seven image formats and seven editable video sequence patterns, and organizes tools into **Brief → Plan → Create → Review → Export**. See [templates and navigation](docs/TEMPLATES-AND-SEQUENCES.md).
 
-Source version **0.2.1-beta.1** also adds explicit image editing/text/layout requirements, Qwen-Image 2.1 guidance and direct execution of mapped ComfyUI image/video workflows. [ComfyUI setup and limits](docs/COMFYUI.md). Local installers use the Orchestra name; the earlier downloadable release above remains unchanged.
+Explicit image editing/text/layout requirements, Qwen-Image 2.1 guidance and direct execution of mapped ComfyUI image/video workflows are included. [ComfyUI setup and limits](docs/COMFYUI.md). The older Frame Studio release remains available in the release history.
+
+### Calibrate before production
+
+The connected AI asks which image/video generators you will use once per project, then asks again only when relevant choices change. Generate one representative still, inspect its technical quality, and let the creator accept or reject the visual treatment before more images proceed. Agent inspection never grants creator approval. Existing projects retain their saved policies until explicitly adopted.
+
+Each take can show applicable course-rule bindings, the exact compiled/submitted prompt and reference versions, and whether execution evidence was server-recorded or agent-reported. Compact schema-3 claims and summary polling reduce repeated context; a synthetic fixture measured 301,679 → 11,920 bytes (96.05% fewer bytes, not a measured billing reduction). [Calibration and verification scope](docs/CALIBRATION-TRIAL.md).
 
 > **Early Windows x64 beta.** The installer is unsigned and has been tested on one Windows 11 machine, including installation into a different folder. Generation tools/accounts are supplied by you. The goal is repeatable, high-quality production; consistent artistic results still need real production trials.
 

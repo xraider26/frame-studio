@@ -50,7 +50,21 @@ def prompt_for(project, shot, kind):
         return join(*(f'{key.replace("_", " ")}: {value}' for key, value in mapping.items() if value not in ['', None, [], {}]))
     entities = set(action['visible_entities']) | {r['entity_id'] for r in d['references']}
     bible_fields = ['name', 'identity', 'wardrobe', 'layout', 'light_sources', 'materials'] + (['voice'] if kind == 'video' else [])
-    bible = join(*(named({k: e[k] for k in bible_fields}) for e in project['production']['bible'] if e['id'] in entities))
+    # Explicit subject/environment prose takes precedence over repeated bible prose.
+    # Deduplicate contributions before rendering; never normalize the creator text.
+    contributions = [{'source': 'shot.image_prompt', 'value': shot['image_prompt']}, {'source': 'effective_direction.environment', 'value': d['environment']}]
+    seen = {v for v in (shot['image_prompt'], d['environment'], settings['continuity']) if v}
+    bible_parts = []
+    for entity in project['production']['bible']:
+        if entity['id'] not in entities: continue
+        values_for_entity = {}
+        for key in bible_fields:
+            value = entity.get(key, '')
+            if not value or value in seen: continue
+            seen.add(value); values_for_entity[key] = value
+            contributions.append({'source': 'production.bible.'+entity['id']+'.'+key, 'value': value})
+        bible_parts.append(named(values_for_entity))
+    bible = join(*bible_parts)
     state_before = json.dumps(action['state_before'], ensure_ascii=False) if action['state_before'] else ''
     state_after = json.dumps(action['state_after'], ensure_ascii=False) if action['state_after'] else ''
     continuity = join(settings['continuity'], bible, f'State before: {state_before}' if state_before else '', f'State after: {state_after}' if state_after else '', action['transition'])
@@ -85,7 +99,13 @@ def prompt_for(project, shot, kind):
     if kind == 'video' and profile == 'minimax_h3':
         template = visual + '. Shots and action: {motion}. Camera: {camera}. Dialogue: {dialogue}. Sound: {sound}. Narration: {narration}'
     # Empty optional fields should not leave unreadable punctuation-only sentences.
-    rendered = '. '.join(part.strip(' ;') for part in template.format_map(values).split('. ') if part.strip(' ;.'))
+    # Clean empty template punctuation before substituting opaque user values.
+    # Splitting expanded prose would alter decimals, exact spacing and native syntax.
+    tokens = {key: f'\x00{key}\x00' if value not in ('', None) else '' for key, value in values.items()}
+    rendered = '. '.join(part.strip(' ;') for part in template.format_map(tokens).split('. ') if part.strip(' ;.'))
+    for key, value in values.items():
+        rendered = rendered.replace(f'\x00{key}\x00', str(value))
+    if profile == 'custom': rendered = template.format_map(values).strip()
     # Appearance comes from the reference in I2V; retain the full brief in metadata.
     # Intended use stays in separate notes so the visual subject leads the prompt.
     negative = settings.get('negative_prompt', '') if profile not in ['runway_i2v', 'runway_t2v', 'runway_image', 'flux_image', 'midjourney_image', 'minimax_h3'] else ''
@@ -93,11 +113,19 @@ def prompt_for(project, shot, kind):
     avoidance_notes = settings.get('negative_prompt', '')
     if kind == 'image':
         from .image_prompts import render_image
-        # Preserve exact custom-template punctuation, including decimals and native syntax.
-        if profile == 'custom': rendered = template.format_map(values).strip()
+        # Image requirements preserve creator-owned custom-template syntax.
         rendered, negative, warnings, avoidance_notes = render_image(rendered, project, shot, d, profile)
+        selected = (project.get('generation_setup') or {}).get('image', {})
+        if selected.get('executor') == 'agent_builtin' and negative:
+            # The built-in image request has one prompt, no native negative field.
+            # Compile avoidance into that exact prompt before claiming the job;
+            # external executors must never silently rewrite the frozen handoff.
+            if negative not in rendered:
+                rendered += '\n\nAvoidance constraints:\n' + negative
+            contributions.append({'source': 'settings.negative_prompt', 'value': negative, 'destination': 'prompt'})
+            negative = ''
     return {'generator_profile': profile, 'model': model, 'model_guidance': guidance,
-            'creative_intent': intake, 'prompt': rendered.strip(), 'effective_direction': d, 'recipe_contract': recipe_context(project, shot),
+            'creative_intent': intake, 'prompt': rendered.strip(), 'prompt_contributions': contributions, 'compiled_fields': values, 'template_fields': [key for _, key, _, _ in Formatter().parse(template) if key], 'effective_direction': d, 'recipe_contract': recipe_context(project, shot),
             'negative_prompt': negative, 'warnings': warnings, 'image_requirements': d['image'] if kind == 'image' else None,
             'separate_notes': {'purpose': intake.get('purpose', ''), 'sound': sound, 'narration': shot['narration'], 'avoid': avoidance_notes, 'reference_map': d['references'], 'acceptance_criteria': list(dict.fromkeys(recipe_criteria(project, shot, kind) + d['quality']['criteria'])), 'generation_mode': d['generation_mode']},
             'duration_seconds': shot['duration_seconds'], 'aspect_ratio': settings['aspect_ratio']}

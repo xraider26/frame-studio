@@ -8,7 +8,8 @@ def render_image(prompt, project, shot, direction, profile):
     refs = references_for(project, shot, 'image')
     warnings = []
     negative = project['settings'].get('negative_prompt', '')
-    parts = [prompt.rstrip(' .')]
+    # Preserve authored punctuation; only the compiler's empty scaffolding is cleaned.
+    parts = [prompt]
     if req['mode'] == 'edit':
         # Recipe camera/light/style defaults are not requested edits to a supplied image.
         parts = ['Edit the supplied source image']

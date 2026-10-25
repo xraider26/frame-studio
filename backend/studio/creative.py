@@ -218,13 +218,24 @@ class RecipeSelection(Record):
     version: int = Field(default=0, ge=0, le=100000)
 
 
+class ReferenceRequirement(Record):
+    entity_id: Short = ''
+    kind: Literal['character', 'environment', 'location', 'prop', 'product', 'style', 'layout']
+    purpose: Literal['style', 'identity', 'product', 'layout']
+    required: bool = True
+    source_rule: Short = ''
+    asset_ids: list[Short] = Field(default_factory=list, max_length=50)
+
+
 class Production(Record):
+    reference_requirements: list[ReferenceRequirement] = Field(default_factory=list, max_length=100)
     recipe: RecipeSelection = Field(default_factory=RecipeSelection)
     brief: Brief = Field(default_factory=Brief)
     story: Story = Field(default_factory=Story)
     bible: list[Entity] = Field(default_factory=list, max_length=200)
     defaults: Direction = Field(default_factory=Direction)
     capabilities: Capabilities = Field(default_factory=Capabilities)
+    capabilities_by_kind: dict[Literal['image', 'video'], Capabilities] = Field(default_factory=lambda: {'image': Capabilities(), 'video': Capabilities()})
     resources: Resources = Field(default_factory=Resources)
     require_recorded_checks: bool = False
     format_rules: list[Short] = Field(default_factory=list, max_length=50)

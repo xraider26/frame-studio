@@ -1,5 +1,8 @@
 "use client";
-import {generatorSettings} from "./generator-settings";
+import {ExecutionEvidence} from "./execution-evidence";
+import {serializeGenerationSetup} from "./generator-settings";
+import {CalibrationPanel} from "./calibration-panel";
+import {GeneratorSetup,GeneratorSetupFields} from "./generator-setup";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -45,7 +48,7 @@ import { nextActionTarget, projectStages, stageForView, stageTabs, templateForOu
 import { CinematographyLibrary } from "./cinematography-library";
 import "./cinematography.css";
 import "./recipes.css";
-import type { Project, Job, Action, Catalog } from "./creative-types";
+import type { Project, Job, Action, Catalog, GenerationSetup } from "./creative-types";
 import "./creative.css";
 import "./control-mode.css";
 import "./queue.css";
@@ -126,7 +129,7 @@ export default function StudioPage() {
   const [template, setTemplate] = useState("ai-film");
   const [name, setName] = useState("");
   const [outputType,setOutputType]=useState<"image"|"video">("video");
-  const [generators,setGenerators]=useState({image_generator:"",image_model:"",video_generator:"",video_model:""});
+  const [generatorSetup,setGeneratorSetup]=useState<GenerationSetup>({version:1});
   const [brief,setBrief]=useState<Record<string,string>>({});
   const [selectedStep, setSelectedStep] = useState("brief");
   const [documentDirty, setDocumentDirty] = useState(false);
@@ -137,7 +140,7 @@ export default function StudioPage() {
 
   const refresh = useCallback(async (id?: string) => {
     const [nextCaps, nextProjects] = await Promise.all([
-      api<Capabilities>("studio_capabilities"),
+      api<Capabilities>("studio_capabilities", {detail:"full"}),
       api<Summary[]>("list_projects"),
     ]);
     setCaps(nextCaps);
@@ -196,7 +199,8 @@ export default function StudioPage() {
         name,
         template_id: template,
         output_type: outputType,
-        settings: {...generatorSettings(outputType,generators),creative_intake:brief},
+        generation_setup: serializeGenerationSetup(outputType,generatorSetup),
+        settings: {creative_intake:brief},
         request_id: crypto.randomUUID(),
       });
       await refresh(p.id);
@@ -238,6 +242,8 @@ export default function StudioPage() {
       }>("claim_generation", {
         project_id: project.id,
         request_id: crypto.randomUUID(),
+        expected_revision: project.revision,
+        response_format: "compact",
       });
       if (!res.handoff)
         throw new Error(
@@ -259,6 +265,14 @@ export default function StudioPage() {
   const activeJob = project?.jobs.findLast(
     (j) => j.status === "awaiting_external_output" || j.status === "running",
   );
+  useEffect(() => {
+    if (view !== "generator" || !activeJob || handoff?.job_id === activeJob.id) return;
+    let current = true;
+    api<Job>("get_job", {job_id: activeJob.id, detail: "full"})
+      .then(job => { if (current && job.handoff) setHandoff(job.handoff); })
+      .catch(e => { if (current) setError(e.message); });
+    return () => { current = false; };
+  }, [view, activeJob?.id, handoff?.job_id]);
   const handoffJob = project?.jobs.find((j) => j.id === handoff?.job_id);
   const displayedHandoff =
     handoffJob &&
@@ -429,6 +443,9 @@ export default function StudioPage() {
               )}
             </section>
           )}
+
+          {project && view !== "generator" && <GeneratorSetup key={project.id} project={project} busy={busy} save={fn=>act(fn,"Generator setup saved")} imageProfiles={caps?.image_profiles} videoProfiles={caps?.video_profiles}/>}
+          {project && view !== "generator" && <CalibrationPanel key={project.id+":calibration"} project={project} busy={busy} save={fn=>act(fn,"Calibration saved")}/>}
 
           {project && view === "home" && (
             <section>
@@ -899,6 +916,7 @@ export default function StudioPage() {
                             <span>{pretty(j.status)}</span>
                             {j.remote_prompt_id && <small>ComfyUI prompt: <code>{j.remote_prompt_id}</code></small>}
                             {j.error && <p>{j.error}</p>}
+                            <ExecutionEvidence job={j} asset={project.assets.find(a=>a.id===j.asset_id)}/>
                             {j.status === "awaiting_external_output" && (
                               <button
                                 className="fs-link"
@@ -1019,7 +1037,7 @@ export default function StudioPage() {
               ))}
             </select>
             <label className="fs-label">Output type<select value={outputType} onChange={e=>{const kind=e.target.value as "image"|"video";setOutputType(kind);setTemplate(templateForOutput(caps?.templates||[],kind,template));}}><option value="image">Image</option><option value="video">Video</option></select></label>
-            {["image",...(outputType==="video"?["video"]:[])].map(kind=><div key={kind}><label className="fs-label">{kind==="image"?"Image":"Video"} generator profile<select value={generators[`${kind}_generator` as keyof typeof generators]} onChange={e=>setGenerators({...generators,[`${kind}_generator`]:e.target.value})}><option value="">Choose a profile</option>{(kind==="image"?caps?.image_profiles:caps?.video_profiles)?.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label className="fs-label">{kind==="image"?"Image":"Video"} model name<input value={generators[`${kind}_model` as keyof typeof generators]} onChange={e=>setGenerators({...generators,[`${kind}_model`]:e.target.value})}/></label></div>)}
+            <GeneratorSetupFields outputType={outputType} value={generatorSetup} onChange={setGeneratorSetup} imageProfiles={caps?.image_profiles} videoProfiles={caps?.video_profiles}/>
             <details><summary>Creative brief · answer now or after creating</summary><BriefFields answers={brief} onChange={setBrief}/></details>
             <p className="fs-hint">
               {caps?.templates
@@ -1028,7 +1046,7 @@ export default function StudioPage() {
             </p>
             <button
               className="fs-primary"
-              disabled={busy || !template || !name.trim() || !generators.image_generator || !generators.image_model.trim() || (outputType==="video" && (!generators.video_generator || !generators.video_model.trim()))}
+              disabled={busy || !template || !name.trim() || !generatorSetup.image}
               onClick={create}
             >
               {busy ? (

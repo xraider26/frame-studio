@@ -24,9 +24,9 @@ def creative_intake(project):
     answers = dict(settings.get('creative_intake') or {})
     required = bool(project.get('creative_intake_required'))
     missing = [key for key in ('vision', 'art_style', 'purpose') if not answers.get(key, '').strip()]
-    if not settings.get('image_model', '').strip():
+    if not project.get('generation_setup') and not settings.get('image_model', '').strip():
         missing.append('image_model')
-    if project.get('output_type', 'video') == 'video' and not settings.get('video_model', '').strip():
+    if not project.get('generation_setup') and project.get('output_type', 'video') == 'video' and not settings.get('video_model', '').strip():
         missing.append('video_model')
     instructions = (
         'Ask the creator the missing important questions before choosing a technical setup or preparing generation prompts. '
@@ -39,6 +39,9 @@ def creative_intake(project):
         'Save answers using update_settings with creative_intake; save exact model names using image_model/video_model. '
         'Check the actual connected model capabilities before generation. A prompt profile does not connect an account.'
     )
+    if project.get('generation_setup'):
+        instructions = instructions.replace('Save answers using update_settings with creative_intake; save exact model names using image_model/video_model.',
+            'Save creative answers using update_settings with creative_intake. Reuse the saved generation_setup; use set_generation_setup for changed choices. Managed or unknown versions need no invented exact model.')
     style = answers.get('art_style', '').lower()
     suggested = {}
     if not missing:

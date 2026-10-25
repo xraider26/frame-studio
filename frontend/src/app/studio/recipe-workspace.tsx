@@ -67,7 +67,7 @@ export function RecipeWorkspace({project,busy,save,onNew,outputType}: {project:P
   const [mode,setMode]=useControlMode("recipe");
   const [reload,setReload]=useState(0);
   const tabId=useId();
-  useEffect(()=>{let active=true;api<Catalogue>("recipe_catalog").then(v=>{if(active){setCatalogue(v);setError("");}}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[reload]);
+  useEffect(()=>{let active=true;api<Catalogue>("recipe_catalog", {detail:"full",include_provenance:true,limit:100}).then(v=>{if(active){setCatalogue(v);setError("");}}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[reload]);
   const recipes=(catalogue?.recipes || []).filter(r=>(r.output_type || "video")===(imageOnly?"image":"video"));
   const recipe=recipes.find(r=>r.id===selected) || recipes[0];
   const activation=project?.production?.recipe;

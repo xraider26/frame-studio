@@ -14,7 +14,8 @@ export type Asset = {
   cost?: {actual?: number | null; unit?: string; evidence?: string};
 };
 export type TakeReview = {
-  criteria: Record<string, boolean>;
+  version?: number;
+  criteria: Record<string, boolean | {state:"pass"|"fail"|"not_applicable"|"blocked";reason?:string}>;
   notes: string;
   defect: string;
   actor: string;
@@ -123,6 +124,7 @@ export type Resources = {
   cost_evidence: string;
 };
 export type Production = {
+  reference_requirements?: {entity_id:string;kind:string;purpose:"style"|"identity"|"product"|"layout";required:boolean;source_rule:string;asset_ids?:string[]}[];
   recipe?: {id:string; version:number};
   brief: Record<string, string>;
   story: {
@@ -145,6 +147,7 @@ export type Production = {
     max_references: number | null;
     audio: boolean | null;
   };
+  capabilities_by_kind?: Record<"image" | "video", Production["capabilities"]>;
   resources: Resources;
   require_recorded_checks: boolean;
   format_rules: string[];
@@ -174,13 +177,23 @@ export type Preflight = {
   scope: string;
 };
 export type Action = {
+  technical_ready?: boolean;
   action: string;
   step: string;
   message: string;
   kind?: string;
   shot_id?: string;
+  asset_id?: string;
+};
+export type GenerationExecution = {
+  tool: string; prompt: string; negative_prompt: string;
+  references: {id: string; version: number; slot: string}[];
+  arguments: Record<string, unknown>; unsupported_constraints?: unknown[];
+  evidence_source: "agent_reported" | "server_recorded"; request_hash: string;
+  validation: {state: string; prompt_match: string; references_match: string};
 };
 export type Job = {
+  execution?: GenerationExecution;
   remote_prompt_id?: string;
   id: string;
   status: string;
@@ -188,7 +201,8 @@ export type Job = {
   shot_id: string;
   error?: string;
   asset_id?: string;
-  handoff: Record<string, unknown>;
+  handoff?: Record<string, unknown>;
+  detail_available?: boolean;
   cost?: {
     planned: number | null;
     actual: number | null;
@@ -196,7 +210,27 @@ export type Job = {
     evidence: string;
   };
 };
+export type GeneratorSelection = {
+  executor: "agent_builtin" | "external_handoff" | "api" | "comfyui";
+  tool_name: string;
+  profile: string;
+  model: string | null;
+  model_version_status: "specified" | "managed" | "unknown";
+  connection_id: string | null;
+  selection_source: "creator_statement" | "creator_delegation" | "legacy_unconfirmed" | "template_unconfirmed";
+  source_text: string;
+};
+export type GenerationSetup = {version: 1; image?: GeneratorSelection | null; video?: GeneratorSelection | null; selection_fingerprint?: string};
+export type Calibration = {
+  version?:number;mode:"calibration"|"production";status:string;representative_shot_id:string|null;
+  baseline_asset_id?:string|null;scope:string[];feedback?:string;
+  history:{decision:string;asset_id?:string;shot_id?:string;actor:string;at:string;note?:string;scope?:string[]}[];
+};
 export type Project = {
+  calibration?: Calibration;
+  calibration_state?: {status:string;mode?:string;representative_shot_id?:string|null};
+  generation_setup?: GenerationSetup;
+  generation_setup_state?: {status: string; questions: {id:string;prompt:string}[]; missing_media_kinds: string[]};
   id: string;
   name: string;
   template_id: string;

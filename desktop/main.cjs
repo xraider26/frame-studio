@@ -4,12 +4,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { spawn } = require('node:child_process');
-const { clearWebRouteCache, buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal } = require('./runtime.cjs');
+const { resolveWritableRoot, publishRuntime, removeOwnedRuntime, serviceExitMessage, clearWebRouteCache, buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal } = require('./runtime.cjs');
 
 app.setName('Orchestra');
 // Keep installed users' projects, credentials, Electron state and instance lock.
 // The visible product name must never select a fresh Orchestra data folder.
-const legacyUserData = path.join(app.getPath('appData'), 'Frame Studio');
+const isolatedSmoke = process.env.FRAME_STUDIO_SMOKE === '1' && process.env.FRAME_STUDIO_DATA_DIR;
+const legacyUserData = isolatedSmoke ? path.join(path.resolve(process.env.FRAME_STUDIO_DATA_DIR), '.electron-smoke') : path.join(app.getPath('appData'), 'Frame Studio');
 fs.mkdirSync(legacyUserData, { recursive: true });
 app.setPath('userData', legacyUserData);
 
@@ -20,6 +21,7 @@ let dataDir;
 let runtimeFile;
 let stopping = false;
 let failed = false;
+let ready = false;
 let instanceId;
 const children = [];
 const smoke = process.env.FRAME_STUDIO_SMOKE === '1';
@@ -40,8 +42,10 @@ function fail(error) {
   failed = true;
   writeLog(error.stack || String(error));
   writeSmoke({ ok: false, error: error.message, dataDir, logPath, instance_id: instanceId });
-  if (!smoke) dialog.showErrorBox('Orchestra could not start', `${error.message}\n\nLogs: ${logPath || app.getPath('logs')}\n\nClose Orchestra and try again. If the problem continues, include this log when requesting help.`);
-  app.quit();
+  if (smoke) { app.quit(); return; }
+  void dialog.showMessageBox(window, {type:'error',title:ready?'Orchestra service stopped':'Orchestra could not start',
+    message:error.message,detail:`Logs: ${logPath || app.getPath('logs')}`,buttons:['Restart Orchestra','Close'],cancelId:1})
+    .then(({response})=>{if(response===0)app.relaunch();app.quit();}).catch(()=>app.quit());
 }
 
 function startChild(name, spec) {
@@ -53,7 +57,7 @@ function startChild(name, spec) {
   child.once('error', (error) => fail(new Error(`${name} could not launch: ${error.message}`)));
   child.once('exit', (code, signal) => {
     writeLog(`${name} exited (code ${code}, signal ${signal})`);
-    if (!stopping) fail(new Error(`${name} stopped unexpectedly (code ${code}, signal ${signal}). A startup port collision or missing bundled file may be responsible.`));
+    if (!stopping) fail(new Error(serviceExitMessage(name,code,signal,ready)));
   });
   return child;
 }
@@ -65,6 +69,7 @@ function makeMenu(resources) {
       { label: 'Copy MCP configuration', click: () => clipboard.writeText(JSON.stringify(mcp, null, 2)) },
       { label: 'Open data folder', click: () => { void shell.openPath(dataDir); } },
       { label: 'Open desktop log', click: () => { void shell.openPath(logPath); } },
+      { label: 'Restart Orchestra', click: () => { app.relaunch(); app.quit(); } },
       { type: 'separator' },
       { label: 'About Orchestra', click: () => { void dialog.showMessageBox(window, { type: 'info', title: 'Orchestra', message: `Orchestra ${app.getVersion()}`, detail: 'Create short videos locally. Your projects and credentials stay in your data folder.' }); } },
       { role: 'quit' },
@@ -76,7 +81,7 @@ function makeMenu(resources) {
 
 async function start() {
   const resources = process.resourcesPath;
-  dataDir = path.resolve(process.env.FRAME_STUDIO_DATA_DIR || path.join(app.getPath('userData'), 'studio_data'));
+  dataDir = resolveWritableRoot(process.env.FRAME_STUDIO_DATA_DIR || path.join(app.getPath('userData'), 'studio_data'));
   fs.mkdirSync(dataDir, { recursive: true });
   const logsDir = path.join(dataDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
@@ -123,12 +128,16 @@ async function start() {
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] }, (details, callback) => {
     callback({ cancel: !isLocalNavigation(details.url, plan.frontendUrl) && !isLocalNavigation(details.url, plan.apiUrl) });
   });
-  makeMenu(resources);
-  const backend = startChild('Video service', plan.backend);
-  await waitForHealth(plan.apiUrl + '/health', { instanceId, child: backend, timeoutMs: 90000 });
+  const backend = startChild('Studio service', plan.backend);
+  const health = await waitForHealth(plan.apiUrl + '/health', { instanceId, child: backend, timeoutMs: 90000 });
   if (stopping) return;
-  fs.writeFileSync(runtimeFile + '.tmp', JSON.stringify({ api_url: plan.apiUrl, instance_id: instanceId }, null, 2));
-  fs.renameSync(runtimeFile + '.tmp', runtimeFile);
+  if(health.service_pid!==backend.pid)throw new Error('Studio service process identity mismatch.');
+  dataDir=resolveWritableRoot(health.data_root);
+  process.env.FRAME_STUDIO_DATA_DIR=dataDir;
+  plan.frontend.options.env.STUDIO_DATA_DIR=dataDir;
+  runtimeFile=path.join(dataDir,'desktop-runtime.json');
+  makeMenu(resources);
+  publishRuntime(runtimeFile,{api_url:plan.apiUrl,instance_id:instanceId,service_pid:backend.pid,data_root:dataDir});
   clearWebRouteCache(resources);
   const frontend = startChild('Studio interface', plan.frontend);
   await waitForHealth(plan.frontendUrl, { child: frontend, timeoutMs: 90000 });
@@ -137,6 +146,7 @@ async function start() {
   if (stopping || !window) return;
   if (!smoke) window.show();
   writeLog(`Ready: interface ${plan.frontendUrl}; service ${plan.apiUrl}`);
+  ready=true;
   writeSmoke({ ok: true, browser_loaded: true, dataDir, frontendURL: plan.frontendUrl, backendURL: plan.apiUrl, instance_id: instanceId, logPath, resourcesPath: resources, backendPid: backend.pid, frontendPid: frontend.pid });
   if (smoke) {
     const configured = Number(process.env.FRAME_STUDIO_SMOKE_MS || 30000);
@@ -157,7 +167,7 @@ if (!app.requestSingleInstanceLock()) {
     void (async () => {
       await cleanupChildren(children);
       try {
-        if (runtimeFile && fs.existsSync(runtimeFile) && JSON.parse(fs.readFileSync(runtimeFile, 'utf8')).instance_id === instanceId) fs.rmSync(runtimeFile);
+        removeOwnedRuntime(runtimeFile,instanceId);
       } catch (error) { writeLog(`Runtime file cleanup: ${error.message}`); }
       writeLog('Orchestra stopped.');
       if (log) await new Promise((resolve) => log.end(resolve));

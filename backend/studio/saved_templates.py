@@ -72,7 +72,10 @@ def recipe_snapshot(p, sections, settings_shot_id=''):
             shot['direction'] = portable_direction(s['direction'], True)
             shots.append(shot)
         snapshot['story'] = {k: copy.deepcopy(p['production'][k]) for k in ['brief', 'story']}
-        snapshot['story'].update(bible=bible, shots=shots)
+        requirements = copy.deepcopy(p['production'].get('reference_requirements', []))
+        for requirement in requirements:
+            requirement['asset_ids'] = []
+        snapshot['story'].update(bible=bible, shots=shots, reference_requirements=requirements)
     return snapshot
 
 
@@ -142,7 +145,9 @@ class SavedTemplates(RecipeEvidence):
             data = copy.deepcopy(snapshot['settings'])
             if 'story' not in sections:
                 data['defaults'] = portable_direction(data['defaults'], False)
+            old_settings = copy.deepcopy(p['settings'])
             p['settings'].update(data['settings'])
+            self._unconfirm_changed_generator_fields(p, old_settings, 'template_unconfirmed')
             p['production']['defaults'] = data['defaults']
             # A transferred look must not replace the target content format's standards.
             if t['base_template_id'] == p['template_id']:
@@ -201,6 +206,9 @@ class SavedTemplates(RecipeEvidence):
                 self._invalidate(p, 'brief')
                 p['documents'] = {}
             self._restore_template(p, t, chosen)
+            self._guard_calibration_mutation(before, p, actor)
+            if actor != 'user' and any(r not in p['production']['reference_requirements'] for r in before['production']['reference_requirements'] if r['required']):
+                raise StudioError('human_only', 'Only the creator can replace or narrow required reference fidelity through a template.', 403)
             if actor != 'user' and p['production'].get('recipe', {}) != before['production'].get('recipe', {}):
                 raise StudioError('human_only', 'This saved setup changes recipe standards. Apply it as the user or reuse sections that preserve the current recipe.', 403)
             if 'story' not in chosen:

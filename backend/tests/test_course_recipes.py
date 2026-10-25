@@ -20,7 +20,7 @@ class CourseRecipeTests(unittest.TestCase):
 
     def test_catalogue_has_distinct_source_linked_recipes_and_does_not_claim_video_validation(self):
         from studio.recipes import recipe_catalog
-        recipes = [r for r in recipe_catalog() if r['output_type'] == 'video']
+        recipes = [r for r in recipe_catalog(detail="full", include_provenance=True) if r['output_type'] == 'video']
         self.assertEqual(len(recipes), 9)
         self.assertEqual(len({r['intent'] for r in recipes}), 9)
         for r in recipes:
@@ -89,7 +89,7 @@ class CourseRecipeTests(unittest.TestCase):
         from studio.recipes import recipe_catalog
         from studio.course_rules import course_coverage
         self.assertTrue(course_coverage()['sha256'])
-        for r in recipe_catalog():
+        for r in recipe_catalog(detail="full", include_provenance=True):
             for e in r['examples']:
                 self.assertTrue(e['available'], e['id'])
                 self.assertTrue(e['prompt'] and e['why'])

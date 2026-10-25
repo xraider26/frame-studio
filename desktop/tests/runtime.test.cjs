@@ -6,6 +6,36 @@ const { once } = require('node:events');
 const path = require('node:path');
 const runtime = require('../runtime.cjs');
 
+test('physical root and discovery publication agree and cleanup only owns its instance', (t) => {
+  const fs=require('node:fs'),os=require('node:os');
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'orchestra-root-'));
+  t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const resolved=runtime.resolveWritableRoot(root);
+  assert.equal(resolved,fs.realpathSync(root));
+  assert.deepEqual(fs.readdirSync(root),[]);
+  const file=path.join(root,'desktop-runtime.json');
+  runtime.publishRuntime(file,{api_url:'http://127.0.0.1:12345',instance_id:'mine',service_pid:42,data_root:resolved});
+  assert.equal(JSON.parse(fs.readFileSync(file)).ready,true);
+  runtime.removeOwnedRuntime(file,'other'); assert.equal(fs.existsSync(file),true);
+  runtime.removeOwnedRuntime(file,'mine'); assert.equal(fs.existsSync(file),false);
+  assert.match(runtime.serviceExitMessage('Studio service',1,null,true),/after startup/);
+  assert.match(runtime.serviceExitMessage('Studio service',1,null,false),/during startup/);
+});
+
+test('redirected probe chooses physical root without abandoning existing logical state', (t) => {
+  const fs=require('node:fs'),os=require('node:os');
+  const base=fs.mkdtempSync(path.join(os.tmpdir(),'orchestra-redirect-'));
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  const logical=path.join(base,'logical'),physical=path.join(base,'physical');
+  fs.mkdirSync(logical);fs.mkdirSync(physical);
+  const io={...fs,realpathSync:(value)=>path.dirname(value)===logical&&path.basename(value).startsWith('.orchestra-probe-')?path.join(physical,path.basename(value)):fs.realpathSync(value)};
+  assert.equal(runtime.resolveWritableRoot(logical,io),fs.realpathSync(physical));
+  fs.writeFileSync(path.join(logical,'workflow.db'),'preserve');
+  assert.throws(()=>runtime.resolveWritableRoot(logical,io),/competing state/);
+  assert.equal(fs.readFileSync(path.join(logical,'workflow.db'),'utf8'),'preserve');
+  assert.equal(fs.existsSync(path.join(physical,'workflow.db')),false);
+});
+
 test('startup removes only disposable Next route cache left by an earlier install', (t) => {
  const fs=require('node:fs'),os=require('node:os');
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'orchestra-upgrade-'));

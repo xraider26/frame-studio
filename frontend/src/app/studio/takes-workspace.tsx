@@ -1,9 +1,12 @@
 "use client";
+import {ExecutionEvidence} from "./execution-evidence";
 import {MediaUpload,ImportCostReport} from "./media-upload";
 import { useMemo, useState } from "react";
 import { studioApi as api } from "./client";
 import { DraftNotice, Field, useDraft } from "./creative-forms";
-import type { Project, Asset, Job, Save } from "./creative-types";
+import type { Project, Asset, Job, Save, TakeReview } from "./creative-types";
+
+type TechnicalResult = Exclude<TakeReview["criteria"][string], boolean>;
 
 function Media({ asset }: { asset: Asset | undefined }) {
   return (
@@ -36,9 +39,9 @@ function Inspection({
   );
   const initial = useMemo(
     () => ({
+      version: 2,
       criteria:
-        asset.review?.criteria ||
-        Object.fromEntries(required.map((c) => [c, false])),
+        Object.fromEntries(required.map(c=>{const value=asset.review?.criteria[c];return [c,typeof value==="object"?value:{state:value===true?"pass":"fail",reason:""} as TechnicalResult];})),
       notes: asset.review?.notes || "",
       defect: asset.review?.defect || "",
       inspected: asset.review?.inspected || [],
@@ -80,19 +83,16 @@ function Inspection({
       ))}
       <div className="cv-criteria">
         {required.map((c) => (
-          <label className="fs-policy cv-check-option" key={c}>
-            <input
-              type="checkbox"
-              checked={!!r.criteria[c]}
-              onChange={(e) =>
-                form.edit((v) => ({
-                  ...v,
-                  criteria: { ...v.criteria, [c]: e.target.checked },
-                }))
-              }
-            />
-            {c}
-          </label>
+          <div className="cv-field" key={c}>
+            <label className="fs-label">{c}
+              <select aria-label={`Technical result: ${c}`} value={r.criteria[c]?.state||"fail"} onChange={e=>form.edit(v=>({...v,criteria:{...v.criteria,[c]:{...v.criteria[c],state:e.target.value as TechnicalResult["state"]}}}))}>
+                <option value="pass">Pass</option><option value="fail">Fail</option><option value="not_applicable">Not applicable</option><option value="blocked">Blocked</option>
+              </select>
+            </label>
+            <label className="fs-label">Reason
+              <input aria-label={`Technical reason: ${c}`} value={r.criteria[c]?.reason||""} onChange={e=>form.edit(v=>({...v,criteria:{...v.criteria,[c]:{...v.criteria[c],reason:e.target.value}}}))}/>
+            </label>
+          </div>
         ))}
       </div>
       <Field
@@ -109,7 +109,7 @@ function Inspection({
       />
       <button
         className="fs-button"
-        disabled={busy || !form.dirty || form.conflict}
+        disabled={busy || !form.dirty || form.conflict || Object.values(r.criteria).some(v=>["blocked","not_applicable"].includes(v.state)&&!v.reason?.trim())}
         onClick={() =>
           save(async () => {
             await api("record_take_review", {
@@ -330,6 +330,7 @@ export function TakesWorkspace({
               <Media asset={second} />
             </div>
           </div>
+          <ExecutionEvidence job={project.jobs.find(j=>j.asset_id===asset.id)} asset={asset}/>
           <p className="fs-path">{asset.path}</p>
           {earlierPlan && <p className="fs-body">This take belongs to a replaced shot plan. <a href={asset.url} download>Download original</a> to reuse it through Import media on a current shot.</p>}
           <ImportCostReport key={`cost-${asset.id}`} project={project} asset={asset} busy={busy} save={save}/>

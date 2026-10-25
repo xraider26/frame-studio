@@ -18,7 +18,7 @@ def expiry():
 
 
 def progress_hash(p):
-    substantive = {k: p.get(k) for k in ['settings', 'production', 'documents', 'shots', 'assets', 'jobs', 'steps', 'shared_identity']}
+    substantive = {k: p.get(k) for k in ['settings', 'production', 'documents', 'shots', 'assets', 'jobs', 'steps', 'shared_identity', 'calibration']}
     return hashlib.sha256(json.dumps(substantive, sort_keys=True).encode()).hexdigest()
 
 
@@ -72,7 +72,7 @@ class Dispatch:
             state, actionable = 'complete', False
         elif action['action'] == 'ask_creator':
             state, actionable = 'waiting_input', False
-        elif action['action'] == 'await_approval':
+        elif action['action'] in ['await_approval', 'await_calibration_approval']:
             state, actionable = 'awaiting_approval', False
         elif gate:
             state, actionable = 'attention', False

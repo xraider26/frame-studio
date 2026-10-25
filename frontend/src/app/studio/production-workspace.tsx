@@ -28,6 +28,7 @@ export function ProductionWorkspace({
 }) {
   const [previewImage,setPreviewImage]=useState<{url:string;name:string}|null>(null);
   const imageOnly=project.output_type==="image";
+  const [capabilityMedium, setCapabilityMedium] = useState<"image" | "video">("image");
   const [mode, setMode] = useControlMode("production");
   const form = useDraft(
       project.production,
@@ -49,6 +50,17 @@ export function ProductionWorkspace({
   }, [view, project.id, project.revision]);
   function change(patch: Partial<Production>) {
     form.edit((old) => ({ ...old, ...patch }));
+  }
+  const adopted = !!project.generation_setup;
+  const capabilityKind = imageOnly ? "image" : capabilityMedium;
+  const emptyCapabilities: Production["capabilities"] = {model:"",confirmed:false,source:"",observed_at:"",modes:[],durations:[],aspects:[],max_references:null,audio:null};
+  const capabilities = adopted ? p.capabilities_by_kind?.[capabilityKind] || emptyCapabilities : p.capabilities;
+  const observingVideo = adopted ? capabilityKind === "video" : !imageOnly;
+  function updateCapability(patch: Partial<Production["capabilities"]>) {
+    if (adopted) {
+      const observations = p.capabilities_by_kind || {image:emptyCapabilities,video:emptyCapabilities};
+      change({capabilities_by_kind:{...observations,[capabilityKind]:{...capabilities,...patch}}});
+    } else change({capabilities:{...capabilities,...patch}});
   }
   function entity(index: number, patch: Partial<Entity>) {
     change({
@@ -461,122 +473,23 @@ export function ProductionWorkspace({
               A prompt profile does not prove model support. Record the actual
               controls shown by your generator.
             </p>
+            {adopted && !imageOnly && <label className="fs-label">Observation medium<select aria-label="Capability medium" value={capabilityKind} onChange={e=>setCapabilityMedium(e.target.value as "image"|"video")}><option value="image">Image generator</option><option value="video">Video generator</option></select></label>}
+            {adopted && <p className="fs-hint">Observations apply only to the {capabilityKind} generator. Changing that generator clears its recorded capabilities.</p>}
             <div className="cv-form-grid">
               {[
                 ["model", "Model / version"],
                 ["source", "Observation source / evidence"],
                 ["observed_at", "Observed date"],
-              ].filter(([key])=>!imageOnly || key!=="video_cost").map(([key, label]) => (
-                <Field
-                  key={key}
-                  label={label}
-                  value={String(
-                    p.capabilities[key as keyof typeof p.capabilities] || "",
-                  )}
-                  onChange={(v) =>
-                    change({ capabilities: { ...p.capabilities, [key]: v } })
-                  }
-                />
+              ].map(([key, label]) => (
+                <Field key={key} label={label} value={String(capabilities[key as keyof typeof capabilities] || "")} onChange={v=>updateCapability({[key]:v})}/>
               ))}
-              <Field
-                label="Supported modes (comma separated)"
-                value={p.capabilities.modes.join(", ")}
-                onChange={(v) =>
-                  change({
-                    capabilities: {
-                      ...p.capabilities,
-                      modes: v
-                        .split(",")
-                        .map((x) => x.trim())
-                        .filter(Boolean),
-                    },
-                  })
-                }
-              />
-              {!imageOnly && <Field
-                label="Supported clip durations (comma separated)"
-                value={p.capabilities.durations.join(", ")}
-                onChange={(v) =>
-                  change({
-                    capabilities: {
-                      ...p.capabilities,
-                      durations: v
-                        .split(",")
-                        .filter((x) => x.trim())
-                        .map(Number),
-                    },
-                  })
-                }
-              />}
-              <Field
-                label="Supported aspect ratios (comma separated)"
-                value={p.capabilities.aspects.join(", ")}
-                onChange={(v) =>
-                  change({
-                    capabilities: {
-                      ...p.capabilities,
-                      aspects: v
-                        .split(",")
-                        .map((x) => x.trim())
-                        .filter(Boolean),
-                    },
-                  })
-                }
-              />
-              <Field
-                label="Maximum references"
-                type="number"
-                value={p.capabilities.max_references ?? ""}
-                onChange={(v) =>
-                  change({
-                    capabilities: {
-                      ...p.capabilities,
-                      max_references: v === "" ? null : Number(v),
-                    },
-                  })
-                }
-              />
+              <Field label="Supported modes (comma separated)" value={capabilities.modes.join(", ")} onChange={v=>updateCapability({modes:v.split(",").map(x=>x.trim()).filter(Boolean)})}/>
+              {observingVideo && <Field label="Supported clip durations (comma separated)" value={capabilities.durations.join(", ")} onChange={v=>updateCapability({durations:v.split(",").filter(x=>x.trim()).map(Number)})}/>}
+              <Field label="Supported aspect ratios (comma separated)" value={capabilities.aspects.join(", ")} onChange={v=>updateCapability({aspects:v.split(",").map(x=>x.trim()).filter(Boolean)})}/>
+              <Field label="Maximum references" type="number" value={capabilities.max_references ?? ""} onChange={v=>updateCapability({max_references:v===""?null:Number(v)})}/>
             </div>
-            <label className="fs-policy">
-              <input
-                type="checkbox"
-                checked={p.capabilities.confirmed}
-                onChange={(e) =>
-                  change({
-                    capabilities: {
-                      ...p.capabilities,
-                      confirmed: e.target.checked,
-                    },
-                  })
-                }
-              />
-              I checked these controls in the specified generator
-            </label>
-            {!imageOnly && <label className="fs-label">
-              Native audio support
-              <select
-                value={
-                  p.capabilities.audio === null
-                    ? "unknown"
-                    : String(p.capabilities.audio)
-                }
-                onChange={(e) =>
-                  change({
-                    capabilities: {
-                      ...p.capabilities,
-                      audio:
-                        e.target.value === "unknown"
-                          ? null
-                          : e.target.value === "true",
-                    },
-                  })
-                }
-              >
-                <option value="unknown">Unknown</option>
-                <option value="true">Supported</option>
-                <option value="false">Unsupported</option>
-              </select>
-            </label>}
+            <label className="fs-policy"><input type="checkbox" checked={capabilities.confirmed} onChange={e=>updateCapability({confirmed:e.target.checked})}/>I checked these controls in the specified generator</label>
+            {observingVideo && <label className="fs-label">Native audio support<select value={capabilities.audio===null?"unknown":String(capabilities.audio)} onChange={e=>updateCapability({audio:e.target.value==="unknown"?null:e.target.value==="true"})}><option value="unknown">Unknown</option><option value="true">Supported</option><option value="false">Unsupported</option></select></label>}
           </div>
           <div className="cv-section">
             <h2>Quality requirements</h2>

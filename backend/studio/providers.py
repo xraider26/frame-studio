@@ -10,6 +10,7 @@ from urllib.parse import quote, urlparse
 
 import httpx
 
+from .execution_evidence import build_rule_application, rule_blockers
 from .store import StudioError
 from .workflow import event
 from .comfy import validate_config, validate_installed, execute_comfy, ComfyError
@@ -107,14 +108,33 @@ class Providers:
         task.add_done_callback(self.tasks.discard)
         return {'job_id': job_id, 'status': 'running', 'connection_id': connection_id}
 
+    def _execution_current(self, job_id):
+        project, job = self.studio.find_job(job_id)
+        if job['actor'] != 'user': self.studio.require_workflow_contract(project['id'], job['actor'])
+        from .handoffs import serialize_claim
+        serialize_claim({'job': job, 'handoff': job['handoff']})
+        shot = next((s for s in project['shots'] if s['id'] == job['shot_id']), None)
+        action = self.studio._next(project)
+        block = self.studio._dispatch_block(project, job['kind'], existing_job=job_id)
+        if job['status'] != 'running' or block or not shot or self.studio._fingerprint(project, shot, job['kind']) != job['fingerprint'] or action.get('action') != 'generate' or any(action.get(k) != job.get(k) for k in ['step', 'shot_id', 'kind']):
+            raise StudioError('step_blocked', 'Current workflow, calibration or dispatch policy blocks this provider execution. Read next_action.', 409)
+        blockers = rule_blockers(build_rule_application(project, shot, job['kind'], job['step']), job['step'])
+        if blockers: raise StudioError('execution_rules_blocked', '; '.join(r['reason'] for r in blockers), 409)
+        return project, job
+
     async def _run(self, job_id, conn):
         try:
-            _, job = self.studio.find_job(job_id)
+            _, job = self._execution_current(job_id)
             if conn.get('adapter') == 'comfyui':
                 await self._run_comfy(job_id, conn)
                 return
             headers = {'Authorization': 'Bearer ' + conn['api_key']} if conn['api_key'] else {}
             async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
+                self._execution_current(job_id)
+                # Persist the exact payload handed to the HTTP client, without secrets.
+                self.studio._record_generation_execution(job_id, {'tool': 'json_job_api:'+conn['id'],
+                    'prompt': job['handoff']['prompt'], 'negative_prompt': job['handoff'].get('negative_prompt', ''),
+                    'references': job['handoff'].get('references', []), 'arguments': {'request': copy.deepcopy(job['handoff'])}}, None, 'studio', server=True)
                 response = await client.post(conn['base_url'] + '/generate', json=job['handoff'], headers=headers)
                 response.raise_for_status()
                 data = response.json()
@@ -172,7 +192,7 @@ class Providers:
                 saved = self.connections.get(conn['id'], {})
                 if not saved.get('enabled') or saved.get('adapter') != 'comfyui' or saved.get('base_url') != conn['base_url'] or saved.get('comfy') != conn['comfy']:
                     raise ComfyError('The ComfyUI connection was disabled or changed before submission. Review it before claiming a new generation.')
-                current, pending = self.studio.find_job(job_id)
+                current, pending = self._execution_current(job_id)
                 shot = next((s for s in current['shots'] if s['id'] == pending['shot_id']), None)
                 action = self.studio._next(current)
                 block = self.studio._dispatch_block(current, pending['kind'], existing_job=job_id)
@@ -185,8 +205,11 @@ class Providers:
                     current = next(j for j in p['jobs'] if j['id'] == job_id)
                     current.update(remote_prompt_id=prompt_id, provider_adapter='comfyui')
                 self.studio.mutate(project['id'], None, update)
+            def record_execution(execution):
+                execution['tool'] = 'comfyui:'+conn['id']
+                self.studio._record_generation_execution(job_id, execution, None, 'studio', server=True)
             async with httpx.AsyncClient(base_url=conn['base_url'], headers=self._headers(conn), timeout=60, follow_redirects=False) as client:
-                path = await execute_comfy(client, conn['comfy'], job['handoff'], self.studio.media_root, self.studio.inbox, record, before_submit=check_current)
+                path = await execute_comfy(client, conn['comfy'], job['handoff'], self.studio.media_root, self.studio.inbox, record, before_submit=check_current, record_execution=record_execution)
             try:
                 self.studio.return_result(job_id, str(path), conn['name'])
             finally:

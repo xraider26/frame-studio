@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Download, ArrowRight } from "lucide-react";
+import {GeneratorSetup} from "./generator-setup";
 import { studioApi } from "./client";
 import { DraftNotice, useDraft } from "./creative-forms";
 import { Checks } from "./creative-workspace";
@@ -69,10 +70,11 @@ export function GeneratorExport({
         Choose the generator’s prompt profile. Export a portable package for
         your agent, or use the same prompts through a connected API.
       </p>
+      <GeneratorSetup key={project.id} project={project} busy={busy} save={save} imageProfiles={imageProfiles} videoProfiles={videoProfiles}/>
       <ControlModeSwitch mode={mode} onChange={setMode} label="Generator" />
       <DraftNotice {...form} />
       <div className="fs-generator-controls">
-        <div className="fs-form-grid">
+        {!project.generation_setup && <div className="fs-form-grid">
           <label className="fs-label">
             Generation route
             <select
@@ -114,7 +116,7 @@ export function GeneratorExport({
             </select>
           </label>
           <label className="fs-label">Image model name<input value={String(settings.image_model || "")} onChange={e=>change("image_model",e.target.value)}/></label>
-        </div>
+        </div>}
         {!imageOnly && <p className="fs-body">{video?.hint}</p>}
         <p className="fs-hint">{image?.hint}</p>
         {!imageOnly && video?.source && (
@@ -183,7 +185,7 @@ export function GeneratorExport({
             })
           }
         >
-          Apply generator choices <ArrowRight size={14} />
+          {project.generation_setup ? "Apply prompt templates" : "Apply generator choices"} <ArrowRight size={14} />
         </button>
         <p className="fs-hint">
           Changing profiles updates prompts and reopens affected outputs and

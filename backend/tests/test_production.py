@@ -1,3 +1,4 @@
+from workflow_fixtures import return_fixture
 import copy
 import shutil
 import subprocess
@@ -17,7 +18,7 @@ class ProductionTests(unittest.TestCase):
         task=self.studio.claim_next(self.p['id'],'agent',request)
         file=self.studio.inbox/(request+'.png')
         Image.new('RGB',(32,18),'orange').save(file)
-        result=self.studio.return_result(task['job']['id'],str(file),'agent')
+        result=return_fixture(self.studio, task['job']['id'],str(file),'agent')
         self.p=self.studio.get_project(self.p['id'])
         return task,result
 
@@ -166,7 +167,7 @@ class ProductionTests(unittest.TestCase):
         task=self.studio.claim_next(p['id'],'agent','motion')
         file=self.studio.inbox/'fixture.mp4'
         subprocess.run(['ffmpeg','-y','-f','lavfi','-i','color=c=orange:s=32x18:d=1','-c:v','libx264','-pix_fmt','yuv420p',str(file)],capture_output=True,check=True)
-        result=self.studio.return_result(task['job']['id'],str(file),'agent')
+        result=return_fixture(self.studio, task['job']['id'],str(file),'agent')
         p=self.studio.get_project(p['id'])
         self.assertTrue(hasattr(self.studio,'extract_continuation'),'Missing real frame extraction')
         p=self.studio.extract_continuation(p['id'],result['asset']['id'],p['revision'],'agent')

@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 from urllib.parse import urlsplit
 
-from studio.paths import data_root
+from studio.paths import data_root, resolve_writable_root
 
 
 UNAVAILABLE = 'backend_unavailable: Open Orchestra and retry the MCP connection.'
@@ -28,7 +28,15 @@ def load_desktop_runtime(root):
                 or parsed.path or '?' in url or '#' in url or url != url.strip()
                 or any(ord(char) < 33 for char in url)):
             raise ValueError('Runtime URL must be a loopback HTTP origin with an explicit port')
-        return {'api_url': url, 'instance_id': nonce}
+        result = {'api_url': url, 'instance_id': nonce}
+        if runtime.get('schema_version', 1) >= 2:
+            pid = runtime.get('service_pid')
+            if (runtime.get('ready') is not True or type(pid) is not int or pid <= 0
+                    or not isinstance(runtime.get('data_root'), str)
+                    or Path(runtime['data_root']).resolve() != Path(root).resolve()):
+                raise ValueError('Runtime is unready or belongs to another root/process')
+            result.update(service_pid=pid, data_root=runtime['data_root'])
+        return result
     except (OSError, ValueError, TypeError) as exc:
         raise ValueError(UNAVAILABLE) from exc
 
@@ -41,7 +49,9 @@ def verify_desktop_runtime(runtime):
             response.raise_for_status()
             health = response.json()
         if (not isinstance(health, dict) or health.get('service') != 'frame-studio'
-                or health.get('status') != 'ok' or health.get('instance_id') != runtime['instance_id']):
+                or health.get('status') != 'ok' or health.get('instance_id') != runtime['instance_id']
+                or ('service_pid' in runtime and health.get('service_pid') != runtime['service_pid'])
+                or ('data_root' in runtime and health.get('data_root') != runtime['data_root'])):
             raise ValueError('Desktop instance has changed')
     except (httpx.HTTPError, ValueError, TypeError) as exc:
         raise ValueError(UNAVAILABLE) from exc
@@ -58,7 +68,7 @@ def main(argv=None):
     mcp.add_argument('--data-dir', type=Path)
     args = parser.parse_args(argv)
     if args.data_dir is not None:
-        os.environ['STUDIO_DATA_DIR'] = str(args.data_dir.resolve())
+        os.environ['STUDIO_DATA_DIR'] = str(resolve_writable_root(args.data_dir))
     if args.command == 'serve':
         import uvicorn
         from studio.api import create_app

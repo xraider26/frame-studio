@@ -40,8 +40,15 @@ for sequence in SEQUENCES:
     sequence['technique_notes'] = ['A-roll carries the primary speaker or action; B-roll adds relevant context.', 'J-cuts and L-cuts are external editor instructions, not generated timeline operations. Preserve intended source speech and room tone.', 'Cut on action or use a match cut only when motivated; track screen direction, eyelines and object state.']
 
 
-def sequence_catalog():
-    return {'sequences': copy.deepcopy(SEQUENCES), 'planning_only': True}
+def sequence_catalog(sequence_id=None, stage=None, role=None, detail='summary', include_provenance=False, offset=0, limit=20):
+    if detail not in {'summary', 'full'}: raise StudioError('invalid_detail', 'Choose summary or full.')
+    if offset < 0 or not 1 <= limit <= 100: raise StudioError('invalid_page', 'Use offset >= 0 and limit 1..100.')
+    items = copy.deepcopy([s for s in SEQUENCES if sequence_id is None or s['id'] == sequence_id][offset:offset+limit])
+    for item in items:
+        if detail == 'summary':
+            for key in ('roles', 'technique_notes'): item.pop(key, None)
+        elif role: item['roles'] = [r for r in item['roles'] if r['id'] == role]
+    return {'sequences': items, 'planning_only': True}
 
 
 def sequence_by_id(ident):

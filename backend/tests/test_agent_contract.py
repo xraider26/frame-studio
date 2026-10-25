@@ -56,7 +56,9 @@ class AgentContractTests(unittest.TestCase):
     def test_agent_cannot_skip_intake_or_rewrite_pending_review(self):
         self.p = self.call('create_project', {'name': 'Missing intake'}).json()
         self.ack()
-        self.assertEqual(self.complete().json().get('error'), 'step_blocked')
+        self.assertEqual(self.complete().json().get('error'), 'generation_setup_required')
+        from studio.generation_setup import setup_from_explicit_settings
+        self.p = self.call('set_generation_setup', {'project_id': self.p['id'], 'setup': setup_from_explicit_settings(CREATOR_SETTINGS), 'expected_revision': self.p['revision']}).json()
         self.p = self.call('update_settings', {'project_id': self.p['id'], 'settings': CREATOR_SETTINGS, 'expected_revision': self.p['revision']}, human=True).json()
         self.p = self.call('set_policy', {'project_id': self.p['id'], 'policy': {'brief': True}, 'expected_revision': self.p['revision']}, human=True).json()
         self.ack()

@@ -23,17 +23,32 @@ def audit(p, actor, message):
     p['history'].append({'at': datetime.now(timezone.utc).isoformat(), 'type': 'production', 'actor': actor[:100], 'message': message[:1000]})
 
 
-def criteria_for(p, shot, kind):
-    return list(dict.fromkeys((['Identity and composition serve the shot'] if kind == 'image' else ['Identity, anatomy and physics remain coherent', 'Camera, lighting and background serve the shot', 'Audio and lip sync match the intended performance']) + recipe_criteria(p, shot, kind) + [c for c in effective_direction(p, shot)['quality']['criteria'] if c.strip()]))
+def criteria_for(p, shot, kind, *, calibration_only=None):
+    if calibration_only is None:
+        from .calibration import calibration_review_scope
+        calibration_only = calibration_review_scope(p, shot, kind)
+    recipe = recipe_criteria(p, shot, kind)
+    if p.get('calibration'):
+        recipe = [c for c in recipe if 'reference' not in c.lower()]
+    result = list(dict.fromkeys((['Identity and composition serve the shot'] if kind == 'image' else ['Identity, anatomy and physics remain coherent', 'Camera, lighting and background serve the shot', 'Audio and lip sync match the intended performance']) + recipe + [c for c in effective_direction(p, shot)['quality']['criteria'] if c.strip()]))
+    if p.get('calibration'):
+        from .calibration import scoped_requirements
+        # Recipe-wide reference claims are instantiated only for actual purposes.
+        result += ['Reference fidelity: '+purpose for purpose in dict.fromkeys(r['purpose'] for r in scoped_requirements(p, shot, kind, calibration_only=calibration_only))]
+    return result
 
 
 def quality_passed(p, shot, kind):
+    from .calibration import technical_passed, representative, style_override, reference_requirements
+    asset = next((a for a in p['assets'] if a['id'] == shot.get(kind+'_asset')), {})
+    if asset.get('execution_state') == 'needs_review': return False
     if not p['production']['require_recorded_checks']:
-        return True
-    asset = next((a for a in p['assets'] if a['id'] == shot[kind + '_asset']), {})
-    review = asset.get('review', {})
-    inspected = {'image'} if kind == 'image' else {'beginning', 'middle', 'end'}
-    return bool(review) and not review.get('defect') and inspected <= set(review.get('inspected', [])) and all(review.get('criteria', {}).get(c) is True for c in criteria_for(p, shot, kind))
+        calibration_required = p.get('calibration') and p['calibration']['mode'] == 'calibration' and kind == 'image' and (shot['id'] == (representative(p) or {}).get('id') or style_override(p, shot))
+        reference_review_required = any(r['required'] for r in reference_requirements(p))
+        if not calibration_required and not reference_review_required:
+            return True
+    return technical_passed(p, shot, kind)
+
 
 
 class ProductionTools:
@@ -41,6 +56,10 @@ class ProductionTools:
         prepared = prompt_for(p, shot, kind)
         value = {'model': prepared.get('model'), 'generator_profile': prepared.get('generator_profile'), 'model_guidance': prepared.get('model_guidance'), 'creative_intent': prepared.get('creative_intent'), 'prompt': prepared['prompt'], 'negative': prepared['negative_prompt'], 'aspect': prepared['aspect_ratio'],
                  'references': [{k: a.get(k) for k in ['id', 'slot', 'version', 'binding_role']} for a in references_for(p, shot, kind)]}
+        if p.get('generation_setup'):
+            selection = p['generation_setup'].get(kind) or {}
+            value['generator_execution_selection'] = {key: selection.get(key) for key in
+                ('executor', 'tool_name', 'profile', 'model', 'model_version_status', 'connection_id')}
         if kind == 'image': value['image_requirements'] = prepared.get('image_requirements')
         if kind == 'video':
             value.update(duration=shot['duration_seconds'], sound=prepared['separate_notes']['sound'], mode=shot['direction']['generation_mode'])
@@ -117,12 +136,14 @@ class ProductionTools:
             shot = next((s for s in p['shots'] if s['id'] == shot_id), None)
             if not shot:
                 raise StudioError('not_found', 'Shot not found.', 404)
+            from .calibration import style_contract_signature
             key = uuid.uuid4().hex
             dest = self.media_root / project_id / (key + media['suffix'])
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, dest)
             p['assets'].append({'id': key, 'shot_id': shot_id, 'kind': kind, 'stale': False, 'version': 1,
-                'input_signature': self._input_signature(p, shot, kind), 'created_at': datetime.now(timezone.utc).isoformat(),
+                'input_signature': self._input_signature(p, shot, kind),
+                'calibration_style_signature': style_contract_signature(p) if p.get('calibration') else None, 'created_at': datetime.now(timezone.utc).isoformat(),
                 'path': str(dest), 'url': f'/api/studio/media/{project_id}/{dest.name}', **media,
                 'provenance': {'type': 'externally_created', 'actor': actor, **(metadata or {})},
                 'cost': {'planned': None, 'actual': None, 'unit': p['production']['resources']['unit'], 'evidence': ''}})
@@ -130,15 +151,20 @@ class ProductionTools:
         return self.mutate(project_id, expected_revision, update)
 
     def record_take_review(self, project_id, asset_id, review, expected_revision, actor):
-        if not isinstance(review, dict) or not isinstance(review.get('criteria', {}), dict) or any(type(v) is not bool for v in review.get('criteria', {}).values()):
-            raise StudioError('invalid_review', 'Criteria must map checklist text to true/false.')
+        if not isinstance(review, dict):
+            raise StudioError('invalid_review', 'Provide actual inspection evidence.')
         if not isinstance(review.get('inspected', []), list) or any(v not in ['image', 'beginning', 'middle', 'end'] for v in review.get('inspected', [])):
             raise StudioError('invalid_review', 'Record the inspected image or beginning/middle/end.')
         def update(p):
             asset = next((a for a in p['assets'] if a['id'] == asset_id and not a.get('role')), None)
             if not asset:
                 raise StudioError('not_found', 'Generated take not found.', 404)
-            data = {'criteria': {str(k)[:200]: v for k, v in list(review.get('criteria', {}).items())[:60]},
+            from .calibration import validate_review_criteria, check_state, remember_calibration_pending, pending_calibration_decision
+            remember_calibration_pending(p)
+            target = next((s for s in p['shots'] if s['id'] == asset.get('shot_id')), None)
+            if not target:
+                raise StudioError('invalid_review', 'Take does not belong to a current shot.')
+            data = {'version': 2, 'criteria': validate_review_criteria(p, target, review),
                     'inspected': review.get('inspected', [])[:4], 'notes': str(review.get('notes', ''))[:8000],
                     'defect': str(review.get('defect', ''))[:8000], 'actor': actor, 'at': datetime.now(timezone.utc).isoformat()}
             asset.setdefault('review_history', []).append(copy.deepcopy(data))
@@ -148,8 +174,10 @@ class ProductionTools:
                 policy = self.get_batch(p['batch_id'])
                 kind = asset['kind']
                 required_inspection = {'image'} if kind == 'image' else {'beginning', 'middle', 'end'}
-                failed = [c for c, passed in data['criteria'].items() if not passed]
-                if policy['auto_retry'] and required_inspection <= set(data['inspected']) and (data['defect'] or failed):
+                failed = [c for c, value in data['criteria'].items() if check_state(value) in {'fail', 'blocked'}]
+                pending = pending_calibration_decision(p)
+                awaiting_creator = pending and pending['asset_id'] == asset_id
+                if policy['auto_retry'] and not awaiting_creator and required_inspection <= set(data['inspected']) and (data['defect'] or failed):
                     counts = shot.setdefault('quality_retries', {'image': 0, 'video': 0})
                     if asset.get('automatic_quality_revision'):
                         shot.setdefault('quality_retry_attention', {})[kind] = 'This rejected take already caused an automatic revision. Select a new result or request a manual revision.'
@@ -173,6 +201,10 @@ class ProductionTools:
             shot = next((s for s in p['shots'] if asset and s['id'] == asset.get('shot_id')), None)
             if not asset or not shot or asset['kind'] not in ['image', 'video']:
                 raise StudioError('invalid_take', 'Choose an image/video take belonging to a current shot.')
+            if p.get('calibration') and any(h.get('asset_id') == asset_id and h['decision'] == 'reject' for h in p['calibration']['history']):
+                raise StudioError('calibration_rejected', 'A creator-rejected take is preserved for comparison; return a targeted repair.', 409)
+            if asset['kind'] == 'image' and shot.get('image_asset') != asset_id:
+                self._guard_calibration_pending(p, actor, shot['id'])
             signature = self._input_signature(p, shot, asset['kind'])
             job = next((j for j in p['jobs'] if j.get('asset_id') == asset_id), {})
             if asset.get('input_signature') != signature and job.get('fingerprint') != self._fingerprint(p, shot, asset['kind']):
@@ -205,6 +237,7 @@ class ProductionTools:
         if kind not in ['image', 'video'] or not isinstance(reason, str) or not reason.strip():
             raise StudioError('invalid_revision', 'Choose image/video and name the defect or revision reason.')
         def update(p):
+            if kind == "image": self._guard_calibration_pending(p, actor, shot_id)
             shot = next((s for s in p['shots'] if s['id'] == shot_id), None)
             if not shot:
                 raise StudioError('not_found', 'Shot not found.', 404)

@@ -7,7 +7,7 @@ const vm = require('node:vm');
 
 // Exercise main's startup through the Electron boundary without starting services.
 // Removing the explicit legacy userData path would strand installed users' data.
-for (const override of [undefined, 'custom creator data']) {
+for (const {override,smoke} of [{},{override:'custom creator data'},{override:'isolated smoke data',smoke:true}]) {
   test(`Orchestra startup preserves ${override ? 'the existing data override' : 'installed Frame Studio data'}`, async (t) => {
     const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'orchestra brand '));
     t.after(() => fs.rmSync(profile, { recursive: true, force: true }));
@@ -39,6 +39,7 @@ for (const override of [undefined, 'custom creator data']) {
     }
     const electron = { app, BrowserWindow, session: { defaultSession: { setPermissionRequestHandler() {}, setPermissionCheckHandler() {} } } };
     const env = override ? { FRAME_STUDIO_DATA_DIR: expected } : {};
+    if(smoke)env.FRAME_STUDIO_SMOKE='1';
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8'), {
       require(id) {
         if (id === 'electron') return electron;
@@ -50,7 +51,7 @@ for (const override of [undefined, 'custom creator data']) {
     });
     start();
     assert.equal(name, 'Orchestra');
-    assert.equal(userData, legacy);
+    assert.equal(userData, smoke ? path.join(expected,'.electron-smoke') : legacy);
     if (!override) assert.ok(calls.indexOf('setPath') < calls.indexOf('getPath:userData'));
     assert.equal(windowOptions.title, 'Orchestra');
     assert.equal(fs.readFileSync(path.join(expected, 'workflow.db'), 'utf8'), 'existing projects');

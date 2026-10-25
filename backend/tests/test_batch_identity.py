@@ -24,6 +24,12 @@ class BatchIdentityTests(unittest.TestCase):
         b=self.s.create_batch('Episode','One idea','episodes','ai-film',2,'identity','user')
         b=self.s.sync_batch_identity(b['id'],self.source['id'],b['revision'],self.source['revision'])
         p=self.s.get(b['project_ids'][0]);other=self.s.get(b['project_ids'][1])
+        # This structural-reference fixture explicitly tracks stable mutable state;
+        # canonical appearance alone cannot satisfy later-shot continuity readiness.
+        shots=copy.deepcopy(p['shots'])
+        for shot in shots:
+            shot['direction']['action'].update(state_before={'held_object':'none'},state_after={'held_object':'none'})
+        p=self.s.update_shots(p['id'],shots,p['revision'],'user')
         entity=p['production']['bible'][0]
         self.assertEqual(entity['identity'],'Round glasses and copper coat')
         refs=effective_direction(p,p['shots'][0])['references']

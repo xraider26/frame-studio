@@ -38,6 +38,7 @@ def export_project(studio, project):
                            'reference_files': {kind: [{'asset_id': a['id'], 'slot': a['slot'], 'role': a.get('binding_role'), 'file': included.get(a['id'], (None, None))[1]} for a in references_for(p, s, kind)] for kind in ['image', 'video']},
                            'expected_outputs': {'image': f'shot_{i:02d}_image.png', 'video': f'shot_{i:02d}_video.mp4'}} for i, s in enumerate(p['shots'], 1)],
                 'return_contract': {'method': 'MCP claim_generation -> return_generation',
+                                    'claim_schema_version': 3, 'handoff_access': 'result.handoff (one top-level packet); legacy response_format is explicit',
                                     'instructions': 'Connect to this studio and read its current next_action. Claim each permitted generation with its exact job_id. Save real outputs in the returned inbox, then return_generation. Do not bypass required reviews. Offline outputs can be imported later using the same shot IDs after claiming their current task.'}}
     lines = [f'# {p["name"]}', '', f'Generator handoff · revision {p["revision"]}', '',
              f'Video profile: {manifest["video_generator"]}', f'Image profile: {manifest["image_generator"]}', '',

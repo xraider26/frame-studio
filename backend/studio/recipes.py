@@ -172,13 +172,42 @@ def recipe_by_id(ident):
             'script': r['planning'],
             'visual_direction': ['Prepare: ' + value for value in r['references']] + ['Inspect: ' + value for value in r['image_checks']],
             'final_review': ['Inspect actual selected image at delivery size and record image quality checks.']},
-            final_checks=r['image_checks'], validation_status='illustrative_reference_only', source_rules=[],
+            final_checks=r['image_checks'], validation_status='illustrative_reference_only', source_rules=source_rules(r['rules'] + ['capabilities']),
             decision_requirements=['Explain how composition, light, palette and references serve the intended still image.'])
+    # Requiredness is recipe-owned. The common review corpus remains guidance unless
+    # this selected recipe already requires it; no agent-supplied rule waivers.
+    for rule in r['source_rules']:
+        ident = rule['id']
+        phase = 'external_edit' if ident in {'edit', 'final'} else ('media_review' if ident in {'inspection', 'iteration', 'learning'} else 'pre_generation')
+        predicate = {'kind': 'reference_purposes', 'purposes': ['style', 'identity', 'product', 'layout']} if ident == 'identity' else ({'kind': 'video'} if ident in {'motion', 'state', 'timing', 'podcast', 'edit', 'final'} else {'kind': 'always'})
+        if ident == 'state': predicate = {'kind': 'video_continuity'}
+        rule.update(version=1, required=ident in r['rules'], phase=phase, role_ids=[], predicate=predicate,
+                    stage=['editor_handoff'] if ident == 'edit' else (['final_review'] if ident == 'final' else ['visual_direction', 'pilot', 'production']))
     return r
 
 
-def recipe_catalog():
-    return [recipe_by_id(r['id']) for r in RECIPES]
+def recipe_catalog(recipe_id=None, stage=None, role=None, detail='summary', include_provenance=False, offset=0, limit=20):
+    from .handoffs import recipe_summary
+    from .store import StudioError
+    if detail not in {'summary', 'full'}: raise StudioError('invalid_detail', 'Choose summary or full.')
+    if offset < 0 or not 1 <= limit <= 100: raise StudioError('invalid_page', 'Use offset >= 0 and limit 1..100.')
+    selected = [r for r in RECIPES if recipe_id is None or r['id'] == recipe_id][offset:offset+limit]
+    result = []
+    for item in selected:
+        r = recipe_by_id(item['id'])
+        if detail == 'summary':
+            result.append(recipe_summary(r)); continue
+        if stage:
+            r['stages'] = {stage: r['stages'].get(stage, [])}
+            r['source_rules'] = [rule for rule in r['source_rules'] if stage in rule.get('stage', [])]
+        if role:
+            r['roles'] = [v for v in r['roles'] if v['id'] == role]
+            r['source_rules'] = [rule for rule in r['source_rules'] if not rule.get('role_ids') or role in rule['role_ids']]
+        if not include_provenance:
+            for rule in r['source_rules']:
+                for key in ('provenance', 'citations', 'correction_citations', 'citation_scope'): rule.pop(key, None)
+        result.append(r)
+    return result
 
 
 def recipe_context(p, shot=None):

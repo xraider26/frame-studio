@@ -17,7 +17,7 @@ async def verify():
         async with ClientSession(read, write) as client:
             await client.initialize()
             names = {t.name for t in (await client.list_tools()).tools}
-            assert {'recipe_catalog', 'knowledge_catalog', 'create_project', 'list_projects'} <= names
+            assert {'recipe_catalog', 'knowledge_catalog', 'create_project', 'list_projects', 'start_project_setup', 'record_generation_execution', 'get_context'} <= names
             assert not {'review', 'set_policy'} & names
             result = await client.call_tool('recipe_catalog', {})
             assert not result.isError, result.content

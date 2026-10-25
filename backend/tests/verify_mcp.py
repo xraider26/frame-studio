@@ -45,6 +45,8 @@ async def main():
             file = DATA / 'inbox' / 'verification-fixture.png'
             # Explicitly a synthetic fixture, not an AI generation.
             Image.new('RGB', (320, 180), '#b76735').save(file)
+            current=await call('get_project',{'project_id':p['id']})
+            await call('record_generation_execution',{'job_id':task['job']['id'],'execution':{'tool':'synthetic-fixture-generator','prompt':task['handoff']['prompt'],'negative_prompt':task['handoff'].get('negative_prompt',''),'references':task['handoff'].get('references',[]),'arguments':{'fixture_only':True}},'expected_revision':current['revision']})
             returned = await call('return_generation', {'job_id': task['job']['id'], 'output_path': str(file)})
             assert returned['next_action']['action'] == 'await_approval'
             repeated = await call('return_generation', {'job_id': task['job']['id'], 'output_path': str(file)})

@@ -72,3 +72,9 @@ Backend tests, from `backend`: `.venv/Scripts/python.exe -m unittest discover -s
 Frontend, from `frontend`: `npm test` and `npm run build` using Node 22.12 or newer. Desktop, from `desktop`: `npm test`.
 
 After implementation validation, review the diff, push the development branch and open a focused pull request. A new release/merge and a visibility change are separate actions; do not infer permission to republish publicly from the earlier public beta. Publisher signing, a second-computer installer trial, real artistic pilots and any project-wide licensing decision remain separate work.
+
+Source workflow update: project generator intake, creator-only calibration and exact execution/rule evidence are implemented. New compact transport defaults to schema3 with top-level handoff; summary polling and targeted versioned context avoid duplicate full payloads. See MCP.md and backend/benchmark_handoffs.py. Source checks do not establish installed-app or real video-generation validation.
+
+### Credit discipline for further work
+
+Resume from the saved progress ledger and existing uncommitted changes. Default to one direct implementation owner; add agents only for a distinct task that justifies its context cost. Pass file paths and a narrow brief rather than repeated history or entire catalogs. Run focused regressions while editing, then aggregate checks at delivery; repeat broad checks only for an actual change, failure or unresolved risk. Read logs in bounded slices and keep large assertion diffs out of tool output. Use compact claim/summary polling and fetch full context only when needed. Record completed work and validation immediately so interrupted sessions do not restart it. Report actual byte/token measurements separately; do not promise a billing reduction from a byte benchmark.

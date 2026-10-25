@@ -84,7 +84,8 @@ class RecipeEvidence:
         review = asset.get('review', {})
         required = {'image'} if kind == 'image' else {'beginning', 'middle', 'end'}
         criteria = criteria_for(p, shot, kind)
-        if not review or not required <= set(review.get('inspected', [])) or review.get('defect', '').strip() or any(v is False for v in review.get('criteria', {}).values()) or any(review.get('criteria', {}).get(c) is not True for c in criteria):
+        from .calibration import check_state
+        if not review or not required <= set(review.get('inspected', [])) or review.get('defect', '').strip() or any(check_state(v) in {'fail', 'blocked'} for v in review.get('criteria', {}).values()) or any(check_state(review.get('criteria', {}).get(c)) != 'pass' for c in criteria):
             raise StudioError('recipe_evidence_unreviewed', 'Inspect the full selected media, pass every effective criterion and resolve all reported defects before endorsement.', 409)
         digest = hashlib.sha256()
         with path.open('rb') as stream:

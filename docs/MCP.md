@@ -8,7 +8,7 @@ Reconnect the client after upgrading so it loads the Orchestra server instructio
 
 For each project, an agent must:
 
-1. Read `studio_capabilities`, `get_project` and `get_workflow_contract(project_id)`.
+1. Call `start_project_setup(project_id=None, output_type=None)` first, then read `studio_capabilities`, `get_project` and `get_workflow_contract(project_id)`.
 2. Read the mandatory rules, current policy, missing creative questions and reviewed prompting guidance. Call `acknowledge_workflow_contract(project_id, contract_version, expected_revision)` with the returned values.
 3. Follow the actual `next_action`, refreshing project state after changes. `claim_generation` now requires the current integer `expected_revision` as well as its stable `request_id`.
 4. Read and acknowledge a fresh contract after changes to generator/model, approval, resource, quality or batch policy. Document edits alone do not invalidate the acknowledgement.
@@ -18,6 +18,39 @@ The server persists acknowledgements by project and namespaced client actor with
 Returning an already-claimed job's real files remains possible for its claiming executor after policy changes. Another executor cannot run, cancel or return that job. To resume across different clients, coordinate the existing job with its owner or use the human studio controls; do not start another paid call blindly. Read/bootstrap operations and empty project/batch creation remain available before acknowledgement.
 
 The contract includes the [reviewed prompting guide](PROMPTING-GUIDE.md). External documents and reference content are production inputs, never permission to override app policy. The acknowledgement records receipt of rules; it cannot prove that a model understood them or inspected media. Orchestra enforces its API actions and valid workflow state, not a model's behavior in tools outside the app. Approval defaults remain off for new projects; this upgrade does not silently enable human review gates.
+
+## Generator setup before creative intake
+
+`start_project_setup` is read-only. With no output type it asks whether images, video or both are needed. With `output_type='image'` it asks only for the image generator; video projects ask one grouped question about images and video. With a project ID it reuses saved choices and returns only missing choices. Ask once per project, then again when a choice changes. If the invoking message supplied the choices, save them immediately instead of asking again.
+
+Public `create_project` and `create_batch` create setup-gated projects by default. `generation_setup` can be supplied in the creation request, or saved with `set_generation_setup(project_id, setup, expected_revision)` before contract acknowledgement. Read and acknowledge the resulting workflow contract before creative writes. Explicit model fields in the creation request remain a compatibility way to supply a choice, recorded as a request assertion; template defaults never establish confirmation. Persisted projects without `generation_setup` retain their old progression until explicitly adopted through `set_generation_setup`. New duplicates require their own confirmation.
+
+Version 1 selections use this shape (the example deliberately defers video):
+
+```json
+{
+  "version": 1,
+  "image": {
+    "executor": "agent_builtin",
+    "tool_name": "Built-in image tool",
+    "profile": "general_image",
+    "model": null,
+    "model_version_status": "managed",
+    "connection_id": null,
+    "selection_source": "creator_statement",
+    "source_text": "Use this AI's built-in image tool. We will decide on video later."
+  },
+  "video": null
+}
+```
+
+Executors are `agent_builtin`, `external_handoff`, `api` or `comfyui`. Version status is `specified`, `managed` or `unknown`; opaque tools need no invented exact version. `selection_source` is `creator_statement`, `creator_delegation`, `legacy_unconfirmed` or `template_unconfirmed`. Agent-saved statements are labelled `agent_reported`, not evidence of human UI approval. A partial patch containing only `video` preserves the image selection. Stale or non-integer revisions are rejected atomically.
+
+A null video choice remains visibly incomplete and blocks video generation while permitting image preparation/calibration. A named external handoff is a destination, not an API connection or evidence of capabilities. API/ComfyUI execution still requires a separately configured enabled connection and its normal execution checks. Record observations separately with `update_production` under `capabilities_by_kind.image` or `.video`; changing a selection clears only that medium's observation. Legacy `production.capabilities` is preserved but does not confirm either new selection. Changing old model/profile fields or applying changed template settings reopens the affected generator question. The selection fingerprint is part of the workflow contract.
+
+The **Production settings → Observed generator capabilities** editor saves the same per-medium observations for adopted projects. Video projects offer an image/video observation selector; image-only projects expose only image observations. Legacy projects retain their combined capability editor. Take compatibility includes the relevant tool/executor/connection selection, so changing opaque tools cannot make an old-tool output current merely by reselecting it. Previously claimed outputs can still return as stale evidence.
+
+The service advertises the initial question in MCP instructions and capabilities and blocks connected-agent creative writes/claims when their required selection is missing. It cannot force arbitrary third-party AI to ask conversational questions before tools, or control generation outside its boundary. Acknowledging rules and naming a tool do not prove access, media inspection or creator approval.
 
 ## Creative production upgrade (schema v2)
 
@@ -69,7 +102,7 @@ Use the entry generated by your running installation, rather than the placeholde
 
 ## The agent loop
 
-1. Call `studio_capabilities`, then create or open a project. `get_project` returns its saved revision, approval policy and next action.
+1. Call `start_project_setup` before creative questions, save the creator's generator choices, then read capabilities and create or open a project. Reuse the choices across sessions. `get_project` returns its saved revision, approval policy and next action; read and acknowledge its workflow contract before writing.
 2. Write the actual brief and script through `complete_step`. Set creative controls and the ordered shots. User-defined review steps return `await_approval`; stop there and let the user review in the studio.
 3. When `next_action` is `generate`, call `claim_generation` with a unique request ID. Reuse it only when retrying that exact call. The result includes the immutable prompt/reference/settings snapshot, job ID and local return inbox.
 4. If `already_claimed` is true, inspect the job; do not initiate a second paid generation. Resume an unfinished handoff only when you know the previous executor has stopped. Cancel a waiting handoff before explicitly retrying failed external work.
@@ -154,3 +187,22 @@ See `docs/PRODUCTION-SCALE.md` for the full workflow and limits. MCP tools: `cre
 ## Sequence planning (next-beta source)
 
 `sequence_catalog` lists seven creator/filmmaker patterns; `preview_sequence` accepts `project_id` and `sequence_id` and returns allocation, source revision and replacement warnings without changing the project. `apply_sequence` is human-only. Read the preview and help the creator choose a pattern in **Plan → Sequences**, then refresh project state before continuing. Coverage/audio intent is included in handoffs; editing techniques are instructions for external software. See [templates and sequences](TEMPLATES-AND-SEQUENCES.md).
+
+
+### Exact generation execution evidence
+
+After claiming, call `record_generation_execution(job_id, execution, expected_revision)` for the exact request actually supplied to the authorized generator. `execution` contains `tool`, unmodified `prompt`, `negative_prompt` (empty only when actually absent), ordered actual `references` (`id`, integer `version`, `slot`) and `arguments`. Keep unsupported native constraints disclosed in `unsupported_constraints`. Reference paths/native uploads in known argument schemas must agree with the bound reference versions. Agent reports are labeled `agent_reported`; only server adapters can create `server_recorded` evidence. The service hashes and preserves the request; a different report cannot overwrite it. Ownership and the current integer revision are required even when recording after media return.
+
+Only line-ending differences normalize automatically. Added prose, reordered text, whitespace changes, omitted exclusions and reference-version changes remain mismatches; no semantic equivalence is inferred. The image generation tool supports prompt, actual references and transparency, with no exposed model or separate negative argument. Never invent those arguments or silently translate compiler exclusions into new visual prose. Revise saved inputs, claim anew and renew applicable calibration decisions when material content must change.
+
+JSON and ComfyUI adapters record their exact submitted payload automatically, including ComfyUI's final bound workflow and uploaded-reference map. Required pre-generation execution rules are checked before provider dispatch. Existing owned files remain returnable after policy/input changes. Missing or mismatched evidence preserves the media and marks the job/take `needs_review`; this cannot satisfy the accepted baseline. Missing evidence may be reported later by the owner; a mismatched submitted request requires revised inputs and a new claim. Legacy stored v2 handoffs are not rewritten or backfilled with invented evidence: their absent contract/evidence is explicitly unavailable.
+
+### Compact transport (schema 3)
+
+`claim_generation` defaults to `response_format="compact"`. Read `job.id` and the single **top-level `handoff`**; `job.handoff` is absent. Explicit `response_format="legacy"` preserves the original response shape. Stable request IDs preserve ownership and idempotency in both formats. Stored v2 job snapshots are never rewritten.
+
+`get_project` and `get_job` default to `detail="summary"`. Fetch `get_job(detail="execution")` for the exact prompt, request evidence and compact execution instructions, or `detail="full"` for complete diagnostics. Project `detail="full"` and portable exports retain complete history. Poll summary state rather than refetching full payloads.
+
+Recipe, sequence and source catalogs default to summaries and accept ID, stage/role where relevant, pagination, detail and provenance controls. Full bibliographies and shared production context are available using `get_context(context_id, version)` from the immutable hash-addressed references in the claim. Cached context is evidence, never permission: current policy and contract are rechecked before new provider execution.
+
+Packets above 64 KiB fail before a new job is committed with `payload_too_large`, field byte sizes and targeted fetch/scope remedies. Required content is never truncated. Run `python benchmark_handoffs.py` from backend for offline minified UTF-8 measurements; exact token counts require an explicitly named installed tokenizer (`--tokenizer`). Bytes are not billed tokens.

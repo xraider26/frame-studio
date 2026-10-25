@@ -1,3 +1,4 @@
+from workflow_fixtures import return_fixture
 import json
 import tempfile
 import unittest
@@ -50,7 +51,7 @@ class NextBetaTests(unittest.TestCase):
         self.assertEqual(task['handoff']['model'], 'Test image model')
         self.assertEqual(task['handoff']['model_guidance']['model'], 'Test image model')
         self.assertEqual(task['handoff']['creative_intent']['vision'], 'A quiet forest')
-        self.studio.return_result(task['job']['id'], self.image(), 'agent')
+        return_fixture(self.studio, task['job']['id'], self.image(), 'agent')
         p = self.studio.get_project(p['id'])
         self.assertEqual(p['next_action']['step'], 'final_review')
         self.assertEqual(p['jobs'][0]['kind'], 'image')

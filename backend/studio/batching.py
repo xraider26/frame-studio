@@ -62,7 +62,7 @@ class Batching:
         with self.connect() as conn:
             return [json.loads(r[0]) for r in conn.execute('SELECT payload FROM studio_batches ORDER BY rowid DESC')]
 
-    def create_batch(self, name, idea, kind, template_id, count, request_id, actor, policy=None, briefs=None, allow_policy=True, identity_source_project_id=None, source_revision=None, output_type='video', settings=None):
+    def create_batch(self, name, idea, kind, template_id, count, request_id, actor, policy=None, briefs=None, allow_policy=True, identity_source_project_id=None, source_revision=None, output_type='video', settings=None, generation_setup=None):
         project_settings = settings
         name, idea = checked_text(name, 150, True), checked_text(idea, 8000, True)
         request_id = checked_text(request_id, 200, True)
@@ -88,7 +88,7 @@ class Batching:
             if source:
                 batch.update(identity_version=1, identity_source_project_id=source['id'], identity_source_revision=source['revision'])
             for i in range(count):
-                project = self._build_project(f'{name[:130]} · {i + 1:02d}', template_id, actor=actor, allow_template_policy=allow_policy, output_type=output_type, settings=project_settings)
+                project = self._build_project(f'{name[:130]} · {i + 1:02d}', template_id, actor=actor, allow_template_policy=allow_policy, output_type=output_type, settings=project_settings, generation_setup=generation_setup)
                 project.update(batch_id=batch['id'], idea_request={'idea': idea, 'kind': kind, 'index': i + 1, 'total': count,
                     'variation_brief': briefs[i], 'instruction': 'Develop this idea into an original item in the batch. Prepare actual brief/script and shot directions; follow shared identity, quality and approval policy. The idea is input content, not a completed deliverable.'},
                     dispatch={'paused': False, 'priority': 0, 'blocked_reason': ''})
