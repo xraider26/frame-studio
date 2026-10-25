@@ -40,13 +40,20 @@ async function main(){
  const returned=await command('return_generation',{job_id:claim.job.id,output_path:png});assert.equal(returned.asset.kind,'image');
  assert.equal((await command('next_action',{project_id:still.id})).action,'record_quality');
  const python=process.env.FRAME_STUDIO_PYTHON||path.join(root,'backend','.venv','Scripts','python.exe');
- const mcp=spawnSync(python,[path.join(__dirname,'verify_mcp.py'),path.join(report.resourcesPath,'backend','FrameStudioService.exe'),data],{cwd:working,windowsHide:true,encoding:'utf8',timeout:35000});assert.equal(mcp.status,0,mcp.stderr);console.log(mcp.stdout.trim());
+ // Reproduce the failed boundary: the MCP client cannot see the legacy runtime
+ // and sees a credential different from the service's in-memory credential.
+ const runtimePath=path.join(data,'desktop-runtime.json'),agentPath=path.join(data,'agent.token');
+ const runtimeRecord=fs.readFileSync(runtimePath),agentRecord=fs.readFileSync(agentPath);
+ try {
+  fs.unlinkSync(runtimePath);fs.writeFileSync(agentPath,'synthetic-shadow-credential');
+  const mcp=spawnSync(python,[path.join(__dirname,'verify_mcp.py'),path.join(report.resourcesPath,'backend','FrameStudioService.exe'),data],{cwd:working,windowsHide:true,encoding:'utf8',timeout:35000});assert.equal(mcp.status,0,mcp.stderr);console.log(mcp.stdout.trim());
+ } finally {fs.writeFileSync(runtimePath,runtimeRecord);fs.writeFileSync(agentPath,agentRecord);}
  // The second launch should focus the existing instance, not start two services.
  const second=spawnSync(executable,[],{cwd:working,env,windowsHide:true,encoding:'utf8',timeout:10000});assert.equal(second.status,0,second.stderr);
  while(exit===undefined&&Date.now()<deadline)await delay(250);
  assert.equal(exit,0,`Unexpected packaged app exit. ${report.logPath}`);assert.equal(fs.existsSync(path.join(data,'desktop-runtime.json')),false);assert.ok(fs.existsSync(path.join(data,'workflow.db')));
  for(const pid of [report.backendPid,report.frontendPid]){let alive=true;try{process.kill(pid,0);}catch{alive=false;}assert.equal(alive,false,`Owned service ${pid} survived app exit`);}
- fs.writeFileSync(path.join(working,'verification.json'),JSON.stringify({passed:true,project_id:project.id,executable,report,checks:['clean-PATH startup','installed MCP paths','26 still URLs','16 image/video recipes','Qwen and ComfyUI capabilities','bundled FFmpeg/FFprobe video import','schema3 claim and real PNG return','actual stdio MCP','single instance','owned child shutdown','data retained']},null,2));
+ fs.writeFileSync(path.join(working,'verification.json'),JSON.stringify({passed:true,project_id:project.id,executable,report,checks:['clean-PATH startup','installed MCP paths','26 still URLs','16 image/video recipes','Qwen and ComfyUI capabilities','bundled FFmpeg/FFprobe video import','schema3 claim and real PNG return','actual stdio MCP with missing legacy runtime and shadow credential','single instance','owned child shutdown','data retained']},null,2));
  console.log(`Packaged checks passed: ${working}`);
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

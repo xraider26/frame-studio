@@ -1,12 +1,12 @@
 {
   "name": "orchestra-desktop",
-  "version": "0.3.0-beta.1",
+  "version": "0.3.1",
   "description": "Orchestra local creative production workspace",
   "private": true,
   "author": "Orchestra",
   "main": "main.cjs",
   "scripts": {
-    "test": "node --test tests/runtime.test.cjs tests/build.test.cjs tests/branding.test.cjs",
+    "test": "node --test tests/runtime.test.cjs tests/build.test.cjs tests/branding.test.cjs tests/mcp-config.test.cjs",
     "build": "node build.cjs",
     "package": "electron-builder --win nsis --x64 --publish never"
   },
@@ -18,7 +18,7 @@
     "appId": "com.framestudio.desktop",
     "productName": "Orchestra",
     "directories": { "output": "dist" },
-    "files": ["main.cjs", "runtime.cjs", "loading.html", "package.json", "icon.png"],
+    "files": ["main.cjs", "runtime.cjs", "mcp-config.cjs", "loading.html", "package.json", "icon.png"],
     "extraResources": [{ "from": "build/resources", "to": ".", "filter": ["**/*"] }],
     "asar": true,
     "win": {

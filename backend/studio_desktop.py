@@ -4,9 +4,11 @@ import json
 import os
 from pathlib import Path
 import sys
+import secrets
 from urllib.parse import urlsplit
 
 from studio.paths import data_root, resolve_writable_root
+from studio.desktop_connection import publish_connection, read_connection, remove_connection
 
 
 UNAVAILABLE = 'backend_unavailable: Open Orchestra and retry the MCP connection.'
@@ -15,6 +17,13 @@ UNAVAILABLE = 'backend_unavailable: Open Orchestra and retry the MCP connection.
 def load_desktop_runtime(root):
     try:
         runtime = json.loads((Path(root) / 'desktop-runtime.json').read_text(encoding='utf-8'))
+        return validate_desktop_runtime(runtime, root)
+    except (OSError, ValueError, TypeError) as exc:
+        raise ValueError(UNAVAILABLE) from exc
+
+
+def validate_desktop_runtime(runtime, root):
+    try:
         if not isinstance(runtime, dict):
             raise ValueError('Runtime must be an object')
         url = runtime.get('api_url')
@@ -39,6 +48,19 @@ def load_desktop_runtime(root):
         return result
     except (OSError, ValueError, TypeError) as exc:
         raise ValueError(UNAVAILABLE) from exc
+
+
+def discover_desktop(root):
+    # Discovery is read-only: a writable probe inside a packaged MCP client can
+    # select a different AppData overlay from the running desktop's own state.
+    try:
+        connection = read_connection(root)
+        runtime = (validate_desktop_runtime(connection['runtime'], root)
+                   if connection else load_desktop_runtime(root))
+        verify_desktop_runtime(runtime)
+        return runtime, connection['agent_token'] if connection else None
+    except (OSError, ValueError, TypeError) as exc:
+        raise ValueError(f'{UNAVAILABLE} Discovery root: {root}. Reconnect MCP after upgrading Orchestra.') from exc
 
 
 def verify_desktop_runtime(runtime):
@@ -67,21 +89,37 @@ def main(argv=None):
     mcp = commands.add_parser('mcp', help='Bridge MCP to the running desktop')
     mcp.add_argument('--data-dir', type=Path)
     args = parser.parse_args(argv)
-    if args.data_dir is not None:
+    if args.data_dir is not None and args.command == 'serve':
         os.environ['STUDIO_DATA_DIR'] = str(resolve_writable_root(args.data_dir))
     if args.command == 'serve':
         import uvicorn
         from studio.api import create_app
-        uvicorn.run(create_app(), host=args.host, port=args.port, log_config=None)
+        bridge_token = secrets.token_urlsafe(36)
+        app = create_app(bridge_token=bridge_token)
+        root = app.state.data_root
+        instance = os.environ.get('STUDIO_DESKTOP_INSTANCE') or secrets.token_hex(16)
+        os.environ['STUDIO_DESKTOP_INSTANCE'] = instance
+        host = f'[{args.host}]' if args.host == '::1' else args.host
+        runtime = dict(api_url=f'http://{host}:{args.port}', instance_id=instance,
+                       data_root=str(root), service_pid=os.getpid(), schema_version=2, ready=True)
+        publish_connection(runtime, bridge_token)
+        try:
+            uvicorn.run(app, host=args.host, port=args.port, log_config=None)
+        finally:
+            remove_connection(root, instance)
         return 0
     try:
-        runtime = load_desktop_runtime(data_root())
-        verify_desktop_runtime(runtime)
+        root = args.data_dir or Path(os.environ.get('STUDIO_DATA_DIR') or
+                    str(Path(os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')) / 'Frame Studio' / 'studio_data'))
+        runtime, bridge_token = discover_desktop(root)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
     os.environ['STUDIO_API_URL'] = runtime['api_url']
     os.environ['STUDIO_DESKTOP_INSTANCE'] = runtime['instance_id']
+    os.environ['STUDIO_DATA_DIR'] = runtime.get('data_root', str(root))
+    if bridge_token:
+        os.environ['STUDIO_AGENT_TOKEN'] = bridge_token
     from studio_mcp import mcp as server
     server.run(transport='stdio')
     return 0

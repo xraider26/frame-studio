@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { spawn } = require('node:child_process');
+const { mcpCopyItems } = require('./mcp-config.cjs');
 const { resolveWritableRoot, publishRuntime, removeOwnedRuntime, serviceExitMessage, clearWebRouteCache, buildLaunchPlan, getFreePort, waitForHealth, cleanupChildren, isLocalNavigation, isSafeExternal } = require('./runtime.cjs');
 
 app.setName('Orchestra');
@@ -63,10 +64,9 @@ function startChild(name, spec) {
 }
 
 function makeMenu(resources) {
-  const mcp = { mcpServers: { 'frame-studio': { command: path.join(resources, 'backend', 'FrameStudioService.exe'), args: ['mcp', '--data-dir', dataDir] } } };
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: 'Orchestra', submenu: [
-      { label: 'Copy MCP configuration', click: () => clipboard.writeText(JSON.stringify(mcp, null, 2)) },
+      { label: 'Copy MCP configuration', submenu: mcpCopyItems(resources, dataDir, text => clipboard.writeText(text)) },
       { label: 'Open data folder', click: () => { void shell.openPath(dataDir); } },
       { label: 'Open desktop log', click: () => { void shell.openPath(logPath); } },
       { label: 'Restart Orchestra', click: () => { app.relaunch(); app.quit(); } },

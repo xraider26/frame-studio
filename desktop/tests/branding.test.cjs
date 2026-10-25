@@ -45,6 +45,7 @@ for (const {override,smoke} of [{},{override:'custom creator data'},{override:'i
         if (id === 'electron') return electron;
         if (id === 'node:fs') return { ...fs, createWriteStream() { return { on() {}, write() {} }; } };
         if (id === './runtime.cjs') return require('../runtime.cjs');
+        if (id === './mcp-config.cjs') return require('../mcp-config.cjs');
         return require(id);
       },
       __dirname: path.join(__dirname, '..'), process: { env, resourcesPath: profile }, console,

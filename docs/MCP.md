@@ -4,6 +4,12 @@ Image generation/editing requirements and direct ComfyUI workflow execution are 
 
 ## Strict agent contract (next-beta source)
 
+### Windows connection and copying configuration (0.3.1)
+
+In the desktop Orchestra menu, choose **Copy MCP configuration → Codex (TOML)**, **Cursor (JSON)**, **Claude Desktop (JSON)** or **Antigravity (JSON)**. The command is taken from the installed resources directory, including custom/nested installation paths; arguments preserve the existing data directory. Existing stale client commands are not rewritten automatically: replace the Orchestra entry with the freshly copied configuration, then reconnect the client.
+
+The desktop service publishes a private per-user connection under `~/.orchestra/desktop-connections/`, outside Windows' virtualized AppData folders. It contains a separate, per-launch agent credential, never the browser credential. Treat these files as secrets; do not upload or commit them. The bridge verifies the loopback service, instance, PID and data root before using the connection. Existing databases and credentials stay in place, and legacy runtime discovery remains supported. Restarting an MCP client alone cannot repair an older Orchestra service: close Orchestra, install 0.3.1, reopen it and reconnect MCP. Stale connection records are rejected when their service identity is no longer live.
+
 Reconnect the client after upgrading so it loads the Orchestra server instructions and new tools. Existing `frame_studio`/`frame-studio` MCP keys, the legacy service identifier and local data paths remain compatible; they do not need renaming in client settings.
 
 For each project, an agent must:

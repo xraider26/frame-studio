@@ -67,6 +67,22 @@ Implementation is present on this branch. Fresh verification: **165 backend test
 
 ## Commands and remaining release work
 
+### Next-update fix: installed MCP executable path (25 October 2026)
+
+- [ ] Add a target-client selector to Copy MCP config: Codex must receive TOML (`[mcp_servers.frame_studio]` and its environment table); Cursor/Claude must receive the appropriate JSON `mcpServers` format. Label the selected client clearly, preserve the actual executable/data paths and required environment, and verify each copied format parses in its target client. Creator reports the current copy option only supplies Cursor/Claude-style configuration.
+- [ ] Ensure generated/copied MCP configurations resolve the actual installed `FrameStudioService.exe` location, including an `Orchestra` installation subfolder. Check upgrade handling for an existing stale command without overwriting unrelated client settings.
+- Observed: Codex's saved `frame_studio` command pointed to `G:\AI\Frame Studio\resources\backend\FrameStudioService.exe`; the executable exists at `G:\AI\Frame Studio\Orchestra\resources\backend\FrameStudioService.exe`. The connected MCP tool returned `[Errno 2] No such file or directory`.
+- Local workaround already applied: backed up the Codex config and corrected only its executable path. The current connected tool still returned the launch error afterward; reconnection/restart and successful capabilities access remain unverified. An earlier call also reported `Studio connection token required`; do not assume correcting the path resolves authentication.
+- Acceptance: test generated configuration against the actual installed path (including spaces and nested install directories), launch the frozen stdio server through that configuration, and verify `studio_capabilities` succeeds after the client reconnects. Preserve the configured data directory and client environment. This is queued release work, not an implemented or verified product fix.
+
+### Confirmed MCP startup blocker after Codex restart (25 October 2026)
+
+- [ ] Fix discovery when Orchestra runs outside the packaged Codex environment and the MCP child runs inside it. Preserve the active desktop's data/credential identity; do not copy or merge databases, credentials or runtime records as a workaround.
+- `codex mcp get frame_studio` confirms the corrected server is enabled. Codex startup logs at 06:15:31 UTC show the frozen bridge redirecting the requested Roaming data root to `C:\Users\Reforged\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Roaming\Frame Studio\studio_data`, then exiting with `backend_unavailable` and a closed MCP initialize handshake. A direct MCP SDK probe reproduced the same failure.
+- The actual desktop is running from the corrected executable with the original Roaming data root. Its `desktop-runtime.json` identifies a live service; `/health` returned HTTP 200 with matching root/PID/instance. The redirected root has no `desktop-runtime.json`. Investigate `resolve_writable_root` selecting the newly created probe's redirected location before `load_desktop_runtime` discovers the already-running desktop. Current behavior hides the working desktop and gives a misleading instruction to open it.
+- Additional diagnostic: read-only capabilities requests to that live service using the agent credential visible from each root both returned HTTP 401; the two credential values visible inside Codex match. Credential access across the virtualized/non-virtualized processes remains unresolved. Health success does not establish authenticated MCP access; do not claim the connection is repaired or assume changing only runtime discovery suffices.
+- Regression required: launch the desktop outside Codex, launch the frozen MCP bridge inside packaged Codex, and verify initialize/list_tools/capabilities against that same desktop and existing projects. Prior tests launching both processes under the same parent do not cover this case. Also report the attempted discovery root and a useful connection diagnostic without exposing credentials.
+
 Backend tests, from `backend`: `.venv/Scripts/python.exe -m unittest discover -s tests -q`.
 
 Frontend, from `frontend`: `npm test` and `npm run build` using Node 22.12 or newer. Desktop, from `desktop`: `npm test`.

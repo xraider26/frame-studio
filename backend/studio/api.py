@@ -43,7 +43,7 @@ class Command(BaseModel):
     actor: str = 'agent'
 
 
-def create_app(data_root=None, agent_token=None, ui_token=None):
+def create_app(data_root=None, agent_token=None, ui_token=None, bridge_token=None):
     root = resolve_writable_root(Path(data_root)) if data_root is not None else default_data_root()
     root.mkdir(parents=True, exist_ok=True)
     agent_token = agent_token or credential(root, 'agent.token')
@@ -64,6 +64,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
     app = FastAPI(title='Orchestra MCP workflow', lifespan=lifespan)
     app.state.studio = studio
     app.state.providers = providers
+    app.state.data_root = root
 
     @app.exception_handler(StudioError)
     async def studio_error(request, exc):
@@ -74,6 +75,8 @@ def create_app(data_root=None, agent_token=None, ui_token=None):
         if secrets.compare_digest(token, ui_token):
             return True
         if secrets.compare_digest(token, agent_token):
+            return False
+        if bridge_token and secrets.compare_digest(token, bridge_token):
             return False
         raise HTTPException(401, 'Studio connection token required.')
 
