@@ -106,7 +106,8 @@ class Dispatch:
     def claim_queue_task(self, actor, request_id, batch_id=None):
         key = checked_text(actor, 100, True) + ':' + checked_text(request_id, 200, True)
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             retried = conn.execute('SELECT status,expires_at,payload FROM studio_tasks WHERE request_key=?', (key,)).fetchone()
             if retried:
                 task = json.loads(retried[2])
@@ -145,7 +146,8 @@ class Dispatch:
 
     def renew_queue_task(self, task_id, actor):
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             task = self._owned_task(conn, task_id, actor)
             task['expires_at'] = expiry()
             conn.execute('UPDATE studio_tasks SET expires_at=?,payload=? WHERE id=?', (task['expires_at'], json.dumps(task), task_id))
@@ -156,7 +158,8 @@ class Dispatch:
             raise StudioError('invalid_task_status', 'Finish a queue task as done or blocked.')
         note = checked_text(note, 2000, status == 'blocked')
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             task = self._owned_task(conn, task_id, actor)
             row = conn.execute('SELECT payload FROM studio_projects WHERE id=?', (task['project_id'],)).fetchone()
             p = load(row[0])

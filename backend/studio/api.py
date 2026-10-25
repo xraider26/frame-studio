@@ -1,6 +1,8 @@
 import os
 import secrets
 import uuid
+import json
+import copy
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,7 @@ from .sequences import sequence_catalog
 from .course_rules import course_coverage, source_catalog
 from .comfy_export import export_comfy
 from .paths import data_root as default_data_root, mcp_launch_configuration, resolve_writable_root
+from .creator_chat import current_decision, prepare_decision, prior_decision, decision_scope, decision_project, decision_response, OPERATIONS
 
 def credential(root, filename):
     root.mkdir(parents=True, exist_ok=True)
@@ -102,9 +105,59 @@ def create_app(data_root=None, agent_token=None, ui_token=None, bridge_token=Non
 
     @app.post('/studio/v1/command')
     async def command(body: Command, request: Request):
-        human = authorize(request)
+        authenticated_human = authorize(request)
+        relay = current_decision()
+        human = authenticated_human or bool(relay)
         op, a = body.operation, body.arguments
-        actor = 'user' if human else 'agent:' + body.actor[:94]
+        actor = relay['actor'] if relay else 'user' if human else 'agent:' + body.actor[:94]
+        if op == 'creator_decision':
+            if relay:
+                raise StudioError('invalid_creator_decision', 'Nested creator decisions are not supported.')
+            decision = prepare_decision(a, body.actor)
+            project = decision_project(studio, decision['project_id'])
+            if prior_decision(project, decision):
+                return decision_response(studio, decision)
+            if project.get('deleted_at') and decision['operation'] != 'restore_project':
+                raise StudioError('project_deleted', 'Restore this project before another decision.', 409)
+            if project['revision'] != decision['expected_revision']:
+                raise StudioError('revision_conflict', 'Refresh the target project before applying the creator instruction.', 409)
+            if not authenticated_human and not project.get('deleted_at'):
+                studio.require_workflow_contract(project['id'], 'agent:'+body.actor[:94])
+            arguments = {**decision['arguments'], 'project_id': project['id'], 'expected_revision': decision['expected_revision']}
+            if decision['operation'] == 'import_reference' and getattr(request.state, 'creator_reference_upload', None):
+                arguments['path'] = request.state.creator_reference_upload
+            object_revision = {'rename_project_template':'template_revision', 'delete_project_template':'template_revision', 'update_batch':'batch_revision', 'sync_batch_identity':'batch_revision'}.get(decision['operation'])
+            if object_revision:
+                validate_revision(arguments.get(object_revision))
+                arguments['expected_revision'] = arguments.pop(object_revision)
+            if decision['operation'] == 'request_revision':
+                arguments['reason'] = decision['user_instruction']
+            if decision['operation'] in {'update_batch', 'sync_batch_identity'}:
+                batch = studio.get_batch(arguments.get('batch_id', ''))
+                if project['id'] not in batch['project_ids'] and project['id'] != batch.get('identity_source_project_id'):
+                    raise StudioError('decision_target', 'The decision project must belong to the target batch or be its canonical source.', 409)
+                if decision['operation'] == 'sync_batch_identity' and arguments.get('source_project_id') != project['id']:
+                    raise StudioError('decision_target', 'Name the actual canonical source as the decision project.', 409)
+                decision['allowed_projects'] = set(batch['project_ids']) | {project['id']}
+            external_result = None
+            if decision['operation'] == 'validate_connection':
+                connection_id = arguments['connection_id']
+                before_connection = copy.deepcopy(providers.connections.get(connection_id))
+                # This is a read-only remote capability probe. Never hold a
+                # synchronous SQLite writer lock across its network await.
+                external_result = await providers.validate_connection(connection_id)
+                if providers.connections.get(connection_id) != before_connection:
+                    raise StudioError('revision_conflict', 'Connection settings changed during validation; retry with current inputs.', 409)
+            with decision_scope(decision, studio) as active_decision:
+                if active_decision['replayed']:
+                    return decision_response(studio, decision)
+                result = external_result if decision['operation'] == 'validate_connection' else await command(Command(operation=decision['operation'], arguments=arguments, actor=body.actor), request)
+                # Some equivalent creator controls operate outside a project
+                # payload (saved templates/connections). Attribute their result.
+                current = decision_project(studio, project['id'])
+                if not prior_decision(current, decision):
+                    studio.mutate(project['id'], current['revision'], lambda p: None, allow_deleted=True)
+                return decision_response(studio, decision, result, save_result=True)
         if op == 'update_production' and isinstance(a.get('production'), dict) and any(k in a['production'] for k in ['resources', 'require_recorded_checks', 'recipe']) and not human:
             raise StudioError('human_only', 'Resource and quality policy belong to the user. Agents may report evidence and actual job costs.', 403)
         if op in ['review_calibration', 'set_calibration_mode', 'configure_calibration', 'validate_connection', 'export_comfy_handoff', 'apply_sequence', 'set_policy', 'review', 'save_connection', 'delete_project', 'restore_project', 'list_deleted', 'save_project_template', 'rename_project_template', 'delete_project_template', 'update_batch', 'set_project_dispatch', 'sync_batch_identity', 'endorse_recipe', 'activate_recipe', 'record_recipe_trial'] and not human:
@@ -138,7 +191,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None, bridge_token=Non
         if op == 'get_workflow_contract': return studio.get_workflow_contract(a['project_id'], a.get('detail', 'summary'))
         if op == 'acknowledge_workflow_contract': return studio.acknowledge_workflow_contract(a['project_id'], a['contract_version'], a.get('expected_revision'), actor)
         if op == 'studio_capabilities':
-            capabilities = {'server': 'Orchestra', 'schema_version': 2, 'rules_version': RULES_VERSION, 'agent_contract_required': True, 'initial_action': studio.start_project_setup(), 'agent_bootstrap': ['start_project_setup', 'studio_capabilities', 'get_project', 'get_workflow_contract', 'acknowledge_workflow_contract', 'next_action'], 'transport': 'stdio bridge',
+            capabilities = {'server': 'Orchestra', 'schema_version': 2, 'rules_version': RULES_VERSION, 'agent_contract_required': True, 'initial_action': studio.start_project_setup(), 'agent_bootstrap': ['start_project_setup', 'studio_capabilities', 'get_project', 'get_workflow_contract', 'acknowledge_workflow_contract', 'next_action'], 'transport': 'stdio bridge', 'creator_decisions': {'tool': 'creator_decision', 'authority': 'user_instruction_relayed', 'operations': sorted(OPERATIONS)},
                     'mcp_launch': mcp_launch_configuration(root),
                     'creative_schema': creative_schema(), 'knowledge_coverage': knowledge_catalog()['coverage'],
                     'execution_modes': ['agent_handoff', 'json_job_api', 'comfyui'], 'flow_account': 'not_connected',
@@ -189,6 +242,7 @@ def create_app(data_root=None, agent_token=None, ui_token=None, bridge_token=Non
         if op == 'record_take_review': return studio.record_take_review(a['project_id'], a['asset_id'], a['review'], a['expected_revision'], actor)
         if op == 'select_take': return studio.select_take(a['project_id'], a['asset_id'], a['expected_revision'], actor)
         if op == 'revise_shot': return studio.revise_shot(a['project_id'], a['shot_id'], a['kind'], a['reason'], a['expected_revision'], actor)
+        if op == 'request_revision': return studio.request_revision(a['project_id'], a.get('shot_id'), a.get('asset_id'), a.get('kind', 'image'), a['reason'], a['expected_revision'], actor)
         if op == 'extract_continuation': return studio.extract_continuation(a['project_id'], a['asset_id'], a['expected_revision'], actor)
         if op == 'repair_handoff': return studio.repair_handoff(a['project_id'], a['asset_id'], a['defect'], a.get('mask_asset_id', ''), a['expected_revision'], actor)
         if op == 'record_job_cost': return studio.record_job_cost(a['project_id'], a['job_id'], a['actual'], a['evidence'], a['expected_revision'], actor)
@@ -223,6 +277,76 @@ def create_app(data_root=None, agent_token=None, ui_token=None, bridge_token=Non
         if op == 'export_comfy_handoff': return export_comfy(studio, providers, a['project_id'], a['connection_id'])
         if op == 'run_provider': return providers.submit(a['job_id'], a['connection_id'])
         raise StudioError('unknown_operation', 'Unknown Orchestra operation. Read studio_capabilities for supported tools, then get_workflow_contract and next_action for the project.')
+
+    @app.post('/studio/v1/jobs/{job_id}/output')
+    async def upload_job_output(job_id: str, request: Request):
+        human = authorize(request)
+        async with request.form() as form:
+            actor = 'user' if human else 'agent:'+str(form.get('actor', 'upload'))[:94]
+            project, job = studio.find_job(job_id)
+            if job['actor'] != actor:
+                raise StudioError('job_owner', 'Only the claiming executor may upload this output.', 403)
+            if job['status'] in {'canceled', 'failed', 'interrupted'}:
+                raise StudioError('job_closed', 'This generation job is closed.', 409)
+            file = form.get('file')
+            if not file or not hasattr(file, 'read'):
+                raise StudioError('missing_upload', 'Provide the generated image or video.')
+            suffix = Path(str(getattr(file, 'filename', ''))).suffix.lower()
+            allowed = {'.png', '.jpg', '.jpeg', '.webp'} if job['kind'] == 'image' else {'.mp4'}
+            if suffix not in allowed:
+                raise StudioError('invalid_asset', 'Upload the media type requested by this job.')
+            path = studio.inbox / ('upload-'+uuid.uuid4().hex+suffix)
+            try:
+                with path.open('xb') as stream:
+                    size = 0
+                    while chunk := await file.read(1024*1024):
+                        size += len(chunk)
+                        if size > 500*1024*1024:
+                            raise StudioError('upload_too_large', 'Generated output must be at most 500 MB.', 413)
+                        stream.write(chunk)
+                return studio.return_result(job_id, str(path), actor)
+            finally:
+                path.unlink(missing_ok=True)
+                await file.close()
+
+    @app.post('/studio/v1/creator-reference')
+    async def upload_creator_reference(request: Request):
+        human = authorize(request)
+        async with request.form() as form:
+            try:
+                payload = json.loads(str(form.get('decision', '')))
+            except (ValueError, TypeError) as exc:
+                raise StudioError('invalid_creator_decision', 'Provide the explicit reference instruction and target.') from exc
+            actor = str(form.get('actor', 'upload'))[:94]
+            decision = prepare_decision(payload, actor)
+            if decision['operation'] != 'import_reference':
+                raise StudioError('invalid_creator_decision', 'This endpoint only imports the requested reference.')
+            project = studio.get(decision['project_id'])
+            if not prior_decision(project, decision):
+                if project['revision'] != decision['expected_revision']:
+                    raise StudioError('revision_conflict', 'Refresh before uploading the requested reference.', 409)
+                if not human:
+                    studio.require_workflow_contract(project['id'], 'agent:'+actor)
+            file = form.get('file')
+            if not file or not hasattr(file, 'read'):
+                raise StudioError('missing_upload', 'Provide the requested reference file.')
+            suffix = Path(str(getattr(file, 'filename', ''))).suffix.lower()
+            if suffix not in {'.png', '.jpg', '.jpeg', '.webp', '.mp4'}:
+                raise StudioError('invalid_asset', 'Use an image or MP4 reference.')
+            path = studio.inbox / ('upload-reference-'+uuid.uuid4().hex+suffix)
+            try:
+                with path.open('xb') as stream:
+                    size = 0
+                    while chunk := await file.read(1024*1024):
+                        size += len(chunk)
+                        if size > 500*1024*1024:
+                            raise StudioError('upload_too_large', 'Reference must be at most 500 MB.', 413)
+                        stream.write(chunk)
+                request.state.creator_reference_upload = str(path)
+                return await command(Command(operation='creator_decision', arguments=payload, actor=actor), request)
+            finally:
+                path.unlink(missing_ok=True)
+                await file.close()
 
     @app.post('/studio/v1/upload')
     async def upload(request: Request):

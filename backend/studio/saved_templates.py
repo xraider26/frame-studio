@@ -1,4 +1,5 @@
 """Reusable local project recipes. Snapshots contain planning inputs, never results."""
+from .creator_chat import creator_authority
 import copy
 import json
 import uuid
@@ -105,7 +106,8 @@ class SavedTemplates(RecipeEvidence):
         sections = selected_sections(sections)
         name, description = text(name, 150, True), text(description, 2000)
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             row = conn.execute('SELECT payload FROM studio_projects WHERE id=?', (project_id,)).fetchone()
             if not row:
                 raise StudioError('not_found', 'Project not found.', 404)
@@ -123,7 +125,8 @@ class SavedTemplates(RecipeEvidence):
     def rename_project_template(self, template_id, name, description, expected_revision):
         name, description = text(name, 150, True), text(description, 2000)
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             t = self.get_saved_template(template_id, expected_revision)
             t.update(name=name, description=description, revision=t['revision'] + 1)
             conn.execute('UPDATE studio_templates SET payload=? WHERE id=?', (json.dumps(t), template_id))
@@ -131,7 +134,8 @@ class SavedTemplates(RecipeEvidence):
 
     def delete_project_template(self, template_id, expected_revision):
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             self.get_saved_template(template_id, expected_revision)
             conn.execute('DELETE FROM studio_templates WHERE id=?', (template_id,))
         return {'deleted': True, 'template_id': template_id}
@@ -207,9 +211,9 @@ class SavedTemplates(RecipeEvidence):
                 p['documents'] = {}
             self._restore_template(p, t, chosen)
             self._guard_calibration_mutation(before, p, actor)
-            if actor != 'user' and any(r not in p['production']['reference_requirements'] for r in before['production']['reference_requirements'] if r['required']):
+            if not creator_authority(actor) and any(r not in p['production']['reference_requirements'] for r in before['production']['reference_requirements'] if r['required']):
                 raise StudioError('human_only', 'Only the creator can replace or narrow required reference fidelity through a template.', 403)
-            if actor != 'user' and p['production'].get('recipe', {}) != before['production'].get('recipe', {}):
+            if not creator_authority(actor) and p['production'].get('recipe', {}) != before['production'].get('recipe', {}):
                 raise StudioError('human_only', 'This saved setup changes recipe standards. Apply it as the user or reuse sections that preserve the current recipe.', 403)
             if 'story' not in chosen:
                 affected = self._changed_inputs(before, p)

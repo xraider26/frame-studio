@@ -75,7 +75,8 @@ class Batching:
             raise StudioError('invalid_batch', 'Provide exactly one optional brief per batch item.')
         briefs = [checked_text(v) for v in briefs] if briefs is not None else [''] * count
         with cleanup_copies() as copied, self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             for row in conn.execute('SELECT payload FROM studio_batches'):
                 existing = json.loads(row[0])
                 if existing['request_id'] == request_id:
@@ -109,7 +110,8 @@ class Batching:
     def update_batch(self, batch_id, policy, expected_revision):
         policy = validate_policy(policy)
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             row = conn.execute('SELECT payload FROM studio_batches WHERE id=?', (batch_id,)).fetchone()
             if not row:
                 raise StudioError('batch_not_found', 'Production batch not found.', 404)
@@ -132,6 +134,9 @@ class Batching:
                     self._reopen(p, 'visual_direction')
                 p['revision'] += 1
                 self._progress(p)
+                from .creator_chat import current_decision, append_decision
+                if current_decision():
+                    append_decision(p, current_decision())
                 conn.execute('UPDATE studio_projects SET payload=? WHERE id=?', (json.dumps(p), p['id']))
             conn.execute('UPDATE studio_batches SET payload=? WHERE id=?', (json.dumps(b), batch_id))
         return b
@@ -141,7 +146,9 @@ class Batching:
             raise StudioError('invalid_dispatch', 'Use a pause toggle and integer priority from -100 to 100.')
         def update(p):
             p['dispatch'] = {'paused': paused, 'priority': priority, 'blocked_reason': ''}
-            p['history'].append({'at': utc(), 'type': 'dispatch_policy', 'actor': 'user', 'message': 'Project paused' if paused else 'Project queued; blocked note cleared'})
+            from .creator_chat import current_decision
+            decision = current_decision()
+            p['history'].append({'at': utc(), 'type': 'dispatch_policy', 'actor': decision['actor'] if decision else 'user', 'message': 'Project paused' if paused else 'Project queued; blocked note cleared'})
         return self.mutate(project_id, expected_revision, update)
 
     def _batch_metrics(self, batch, projects):

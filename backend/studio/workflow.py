@@ -1,3 +1,4 @@
+from .creator_chat import creator_authority
 import copy
 import hashlib
 import json
@@ -38,6 +39,10 @@ def now():
 
 
 def event(p, kind, actor, message):
+    from .creator_chat import current_decision
+    decision = current_decision()
+    if decision and actor == 'user':
+        actor = decision['actor']
     p['history'].append({'at': now(), 'type': kind, 'actor': actor[:100], 'message': message[:1000]})
 
 
@@ -116,7 +121,7 @@ class Studio(ContextReads, ExecutionEvidence, Calibration, Sequences, AgentRules
         combined.update(patch)
         changed = [kind for kind in ('image', 'video') if old.get(kind) != combined.get(kind)]
         combined['selection_fingerprint'] = selection_fingerprint(combined)
-        combined['assertion_authority'] = 'human_ui' if actor == 'user' else 'agent_reported'
+        combined['assertion_authority'] = 'human_ui' if actor == 'user' else 'user_instruction_relayed' if creator_authority(actor) else 'agent_reported'
         combined['recorded_by'] = actor
         p['generation_setup'] = combined
         from .creative import Capabilities
@@ -252,7 +257,7 @@ class Studio(ContextReads, ExecutionEvidence, Calibration, Sequences, AgentRules
         return serialize_project(p, detail)
 
     def activate_recipe(self, project_id, expected_revision, actor):
-        if actor != 'user':
+        if not creator_authority(actor):
             raise StudioError('human_only', 'Activating or migrating recipe standards belongs to the user.', 403)
         if type(expected_revision) is not int:
             raise StudioError('invalid_revision', 'Refresh the project revision before activating a recipe.')
@@ -279,6 +284,8 @@ class Studio(ContextReads, ExecutionEvidence, Calibration, Sequences, AgentRules
         return result
 
     def _progress(self, p):
+        from .calibration import recover_baseline_approval
+        recover_baseline_approval(p)
         remember_calibration_pending(p)
         if p.get('calibration') and p['calibration']['mode'] == 'calibration':
             p['calibration']['status'] = calibration_state(p)['status']
@@ -403,7 +410,7 @@ class Studio(ContextReads, ExecutionEvidence, Calibration, Sequences, AgentRules
         return self.mutate(project_id, expected_revision, update)
 
     def complete_step(self, project_id, step, output, expected_revision, actor):
-        if actor != 'user':
+        if not creator_authority(actor):
             self.require_generation_setup(project_id)
         if step not in ['brief', 'script', 'editor_handoff', 'final_review']:
             raise StudioError('invalid_step', 'This step requires returned image/video jobs, not a text completion.')
@@ -413,7 +420,7 @@ class Studio(ContextReads, ExecutionEvidence, Calibration, Sequences, AgentRules
         def update(p):
             self._guard_calibration_pending(p, actor)
             steps = active_steps(p)
-            if actor != 'user':
+            if not creator_authority(actor):
                 action = self._next(p)
                 if action['action'] != 'prepare_step' or action['step'] != step:
                     raise StudioError('step_blocked', 'Follow current next_action: ' + action['action'] + '. ' + action['message'] + ' Refresh get_project before continuing.', 409)
@@ -481,15 +488,15 @@ class Studio(ContextReads, ExecutionEvidence, Calibration, Sequences, AgentRules
         return self.mutate(project_id, expected_revision, update)
 
     def update_production(self, project_id, production, expected_revision, actor):
-        if actor != 'user':
+        if not creator_authority(actor):
             self.require_generation_setup(project_id)
         if not isinstance(production, dict):
             raise StudioError('invalid_creative_record', 'Production must be an object.')
         def update(p):
             data = validated(Production, merge(p['production'], production))
-            if actor != 'user' and data['recipe'] != p['production']['recipe']:
+            if not creator_authority(actor) and data['recipe'] != p['production']['recipe']:
                 raise StudioError('human_only', 'Changing recipe standards belongs to the user.', 403)
-            if actor != 'user' and data['reference_requirements'] != p['production']['reference_requirements']:
+            if not creator_authority(actor) and data['reference_requirements'] != p['production']['reference_requirements']:
                 old = p['production']['reference_requirements']
                 if any(r not in data['reference_requirements'] for r in old if r['required']):
                     raise StudioError('human_only', 'Only the creator can narrow required reference fidelity.', 403)
@@ -518,7 +525,7 @@ class Studio(ContextReads, ExecutionEvidence, Calibration, Sequences, AgentRules
         return self.mutate(project_id, expected_revision, update)
 
     def update_shots(self, project_id, shots, expected_revision, actor):
-        if actor != 'user':
+        if not creator_authority(actor):
             self.require_generation_setup(project_id)
         if not isinstance(shots, list) or not 1 <= len(shots) <= 200 or any(not isinstance(s, dict) for s in shots):
             raise StudioError('invalid_shots', 'Provide between 1 and 200 ordered shots.')

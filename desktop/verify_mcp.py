@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from verify_chat_transport import verify_chat_transport
 
 
 async def verify():
@@ -18,7 +19,7 @@ async def verify():
         async with ClientSession(read, write) as client:
             await client.initialize()
             names = {t.name for t in (await client.list_tools()).tools}
-            assert {'recipe_catalog', 'knowledge_catalog', 'create_project', 'list_projects', 'start_project_setup', 'record_generation_execution', 'get_context'} <= names
+            assert {'recipe_catalog', 'knowledge_catalog', 'create_project', 'list_projects', 'start_project_setup', 'record_generation_execution', 'get_context', 'creator_decision'} <= names
             assert not {'review', 'set_policy'} & names
             capabilities = await client.call_tool('studio_capabilities', {})
             assert not capabilities.isError, capabilities.content
@@ -30,8 +31,9 @@ async def verify():
             content = content.get('result', content)
             assert len(content['recipes']) == 16
             assert sum(r.get('output_type') == 'image' for r in content['recipes']) == 7
+            print(json.dumps(await verify_chat_transport(client)), flush=True)
             print(json.dumps({'stdio': 'passed', 'tools': len(names), 'recipes': len(content['recipes'])}))
 
 
 if __name__ == '__main__':
-    asyncio.run(asyncio.wait_for(verify(), 30))
+    asyncio.run(asyncio.wait_for(verify(), 60))

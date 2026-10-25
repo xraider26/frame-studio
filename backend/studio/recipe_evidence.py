@@ -101,7 +101,8 @@ class RecipeEvidence:
         if type(expected_revision) is not int or type(template_revision) is not int:
             raise StudioError('invalid_revision', 'Project and template revisions are required.')
         with self.connect() as conn:
-            conn.execute('BEGIN IMMEDIATE')
+            if not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             row = conn.execute('SELECT payload FROM studio_templates WHERE id=?', (template_id,)).fetchone()
             if not row:
                 raise StudioError('template_not_found', 'Saved recipe no longer exists.', 404)

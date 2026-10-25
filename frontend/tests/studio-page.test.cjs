@@ -19,8 +19,8 @@ const fixture=spawnSync(path.resolve(__dirname,'../../backend/.venv/Scripts/pyth
 assert.equal(fixture.status,0,fixture.stderr);
 const base=JSON.parse(fixture.stdout);
 const caps={templates:[{id:'ai-film',name:'AI film',structure:[],output_type:'video'},{id:'image-custom',name:'Custom image',structure:[],output_type:'image'}],steps:Object.keys(base.steps).map(id=>({id,name:id})),connections:[],image_profiles:[],video_profiles:[]};
-async function mount(action){
- const project={...base,next_action:action};
+async function mount(action,overrides={}){
+ const project={...base,next_action:action,...overrides};
  global.fetch=async(_url,options)=>{const {operation}=JSON.parse(options.body);let data={items:[],batches:[],instructions:''};if(operation==='studio_capabilities')data=caps;if(operation==='list_projects')data=[project];if(operation==='get_project')data=project;if(operation==='knowledge_catalog')data=null;return {ok:true,json:async()=>data};};
  const root=createRoot(document.getElementById('root'));await React.act(()=>root.render(React.createElement(StudioPage)));
  await React.act(()=>{const select=document.getElementById('project-select');select.value=project.id;select.dispatchEvent(new window.Event('change',{bubbles:true}));});
@@ -34,4 +34,33 @@ test('Continue routes an image final approval to Review without showing video im
 test('Continue opens the brief document and five stage navigation shares a single active tool',async()=>{
  const root=await mount({action:'prepare_step',step:'brief',message:'Prepare your brief'});
  try{await React.act(()=>button('Continue').click());assert.ok(document.getElementById('step-document'));assert.equal(document.querySelectorAll('.fs-project-stages [aria-current="step"]').length,1);assert.equal(document.querySelectorAll('.fs-subnav [aria-current="page"]').length,1);await React.act(()=>button('02Plan').click());assert.equal(document.querySelector('.fs-project-stages [aria-current="step"]').textContent,'02Plan');}finally{await React.act(()=>root.unmount());}
+});
+
+test('project generators remain a single summary after repeated navigation and refresh',async()=>{
+ const root=await mount({action:'quality_attention',step:'final_review',message:'Inspect images'},{generation_setup:{version:1,image:{executor:'agent_builtin',tool_name:'Built-in image tool',profile:'general_image',model:null,model_version_status:'managed',connection_id:null,selection_source:'creator_statement',source_text:'Use built-in images'}}});
+ const summaries=()=>[...document.querySelectorAll('h2')].filter(el=>el.textContent==='Project generators');
+ try{
+  for(let i=0;i<3;i++){
+   for(const stage of ['02Plan','03Create','04Review']){
+    await React.act(()=>button(stage).click());
+    assert.equal(summaries().length,1,`Only one project generator summary after ${stage}, pass ${i}`);
+    assert.equal(document.querySelectorAll('[data-generator-question]').length,0,'Saved generators stay collapsed');
+   }
+   await React.act(()=>document.querySelector('[aria-label="Refresh studio"]').click());
+   assert.equal(summaries().length,1,'Refresh must not retain orphan generator panels');
+  }
+  await React.act(()=>button('Change generator setup').click());
+  await React.act(()=>{
+   const input=document.querySelector('[aria-label="Image tool name"]');
+   Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(input,'My unsaved generator');
+   input.dispatchEvent(new window.Event('input',{bubbles:true}));
+  });
+  for(const stage of ['03Create','04Review']){
+   await React.act(()=>button(stage).click());
+   assert.equal(summaries().length,1);
+   assert.equal(document.querySelector('[aria-label="Image tool name"]').value,'My unsaved generator','Navigation preserves the active generator draft');
+  }
+  await React.act(()=>document.querySelector('[aria-label="Refresh studio"]').click());
+  assert.equal(document.querySelector('[aria-label="Image tool name"]').value,'My unsaved generator');
+ }finally{await React.act(()=>root.unmount());}
 });

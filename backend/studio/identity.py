@@ -72,7 +72,8 @@ class Identity:
         copied = []
         try:
             with self.connect() as conn:
-                conn.execute('BEGIN IMMEDIATE')
+                if not conn.in_transaction:
+                    conn.execute('BEGIN IMMEDIATE')
                 batch = self.get_batch(batch_id)
                 source = self.get(source_project_id)
                 if batch['revision'] != expected_revision or source['revision'] != source_revision:
@@ -89,8 +90,12 @@ class Identity:
                     if affected:
                         self._invalidate_selected(p, affected)
                     p['revision'] += 1
-                    p['history'].append({'at': utc(), 'type': 'identity_sync', 'actor': 'user', 'message': f'Canonical identity synchronized to version {version}'})
+                    from .creator_chat import current_decision, append_decision
+                    decision = current_decision()
+                    p['history'].append({'at': utc(), 'type': 'identity_sync', 'actor': decision['actor'] if decision else 'user', 'message': f'Canonical identity synchronized to version {version}'})
                     self._progress(p)
+                    if decision:
+                        append_decision(p, decision)
                     conn.execute('UPDATE studio_projects SET payload=? WHERE id=?', (json.dumps(p), p['id']))
                 batch.update(identity_version=version, identity_source_project_id=source_project_id, identity_source_revision=source_revision, revision=batch['revision'] + 1)
                 conn.execute('UPDATE studio_batches SET payload=? WHERE id=?', (json.dumps(batch), batch_id))

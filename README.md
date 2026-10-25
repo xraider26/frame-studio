@@ -6,9 +6,9 @@ Formerly Frame Studio. Orchestra keeps existing projects, MCP identifiers and ap
 
 Plan the story, choose the visual direction, generate through your own tools, and review each result in one local studio. Frame keeps the workflow, creative decisions, references and quality checks together so a successful approach can be reused.
 
-[Download Orchestra 0.3.1 for Windows](https://github.com/xraider26/frame-studio/releases/tag/v0.3.1) · [Release notes](docs/releases/v0.3.1.md) · [First project](docs/GETTING-STARTED.md) · [Agent / MCP guide](docs/MCP.md) · [Windows setup](docs/WINDOWS.md)
+[Download Orchestra 0.3.2 for Windows](https://github.com/xraider26/frame-studio/releases/tag/v0.3.2) · [Release notes](docs/releases/v0.3.2.md) · [First project](docs/GETTING-STARTED.md) · [Agent / MCP guide](docs/MCP.md) · [Windows setup](docs/WINDOWS.md)
 
-**0.3.1** fixes MCP discovery and authentication when Windows gives Codex a different AppData view from the running desktop. The desktop Copy MCP configuration menu now offers Codex TOML and Cursor, Claude Desktop and Antigravity JSON using the actual installed executable. Existing image/video projects, generator setup, calibration and compact agent handoffs are retained.
+**0.3.2** supports creator decisions directly in MCP chat, preserves shared calibration across different scenes, fixes repeated generator panels, and transfers generated media and references across Windows AppData boundaries. Scene lighting and terrain can vary within one approved project; changing shared rendered settings still invalidates affected outputs.
 
 The workspace separates **Image / Video templates**, includes seven image formats and seven editable video sequence patterns, and organizes tools into **Brief → Plan → Create → Review → Export**. See [templates and navigation](docs/TEMPLATES-AND-SEQUENCES.md).
 

@@ -1,4 +1,5 @@
 """Editorial coverage plans, never an internal timeline renderer or generation job."""
+from .creator_chat import creator_authority
 import copy
 import math
 import uuid
@@ -110,7 +111,7 @@ class Sequences:
         return {'source_revision':p['revision'],'sequence_id':sequence_id,'roles':shots,'shot_count':len(shots),'replacement_required':any(counts.values()),'existing_work':counts}
 
     def apply_sequence(self, project_id, sequence_id, expected_revision, confirm_replace=False, actor='user'):
-        if actor!='user': raise StudioError('human_only','Applying a sequence belongs to the user. Agents may propose and edit coverage through the normal planning tools.',403)
+        if not creator_authority(actor): raise StudioError('human_only','Applying a sequence belongs to the user. Agents may propose and edit coverage through the normal planning tools.',403)
         if type(expected_revision) is not int: raise StudioError('invalid_revision','Refresh the project revision before applying a sequence.')
         if type(confirm_replace) is not bool: raise StudioError('invalid_input','confirm_replace must be true or false.')
         sequence=sequence_by_id(sequence_id)

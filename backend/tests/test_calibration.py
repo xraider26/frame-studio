@@ -170,6 +170,7 @@ class CalibrationTests(unittest.TestCase):
     def test_structural_shot_style_override_requires_its_own_creator_acceptance(self):
         p, a = self.approved()
         shots = copy.deepcopy(p['shots']); shots[1]['direction']['art']['palette'] = 'Ultramarine'
+        shots[1]['direction']['style_review'] = 'separate'
         p = self.s.update_shots(p['id'], shots, p['revision'], 'agent:test')
         p, other = self.take(p, 'override'); p = self.inspect(p, other)
         action = self.s.next_action(p['id'])

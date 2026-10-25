@@ -994,5 +994,11 @@
 .cv-media-upload input[type=file]{padding:12px;max-width:100%}.cv-media-upload .fs-label{margin-bottom:12px}
 .cv-creative-brief{margin-bottom:28px;border-left:3px solid #e7803c;padding:20px 24px;background:rgba(237,143,63,.04)}
 .cv-creative-brief textarea{width:100%;min-width:0}.cv-reference-preview{border:0;background:none;cursor:zoom-in;padding:0}
+.fs-generator-setup{margin:12px 0;border:1px solid var(--fs-line);border-radius:8px}
+.fs-generator-summary{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
+.fs-generator-summary h2{margin:0;font-size:12px;font-weight:600}
+.fs-generator-summary p{flex:1;min-width:0;margin:0;font-size:12px;color:var(--fs-muted);overflow-wrap:anywhere}
+.fs-generator-summary .fs-button{margin:0;padding:6px 10px}
+.fs-generator-details{padding:0 14px 14px;border-top:1px solid var(--fs-line)}
 .fs-modal{max-height:90svh;overflow-y:auto}.cv-media-upload button:focus-visible,.cv-reference-preview:focus-visible{outline:2px solid #f79049;outline-offset:3px}
 @media(max-width:650px){.cv-creative-brief{padding:16px}.cv-media-upload{padding:14px}}

@@ -444,7 +444,7 @@ export default function StudioPage() {
             </section>
           )}
 
-          {project && view !== "generator" && <GeneratorSetup key={project.id} project={project} busy={busy} save={fn=>act(fn,"Generator setup saved")} imageProfiles={caps?.image_profiles} videoProfiles={caps?.video_profiles}/>}
+          {project && <GeneratorSetup key={project.id+":generators"} project={project} busy={busy} save={fn=>act(fn,"Generator setup saved")} imageProfiles={caps?.image_profiles} videoProfiles={caps?.video_profiles}/>}
           {project && view !== "generator" && <CalibrationPanel key={project.id+":calibration"} project={project} busy={busy} save={fn=>act(fn,"Calibration saved")}/>}
 
           {project && view === "home" && (
@@ -798,7 +798,7 @@ export default function StudioPage() {
 
           {project && view === "generator" && caps && (
             <GeneratorExport
-              key={project.id}
+              key={project.id+":generator-export"}
               project={project}
               videoProfiles={caps.video_profiles}
               imageProfiles={caps.image_profiles}
@@ -935,12 +935,12 @@ export default function StudioPage() {
                     </div>
                   )}
           </section>}
-          {project && view === "sequences" && !imageOnly && <SequenceWorkspace key={project.id} project={project} busy={busy} save={fn=>act(fn,"Sequence applied")}/>}
+          {project && view === "sequences" && !imageOnly && <SequenceWorkspace key={project.id+":sequences"} project={project} busy={busy} save={fn=>act(fn,"Sequence applied")}/>}
           {project && view === "delivery" && <ImageDelivery project={project}/>}
 
           {project && view === "shots" && (
             <CreativeWorkspace
-              key={project.id}
+              key={project.id+":shots"}
               project={project}
               catalog={catalog}
               busy={busy}
@@ -962,7 +962,7 @@ export default function StudioPage() {
           {view === "knowledge" && <CinematographyLibrary catalog={catalog} project={project} busy={busy} save={(fn)=>act(fn,"Creative direction applied")} />}
           {project && view === "takes" && (
             <TakesWorkspace
-              key={project.id}
+              key={project.id+":takes"}
               project={project}
               busy={busy}
               save={(fn) => act(fn, "Production evidence saved")}

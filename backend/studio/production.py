@@ -52,10 +52,14 @@ def quality_passed(p, shot, kind):
 
 
 class ProductionTools:
-    def _input_signature(self, p, shot, kind):
+    def _input_signature(self, p, shot, kind, *, legacy=False):
         prepared = prompt_for(p, shot, kind)
-        value = {'model': prepared.get('model'), 'generator_profile': prepared.get('generator_profile'), 'model_guidance': prepared.get('model_guidance'), 'creative_intent': prepared.get('creative_intent'), 'prompt': prepared['prompt'], 'negative': prepared['negative_prompt'], 'aspect': prepared['aspect_ratio'],
+        value = {'model': prepared.get('model'), 'generator_profile': prepared.get('generator_profile'), 'model_guidance': prepared.get('model_guidance'), 'prompt': prepared['prompt'], 'negative': prepared['negative_prompt'], 'aspect': prepared['aspect_ratio'],
                  'references': [{k: a.get(k) for k in ['id', 'slot', 'version', 'binding_role']} for a in references_for(p, shot, kind)]}
+        if legacy:
+            value['creative_intent'] = prepared.get('creative_intent')
+        else:
+            value['intake_style'] = (prepared.get('creative_intent') or {}).get('art_style')
         if p.get('generation_setup'):
             selection = p['generation_setup'].get(kind) or {}
             value['generator_execution_selection'] = {key: selection.get(key) for key in
@@ -207,7 +211,7 @@ class ProductionTools:
                 self._guard_calibration_pending(p, actor, shot['id'])
             signature = self._input_signature(p, shot, asset['kind'])
             job = next((j for j in p['jobs'] if j.get('asset_id') == asset_id), {})
-            if asset.get('input_signature') != signature and job.get('fingerprint') != self._fingerprint(p, shot, asset['kind']):
+            if asset.get('input_signature') not in {signature, self._input_signature(p, shot, asset['kind'], legacy=True)} and job.get('fingerprint') != self._fingerprint(p, shot, asset['kind']):
                 raise StudioError('incompatible_take', 'This take used different creative inputs. Restore those inputs or generate a compatible take.', 409)
             if shot[asset['kind'] + '_asset'] == asset_id:
                 return
@@ -247,6 +251,46 @@ class ProductionTools:
             self._invalidate_selected(p, {shot_id: {kind}})
             self._progress(p)
             audit(p, actor, f'Targeted {kind} revision: {shot["title"]} — {reason}')
+        return self.mutate(project_id, expected_revision, update)
+
+    def request_revision(self, project_id, shot_id, asset_id, kind, reason, expected_revision, actor):
+        from .creator_chat import creator_authority
+        from .calibration import calibration_action, representative, style_contract_signature, baseline_take_signature
+        from datetime import datetime, timezone
+        if not creator_authority(actor):
+            raise StudioError('human_only', 'A modification request needs an explicit creator decision.', 403)
+        if kind not in {'image', 'video'} or not isinstance(reason, str) or not reason.strip():
+            raise StudioError('invalid_revision', 'Name the requested image/video modification.')
+        def update(p):
+            action = calibration_action(p)
+            target = shot_id or (action or {}).get('shot_id')
+            if not target:
+                selected = [s for s in p['shots'] if s.get(kind+'_asset')]
+                if len(selected) == 1:
+                    target = selected[0]['id']
+            shot = next((s for s in p['shots'] if s['id'] == target), None)
+            if not shot or (asset_id and shot.get(kind+'_asset') != asset_id):
+                raise StudioError('decision_target', 'Choose the current shot/take; the requested target is ambiguous or stale.', 409)
+            if action and action['action'] == 'await_calibration_approval':
+                if kind != 'image' or action['shot_id'] != shot['id']:
+                    raise StudioError('decision_target', 'The pending creator decision concerns another take.', 409)
+                self._review_calibration_inplace(p, action['asset_id'], False, reason, actor)
+            else:
+                selected = next((a for a in p['assets'] if a['id'] == shot.get(kind+'_asset')), None)
+                calibration = p.get('calibration')
+                if selected and kind == 'image' and calibration:
+                    calibration['history'].append({'decision':'reject','asset_id':selected['id'],'shot_id':shot['id'],
+                        'actor':actor,'at':datetime.now(timezone.utc).isoformat(),'note':reason.strip(),
+                        'scope':list(calibration['scope']),'style_signature':style_contract_signature(p),
+                        'take_signature':baseline_take_signature(p,selected)})
+                    if shot['id'] == (representative(p) or {}).get('id'):
+                        calibration.update(status='rejected',feedback=reason.strip())
+                self._invalidate_selected(p, {shot['id']: {kind}})
+            shot['direction']['quality']['revision_reason'] = reason[:8000]
+            shot.setdefault('quality_retry_exhausted', {}).pop(kind, None)
+            shot.setdefault('quality_retry_attention', {}).pop(kind, None)
+            self._progress(p)
+            audit(p, actor, 'Creator requested revision: '+shot['title'])
         return self.mutate(project_id, expected_revision, update)
 
     def extract_continuation(self, project_id, asset_id, expected_revision, actor):

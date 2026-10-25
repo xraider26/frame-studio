@@ -116,6 +116,7 @@ class ImageRequirements(Record):
 
 
 class Direction(Record):
+    style_review: Literal['inherit', 'separate'] = 'inherit'
     image: ImageRequirements = Field(default_factory=ImageRequirements)
     editorial: Editorial = Field(default_factory=Editorial)
     recipe_role: Short = ''

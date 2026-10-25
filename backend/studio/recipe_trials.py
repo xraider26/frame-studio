@@ -1,4 +1,5 @@
 """Human observations of actual final edits, scoped to immutable production inputs."""
+from .creator_chat import creator_authority
 import copy
 import hashlib
 import json
@@ -80,7 +81,7 @@ class RecipeTrials:
                 'scope': 'Historical human assessments of these exact inputs and final files. Repeated ideas and real generator trials are still required to establish consistency. Still examples are not video trials.'}
 
     def record_recipe_trial(self, project_id, assessment, expected_revision, actor):
-        if actor != 'user':
+        if not creator_authority(actor):
             raise StudioError('human_only', 'Final production assessment belongs to the human reviewer.', 403)
         if type(expected_revision) is not int or not isinstance(assessment, dict):
             raise StudioError('invalid_assessment', 'Use a current project revision and a structured final assessment.')

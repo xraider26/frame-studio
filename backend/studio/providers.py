@@ -72,7 +72,14 @@ class Providers:
         self._save()
         return self.public()
 
-    def _save(self):
+    def _save(self, *, immediate=False):
+        from .creator_chat import current_decision
+        decision = current_decision()
+        if decision is not None and not immediate:
+            writes = decision['provider_writes']
+            if not any(provider is self for provider, old in writes):
+                writes.append((self, self.config_path.read_text() if self.config_path.exists() else None))
+            return
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.config_path.with_suffix('.tmp')
         tmp.write_text(json.dumps(self.connections, indent=2), encoding='utf-8')

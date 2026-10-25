@@ -24,6 +24,7 @@ export type TakeReview = {
 };
 export type ImageRequirements = {mode:"generate"|"edit";instructions:string;preserve:string;exact_text:string[];layout:string;background:string};
 export type Direction = {
+  style_review?: "inherit" | "separate";
   image?: ImageRequirements;
   editorial?: {coverage_role:string;purpose:string;transition_in:string;audio_source_shot_id:string;audio_continuity:string};
   recipe_role?: string;

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Download, ArrowRight } from "lucide-react";
-import {GeneratorSetup} from "./generator-setup";
 import { studioApi } from "./client";
 import { DraftNotice, useDraft } from "./creative-forms";
 import { Checks } from "./creative-workspace";
@@ -70,7 +69,6 @@ export function GeneratorExport({
         Choose the generator’s prompt profile. Export a portable package for
         your agent, or use the same prompts through a connected API.
       </p>
-      <GeneratorSetup key={project.id} project={project} busy={busy} save={save} imageProfiles={imageProfiles} videoProfiles={videoProfiles}/>
       <ControlModeSwitch mode={mode} onChange={setMode} label="Generator" />
       <DraftNotice {...form} />
       <div className="fs-generator-controls">

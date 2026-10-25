@@ -3,6 +3,7 @@
 All permissions are computed from current inputs. Stored technical passes never
 confer creator authority, and decision history is retained when inputs change.
 """
+from .creator_chat import creator_authority
 import copy
 import hashlib
 import json
@@ -160,6 +161,26 @@ def acceptance_current(project, asset, decision):
                 and decision.get('take_signature') == baseline_take_signature(project, asset))
 
 
+def recover_baseline_approval(project):
+    """Recover a real historical approval only when its exact take/inputs return."""
+    c = project.get('calibration', {})
+    if c.get('mode') != 'calibration':
+        return
+    shot = representative(project)
+    asset = next((a for a in project['assets'] if shot and a['id'] == shot.get('image_asset')), None)
+    if not asset:
+        return
+    history = c.get('history', [])
+    boundary = max((i for i,h in enumerate(history) if h.get('decision') in {'adopt', 'skip', 'scope'}), default=-1)
+    decisions = [h for h in history[boundary+1:] if h.get('asset_id') == asset['id'] and h.get('decision') in {'approve', 'reject'}]
+    decision = decisions[-1] if decisions else None
+    if decision and decision['decision'] == 'approve' and acceptance_current(project, asset, decision):
+        c.update(status='approved', baseline_asset_id=asset['id'], style_signature=decision['style_signature'], take_signature=decision['take_signature'])
+        pending = c.get('pending_decision')
+        if pending and pending.get('asset_id') == asset['id']:
+            c['pending_decision'] = None
+
+
 def calibration_state(project):
     c = project.get('calibration')
     if not c:
@@ -190,10 +211,9 @@ def candidate_current(project, asset):
 
 
 def style_override(project, shot):
-    # Only explicit structural treatment overrides; ordinary scene/environment prose is not style inference.
-    shared = effective_direction(project, {**shot, 'direction': {}})
-    actual = effective_direction(project, shot)
-    return any(actual[key] != shared[key] for key in ('art', 'lighting'))
+    # A new scene/time/material is not a new shared visual treatment. Separate
+    # style acceptance is an explicit request, never inferred from world prose.
+    return shot.get('direction', {}).get('style_review', 'inherit') == 'separate'
 
 
 def shot_style_accepted(project, shot):
@@ -297,14 +317,14 @@ def calibration_action(project):
 
 class Calibration:
     def _guard_calibration_pending(self, p, actor, shot_id=None):
-        if actor == 'user':
+        if creator_authority(actor):
             return
         action = calibration_action(p)
         if action and action['action'] == 'await_calibration_approval' and (shot_id is None or action.get('shot_id') == shot_id):
             raise StudioError('calibration_pending', 'Wait for the creator to accept or reject the inspected take before replacing its inputs or requesting another image.', 409)
 
     def _guard_calibration_mutation(self, before, after, actor):
-        if actor == 'user':
+        if creator_authority(actor):
             return
         action = calibration_action(before)
         if not action or action['action'] != 'await_calibration_approval':
@@ -316,7 +336,7 @@ class Calibration:
 
     def set_calibration_mode(self, project_id, mode, expected_revision, actor):
         from .agent_rules import validate_revision
-        if actor != 'user':
+        if not creator_authority(actor):
             raise StudioError('human_only', 'Only the creator can adopt or skip calibration.', 403)
         validate_revision(expected_revision)
         if mode not in {'calibration', 'production'}:
@@ -330,7 +350,7 @@ class Calibration:
 
     def configure_calibration(self, project_id, representative_shot_id, scope, expected_revision, actor):
         from .agent_rules import validate_revision
-        if actor != 'user':
+        if not creator_authority(actor):
             raise StudioError('human_only', 'Only the creator can choose or narrow calibration scope.', 403)
         validate_revision(expected_revision)
         if not isinstance(scope, list) or not scope or any(v not in PURPOSES for v in scope) or len(set(scope)) != len(scope):
@@ -341,41 +361,42 @@ class Calibration:
             if any(j['status'] in {'running', 'awaiting_external_output', 'queued'} for j in p['jobs']):
                 raise StudioError('job_running', 'Close pending generation before changing calibration scope.', 409)
             c = p.setdefault('calibration', default_calibration())
-            c.update(representative_shot_id=representative_shot_id, representative_selection_source='human_ui', scope=list(scope), status='not_started', baseline_asset_id=None, pending_decision=None)
+            c.update(representative_shot_id=representative_shot_id, representative_selection_source='creator_chat' if actor.startswith('creator_chat:') else 'human_ui', scope=list(scope), status='not_started', baseline_asset_id=None, pending_decision=None)
             c['history'].append({'decision': 'scope', 'actor': actor, 'at': datetime.now(timezone.utc).isoformat(), 'scope': list(scope), 'representative_shot_id': representative_shot_id})
             self._reopen(p, 'visual_direction'); self._progress(p)
         return self.mutate(project_id, expected_revision, update)
 
     def review_calibration(self, project_id, asset_id, approve, note, expected_revision, actor):
         from .agent_rules import validate_revision
-        if actor != 'user':
+        if not creator_authority(actor):
             raise StudioError('human_only', 'Creator style acceptance cannot be asserted by an agent.', 403)
         validate_revision(expected_revision)
         if type(approve) is not bool or not isinstance(note, str) or len(note) > 8000 or (not approve and not note.strip()):
             raise StudioError('invalid_calibration', 'Use an approval boolean and feedback for a rejection.')
-        def update(p):
-            action = calibration_action(p)
-            if not action or action.get('action') != 'await_calibration_approval' or action.get('asset_id') != asset_id:
-                raise StudioError('calibration_blocked', 'Inspect the current non-stale take before creator style acceptance.', 409)
-            if approve and not action.get('technical_ready', False):
-                raise StudioError('calibration_blocked', 'Correct the current technical evidence before creator acceptance, or reject the take to authorize repair.', 409)
-            asset = next(a for a in p['assets'] if a['id'] == asset_id)
-            shot = next(s for s in p['shots'] if s['id'] == asset['shot_id'])
-            c = p['calibration']; is_baseline = shot['id'] == representative(p)['id']
-            decision = {'decision': 'approve' if approve else 'reject', 'asset_id': asset_id, 'shot_id': shot['id'],
-                        'actor': actor, 'at': datetime.now(timezone.utc).isoformat(), 'note': note.strip(), 'scope': copy.deepcopy(c['scope']),
-                        'style_signature': style_contract_signature(p), 'take_signature': baseline_take_signature(p, asset)}
-            c['history'].append(decision)
-            c['pending_decision'] = None
-            if approve:
-                if is_baseline:
-                    c.update(status='approved', baseline_asset_id=asset_id, representative_shot_id=shot['id'], style_signature=decision['style_signature'], take_signature=decision['take_signature'])
-                else:
-                    c['shot_acceptances'][shot['id']] = decision
+        return self.mutate(project_id, expected_revision, lambda p: self._review_calibration_inplace(p, asset_id, approve, note, actor))
+
+    def _review_calibration_inplace(self, p, asset_id, approve, note, actor):
+        action = calibration_action(p)
+        if not action or action.get('action') != 'await_calibration_approval' or action.get('asset_id') != asset_id:
+            raise StudioError('calibration_blocked', 'Inspect the current non-stale take before creator style acceptance.', 409)
+        if approve and not action.get('technical_ready', False):
+            raise StudioError('calibration_blocked', 'Correct the current technical evidence before creator acceptance, or reject the take to authorize repair.', 409)
+        asset = next(a for a in p['assets'] if a['id'] == asset_id)
+        shot = next(s for s in p['shots'] if s['id'] == asset['shot_id'])
+        c = p['calibration']; is_baseline = shot['id'] == representative(p)['id']
+        decision = {'decision': 'approve' if approve else 'reject', 'asset_id': asset_id, 'shot_id': shot['id'],
+                    'actor': actor, 'at': datetime.now(timezone.utc).isoformat(), 'note': note.strip(), 'scope': copy.deepcopy(c['scope']),
+                    'style_signature': style_contract_signature(p), 'take_signature': baseline_take_signature(p, asset)}
+        c['history'].append(decision)
+        c['pending_decision'] = None
+        if approve:
+            if is_baseline:
+                c.update(status='approved', baseline_asset_id=asset_id, representative_shot_id=shot['id'], style_signature=decision['style_signature'], take_signature=decision['take_signature'])
             else:
-                if is_baseline:
-                    c.update(status='rejected', feedback=note.strip())
-                shot['direction']['quality']['revision_reason'] = note.strip()
-                self._invalidate_selected(p, {shot['id']: {'image'}})
-            self._progress(p)
-        return self.mutate(project_id, expected_revision, update)
+                c['shot_acceptances'][shot['id']] = decision
+        else:
+            if is_baseline:
+                c.update(status='rejected', feedback=note.strip())
+            shot['direction']['quality']['revision_reason'] = note.strip()
+            self._invalidate_selected(p, {shot['id']: {'image'}})
+        self._progress(p)

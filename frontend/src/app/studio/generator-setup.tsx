@@ -1,5 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useId,useMemo,useState} from "react";
 import {DraftNotice,useDraft} from "./creative-forms";
 import {studioApi} from "./client";
 import type {GenerationSetup, GeneratorSelection, Project} from "./creative-types";
@@ -49,9 +49,10 @@ export function GeneratorSetup({project,busy,save,imageProfiles,videoProfiles}:{
   const form=useDraft(saved,project.revision,"generator-setup:"+project.id);
   const draft=form.draft;
   const [error,setError]=useState("");
-  return <section className="fs-generator-controls"><h2>Project generators</h2>{!editing?<><p>{project.generation_setup?.image?.tool_name}{project.output_type!=="image"&&` · ${project.generation_setup?.video?.tool_name||"Video deferred"}`}</p><button className="fs-button" onClick={()=>setEditing(true)}>Change generator setup</button></>:<>
+  const detailsId=useId();
+  return <section className="fs-generator-setup" aria-label="Project generators"><div className="fs-generator-summary"><h2>Project generators</h2><p>{project.generation_setup?.image?.tool_name||"Image generator needed"}{project.output_type!=="image"&&` · ${project.generation_setup?.video?.tool_name||(project.generation_setup?.video===null?"Video deferred":"Video generator needed")}`}</p><button className="fs-button" aria-expanded={editing} aria-controls={detailsId} onClick={()=>setEditing(!editing)}>{editing?"Close generator setup":"Change generator setup"}</button></div>{editing&&<div id={detailsId} className="fs-generator-details">
     <GeneratorSetupFields outputType={project.output_type||"video"} value={draft} onChange={value=>form.edit(()=>value)} imageProfiles={imageProfiles} videoProfiles={videoProfiles}/>
     <DraftNotice {...form}/>
     {error&&<p role="alert">{error}</p>}<button className="fs-primary" disabled={busy||form.conflict} onClick={()=>{setError("");try{const setup=serializeGenerationSetup(project.output_type||"video",draft,project.generation_setup);void save(async()=>{await studioApi("set_generation_setup",{project_id:project.id,expected_revision:form.revision,setup});form.saved();setEditing(false);});}catch(e){setError((e as Error).message);}}}>Save generator setup</button>
-  </>}</section>;
+  </div>}</section>;
 }

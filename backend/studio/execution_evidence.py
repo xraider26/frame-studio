@@ -5,6 +5,7 @@ Mappings establish traceability, never media compliance or creator approval.
 import copy
 import hashlib
 import json
+from pathlib import Path
 from datetime import datetime, timezone
 
 from .store import StudioError
@@ -155,7 +156,22 @@ def validate_execution(job: dict, execution: dict) -> dict:
             # Native tool arguments are authoritative when their schema is known.
             if isinstance(arguments.get('prompt'), str) and normalize_lines(arguments['prompt']) != normalize_lines(execution['prompt']): prompt = 'mismatch'
             if isinstance(arguments.get('negative_prompt'), str) and normalize_lines(arguments['negative_prompt']) != normalize_lines(execution['negative_prompt']): prompt = 'mismatch'
-            if 'referenced_image_paths' in arguments and arguments['referenced_image_paths'] != [r.get('path') for r in handoff.get('references', [])]: refs = 'mismatch'
+            if 'referenced_image_paths' in arguments and (execution.get('reference_files') is not None or arguments['referenced_image_paths'] != [r.get('path') for r in handoff.get('references', [])]):
+                # A client may stage the same versioned bytes outside AppData.
+                # Keep native arguments exact and compare separately observed
+                # file digests; a claimed alternate path alone is insufficient.
+                observed = execution.get('reference_files', [])
+                expected = handoff.get('references', [])
+                try:
+                    paths = arguments['referenced_image_paths']
+                    identical = (isinstance(paths, list) and len(paths) == len(expected) == len(observed)
+                                 and [f['path'] for f in observed] == paths)
+                    for actual, reference in zip(observed, expected):
+                        with Path(reference['path']).open('rb') as stream:
+                            identical = identical and actual.get('sha256') == hashlib.file_digest(stream, 'sha256').hexdigest()
+                    if not identical: refs = 'mismatch'
+                except (OSError, KeyError, TypeError):
+                    refs = 'mismatch'
         if execution.get('tool') in {'imagegen', 'image_gen', 'image_gen.imagegen'} and execution['negative_prompt']:
             # An unsupported native field cannot be made applied by reporting it separately.
             prompt = 'mismatch'
@@ -186,13 +202,16 @@ class ExecutionEvidence:
         return self._record_generation_execution(job_id, execution, expected_revision, actor, server=False)
 
     def _record_generation_execution(self, job_id, execution, expected_revision, actor, *, server=False):
-        allowed = {'tool', 'prompt', 'negative_prompt', 'references', 'arguments', 'unsupported_constraints'}
+        allowed = {'tool', 'prompt', 'negative_prompt', 'references', 'arguments', 'unsupported_constraints', 'reference_files'}
         if not isinstance(execution, dict) or set(execution)-allowed or not {'tool','prompt','negative_prompt','references','arguments'} <= execution.keys():
             raise StudioError('invalid_execution', 'Provide exact tool, positive/negative prompts, actual references and supplied arguments; attribution is server controlled.')
         if any(not isinstance(execution[k], str) or len(execution[k]) > 100000 for k in ('tool','prompt','negative_prompt')) or not execution['tool'].strip() or not isinstance(execution['references'], list) or len(execution['references']) > 100 or not isinstance(execution['arguments'], dict):
             raise StudioError('invalid_execution', 'Execution request fields have invalid types or sizes.')
         if any(not isinstance(r, dict) or not isinstance(r.get('id'), str) or type(r.get('version')) is not int or r['version'] < 1 or not isinstance(r.get('slot'), str) for r in execution['references']):
             raise StudioError('invalid_execution', 'Every submitted reference needs its actual asset ID, integer version and slot.')
+        files = execution.get('reference_files', [])
+        if not isinstance(files, list) or len(files) > 100 or any(not isinstance(f, dict) or set(f) != {'path', 'sha256'} or not isinstance(f['path'], str) or not isinstance(f['sha256'], str) or len(f['sha256']) != 64 for f in files):
+            raise StudioError('invalid_execution', 'Observed reference files need their submitted local path and SHA256.')
         try: size = len(json.dumps(execution, allow_nan=False))
         except (TypeError, ValueError) as exc: raise StudioError('invalid_execution', 'Execution must be finite JSON data.') from exc
         if size > 2_000_000: raise StudioError('invalid_execution', 'Execution evidence exceeds 2 MB.')

@@ -46,7 +46,7 @@ async function main(){
  const runtimeRecord=fs.readFileSync(runtimePath),agentRecord=fs.readFileSync(agentPath);
  try {
   fs.unlinkSync(runtimePath);fs.writeFileSync(agentPath,'synthetic-shadow-credential');
-  const mcp=spawnSync(python,[path.join(__dirname,'verify_mcp.py'),path.join(report.resourcesPath,'backend','FrameStudioService.exe'),data],{cwd:working,windowsHide:true,encoding:'utf8',timeout:35000});assert.equal(mcp.status,0,mcp.stderr);console.log(mcp.stdout.trim());
+  const mcp=spawnSync(python,[path.join(__dirname,'verify_mcp.py'),path.join(report.resourcesPath,'backend','FrameStudioService.exe'),data],{cwd:working,windowsHide:true,encoding:'utf8',timeout:65000});assert.equal(mcp.status,0,mcp.stderr);console.log(mcp.stdout.trim());
  } finally {fs.writeFileSync(runtimePath,runtimeRecord);fs.writeFileSync(agentPath,agentRecord);}
  // The second launch should focus the existing instance, not start two services.
  const second=spawnSync(executable,[],{cwd:working,env,windowsHide:true,encoding:'utf8',timeout:10000});assert.equal(second.status,0,second.stderr);
